@@ -60,6 +60,74 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnCancelTarget = document.getElementById('btn-cancel-target');
   const cardDrawAnnouncement = document.getElementById('card-draw-announcement');
 
+  // Card Showcase Cinematic Elements
+  const cardShowcaseOverlay = document.getElementById('card-showcase-overlay');
+  const showcaseBanner = document.getElementById('showcase-banner');
+  const showcaseCasterIcon = document.getElementById('showcase-caster-icon');
+  const showcaseCasterTitle = document.getElementById('showcase-caster-title');
+  const showcaseCard = document.getElementById('showcase-card');
+  const showcaseGem = document.getElementById('showcase-gem');
+  const showcaseType = document.getElementById('showcase-type');
+  const showcaseIcon = document.getElementById('showcase-icon');
+  const showcaseName = document.getElementById('showcase-name');
+  const showcaseDesc = document.getElementById('showcase-desc');
+  const showcaseTargetTag = document.getElementById('showcase-target-tag');
+  const showcaseTargetText = document.getElementById('showcase-target-text');
+
+  let showcaseTimeout = null;
+
+  function showCardPlayCinematic(card, isMe, targetText = null) {
+    if (!cardShowcaseOverlay) return;
+
+    if (showcaseTimeout) {
+      clearTimeout(showcaseTimeout);
+      showcaseTimeout = null;
+    }
+
+    const rarityData = CARD_RARITIES[card.rarity] || CARD_RARITIES.COMMON;
+    showcaseCard.style.setProperty('--showcase-bg', rarityData.bg);
+    showcaseCard.style.setProperty('--showcase-border', rarityData.border);
+
+    if (isMe) {
+      showcaseBanner.className = 'showcase-banner caster-you';
+      showcaseCasterIcon.textContent = '👑';
+      showcaseCasterTitle.textContent = 'ВЫ СЫГРАЛИ КАРТУ:';
+    } else {
+      showcaseBanner.className = 'showcase-banner caster-enemy';
+      showcaseCasterIcon.textContent = '⚔️';
+      showcaseCasterTitle.textContent = 'СОПЕРНИК СЫГРАЛ КАРТУ:';
+    }
+
+    showcaseType.textContent = card.type === 'decree' ? 'УКАЗ / ПРОКЛЯТИЕ' : 'ЗАКЛИНАНИЕ';
+    showcaseIcon.textContent = card.icon;
+    showcaseName.textContent = card.name;
+    showcaseDesc.textContent = card.description;
+
+    if (targetText) {
+      showcaseTargetTag.classList.remove('hidden');
+      showcaseTargetText.textContent = targetText;
+    } else {
+      showcaseTargetTag.classList.add('hidden');
+    }
+
+    cardShowcaseOverlay.classList.remove('hidden');
+
+    showcaseTimeout = setTimeout(() => {
+      cardShowcaseOverlay.classList.add('hidden');
+      showcaseTimeout = null;
+    }, 2200);
+  }
+
+  if (cardShowcaseOverlay) {
+    cardShowcaseOverlay.addEventListener('click', () => {
+      if (showcaseTimeout) {
+        clearTimeout(showcaseTimeout);
+        showcaseTimeout = null;
+      }
+      cardShowcaseOverlay.classList.add('hidden');
+    });
+  }
+
   // Chat & Reactions
   const chatMessagesEl = document.getElementById('chat-messages');
   const chatInput = document.getElementById('chat-input');
@@ -397,6 +465,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (window.sounds) window.sounds.play('castle');
 
+    if (card) {
+      showCardPlayCinematic(card, !isRemote, `Конь (${knightSq}) ⇄ Пешка (${pawnSq})`);
+    }
+
     if (!isRemote && card) {
       deckManager.removeCard(card.instanceId);
       if (mode === 'online' && network.connected) {
@@ -419,6 +491,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function applyCardEffect(card, targetSquare, isRemote = false) {
     if (window.sounds) window.sounds.play('card_play');
+    showCardPlayCinematic(card, !isRemote, targetSquare);
 
     if (!isRemote) {
       deckManager.removeCard(card.instanceId);
@@ -529,13 +602,17 @@ document.addEventListener('DOMContentLoaded', () => {
       // 1. Curse Knight
       if (d.id === 'curse_knight' && moveResult.piece === 'n') {
         deckManager.freezePiece(moveResult.to, movedColor, 1);
-        if (window.sounds) window.sounds.play('freeze');
+        if (window.sounds) {
+          window.sounds.play('curse_trigger');
+          setTimeout(() => window.sounds.play('freeze'), 150);
+        }
         showToast(`⚠️ «Оковы Кентавра»: конь на ${moveResult.to} застыл во льду на 1 ход!`, 4000);
       }
 
       // 2. Curse Rook
       if (d.id === 'curse_rook' && moveResult.piece === 'r') {
         if (d.owner === myColor) {
+          if (window.sounds) window.sounds.play('card_draw');
           triggerCardDraw();
           showToast('🎁 Враг походил Ладьёй! Вы получаете бонусную карту!');
         }
@@ -544,14 +621,20 @@ document.addEventListener('DOMContentLoaded', () => {
       // 3. Tax Castle
       if (d.id === 'tax_castle' && (moveResult.flags.includes('k') || moveResult.flags.includes('q'))) {
         deckManager.freezePiece(moveResult.to, movedColor, 1);
-        if (window.sounds) window.sounds.play('freeze');
+        if (window.sounds) {
+          window.sounds.play('curse_trigger');
+          setTimeout(() => window.sounds.play('freeze'), 150);
+        }
         showToast(`⚠️ «Запрет на Бункер»: Король застыл во льду на 1 ход!`, 4000);
       }
 
       // 4. Blood Tribute
       if (d.id === 'blood_tribute' && moveResult.captured) {
         deckManager.freezePiece(moveResult.to, movedColor, 1);
-        if (window.sounds) window.sounds.play('freeze');
+        if (window.sounds) {
+          window.sounds.play('curse_trigger');
+          setTimeout(() => window.sounds.play('freeze'), 150);
+        }
         showToast(`🩸 «Возмездие Крови»: фигура на ${moveResult.to} заморожена за взятие!`, 4000);
       }
     });

@@ -1566,3 +1566,156 @@ body {
     transform: translateY(-30px) scale(1.15) !important;
   }
 }
+
+
+/* ==========================================================================
+   Hearthstone-style Card Showcase Cinematic Overlay
+   ========================================================================== */
+
+.card-showcase-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.78);
+  backdrop-filter: blur(6px);
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  cursor: pointer;
+  animation: overlay-fade-in 0.2s ease;
+}
+
+@keyframes overlay-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.showcase-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+}
+
+.showcase-banner {
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  padding: 0.55rem 1.6rem;
+  border-radius: 30px;
+  margin-bottom: 1.2rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.7);
+  text-transform: uppercase;
+}
+
+.showcase-banner.caster-you {
+  background: linear-gradient(90deg, #15803d, #22c55e);
+  color: #fff;
+  border: 1.5px solid #86efac;
+}
+
+.showcase-banner.caster-enemy {
+  background: linear-gradient(90deg, #b91c1c, #ef4444);
+  color: #fff;
+  border: 1.5px solid #fca5a5;
+  animation: pulse-danger 1s infinite alternate;
+}
+
+.showcase-card {
+  width: 260px;
+  min-height: 380px;
+  border-radius: 16px;
+  border: 3.5px solid var(--showcase-border, #facc15);
+  background: var(--showcase-bg, linear-gradient(135deg, #1e1b4b, #0f172a));
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.95), 0 0 45px var(--showcase-border, #facc15);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  animation: card-slam 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transform-origin: center;
+}
+
+@keyframes card-slam {
+  0% { transform: scale(1.6) rotate(-7deg); opacity: 0; filter: blur(5px); }
+  70% { transform: scale(0.96) rotate(2deg); opacity: 1; filter: blur(0); }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+.showcase-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.4rem;
+}
+
+.showcase-gem {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background-color: var(--showcase-border, #facc15);
+  box-shadow: 0 0 10px var(--showcase-border, #facc15);
+}
+
+.showcase-type {
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--showcase-border, #facc15);
+  letter-spacing: 1px;
+}
+
+.showcase-art {
+  height: 105px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0.5rem 0;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, rgba(0, 0, 0, 0.55) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.showcase-icon {
+  font-size: 4.2rem;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.9));
+}
+
+.showcase-name {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #fff;
+  text-align: center;
+  margin-bottom: 0.5rem;
+  text-shadow: 0 2px 5px rgba(0, 0, 0, 0.9);
+}
+
+.showcase-desc {
+  font-size: 0.92rem;
+  line-height: 1.45;
+  color: #f1f5f9;
+  background: rgba(0, 0, 0, 0.65);
+  padding: 0.75rem;
+  border-radius: 8px;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.showcase-target-tag {
+  margin-top: 0.6rem;
+  background: #0284c7;
+  color: #fff;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
