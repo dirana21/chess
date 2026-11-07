@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Онлайн Шахматы — Играй с друзьями</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="assets/pieces/wK.svg" type="image/svg+xml">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Top Bar -->
+    <header class="app-header">
+      <div class="header-logo">
+        <span class="logo-icon">♟️</span>
+        <span class="logo-title">Шахматы Онлайн</span>
+      </div>
+      <div class="header-actions">
+        <button id="btn-toggle-sound" class="btn-icon" title="Включить / Выключить звук">🔊</button>
+      </div>
+    </header>
+
+    <!-- 1. Lobby Screen -->
+    <main id="screen-lobby" class="screen-view">
+      <div class="lobby-card">
+        <h1 class="lobby-hero-title">Сетевые Шахматы</h1>
+        <p class="lobby-subtitle">Создайте комнату, отправьте ссылку другу и начните партию прямо в браузере без регистрации!</p>
+
+        <!-- Common Game Settings -->
+        <div class="settings-grid">
+          <div class="setting-item">
+            <label for="time-control-select">Контроль времени</label>
+            <select id="time-control-select" class="form-select">
+              <option value="600" selected>10 минут (Рапид)</option>
+              <option value="300">5 минут (Блиц)</option>
+              <option value="180">3 минуты (Блиц)</option>
+              <option value="900">15 минут (Рапид)</option>
+              <option value="60">1 минута (Пуля)</option>
+              <option value="0">Без времени (∞)</option>
+            </select>
+          </div>
+
+          <div class="setting-item">
+            <label for="side-select">Играть за сторону</label>
+            <select id="side-select" class="form-select">
+              <option value="w" selected>Белые (первый ход)</option>
+              <option value="b">Чёрные</option>
+              <option value="random">Случайно 🎲</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Mode Buttons -->
+        <div class="modes-container">
+          <!-- Online Mode -->
+          <div class="mode-box highlight-box">
+            <div class="mode-header">
+              <span class="mode-icon">🌐</span>
+              <div class="mode-info">
+                <h3>Играть с другом по сети</h3>
+                <p>Создайте комнату и отправьте ссылку или код</p>
+              </div>
+            </div>
+            
+            <button id="btn-create-online" class="btn btn-primary btn-block">
+              ✨ Создать комнату
+            </button>
+
+            <div class="divider"><span>ИЛИ</span></div>
+
+            <div class="join-row">
+              <input type="text" id="join-code-input" class="form-input code-input" placeholder="Код (например, ABC123)" maxlength="6">
+              <button id="btn-join-online" class="btn btn-secondary">Войти</button>
+            </div>
+          </div>
+
+          <!-- Secondary Modes -->
+          <div class="secondary-modes">
+            <!-- Bot Mode -->
+            <div class="mode-box">
+              <div class="mode-header">
+                <span class="mode-icon">🤖</span>
+                <div class="mode-info">
+                  <h3>Игра с компьютером (ИИ)</h3>
+                  <p>Одиночная игра для тренировки</p>
+                </div>
+              </div>
+              <div class="bot-row">
+                <select id="bot-level-select" class="form-select">
+                  <option value="easy">Лёгкий уровень</option>
+                  <option value="medium" selected>Средний уровень</option>
+                  <option value="hard">Сложный уровень</option>
+                </select>
+                <button id="btn-play-bot" class="btn btn-outline">Играть</button>
+              </div>
+            </div>
+
+            <!-- Pass & Play -->
+            <div class="mode-box">
+              <div class="mode-header">
+                <span class="mode-icon">👥</span>
+                <div class="mode-info">
+                  <h3>Вдвоём на одном экране</h3>
+                  <p>Игра друг против друга за одним устройством</p>
+                </div>
+              </div>
+              <button id="btn-pass-play" class="btn btn-outline btn-block">Начать на одном экране</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- 2. Waiting Room Screen -->
+    <main id="screen-waiting" class="screen-view hidden">
+      <div class="lobby-card waiting-card">
+        <div class="waiting-spinner"></div>
+        <h2>Ожидание соперника...</h2>
+        <p>Отправьте эту ссылку или код другу, чтобы он подключился к партии:</p>
+
+        <div class="room-code-badge">
+          <span class="code-label">КОД КОМНАТЫ:</span>
+          <span class="code-value" id="display-room-code">------</span>
+        </div>
+
+        <div class="share-link-group">
+          <input type="text" id="display-room-link" class="form-input" readonly>
+          <button id="btn-copy-link" class="btn btn-primary">Скопировать ссылку</button>
+        </div>
+
+        <p class="waiting-tip">💡 Как только ваш друг откроет ссылку или введёт код, игра начнётся автоматически!</p>
+
+        <button id="btn-cancel-wait" class="btn btn-outline mt-4">Отменить</button>
+      </div>
+    </main>
+
+    <!-- 3. Active Game Screen -->
+    <main id="screen-game" class="screen-view hidden">
+      <div class="game-layout">
+        <!-- Chess Board Column -->
+        <div class="game-board-section">
+          <!-- Top Opponent Bar -->
+          <div class="player-bar" id="player-bar-top">
+            <div class="player-info">
+              <div class="player-avatar">👤</div>
+              <div class="player-meta">
+                <span class="player-name" id="player-name-top">Соперник</span>
+                <div class="captured-pieces" id="captured-top"></div>
+              </div>
+            </div>
+            <div class="player-timer" id="timer-top">10:00</div>
+          </div>
+
+          <!-- Board Mount Point -->
+          <div id="chess-board-container" class="board-container"></div>
+
+          <!-- Bottom Player Bar -->
+          <div class="player-bar" id="player-bar-bottom">
+            <div class="player-info">
+              <div class="player-avatar you">👑</div>
+              <div class="player-meta">
+                <div class="name-adv-row">
+                  <span class="player-name" id="player-name-bottom">Вы</span>
+                  <span class="material-advantage" id="material-advantage"></span>
+                </div>
+                <div class="captured-pieces" id="captured-bottom"></div>
+              </div>
+            </div>
+            <div class="player-timer" id="timer-bottom">10:00</div>
+          </div>
+
+          <!-- In-Game Action Bar -->
+          <div class="game-action-bar">
+            <button id="btn-offer-draw" class="btn-action" title="Предложить ничью">🤝 Ничья</button>
+            <button id="btn-resign" class="btn-action" title="Сдаться">🏳️ Сдаться</button>
+            <button id="btn-flip-board" class="btn-action" title="Перевернуть доску">🔄 Повернуть</button>
+            <button id="btn-leave-game" class="btn-action btn-danger" title="Выйти в меню">🚪 Меню</button>
+          </div>
+        </div>
+
+        <!-- Sidebar (History, Chat, Emojis) -->
+        <aside class="game-sidebar">
+          <!-- Move History -->
+          <div class="sidebar-box history-box">
+            <div class="sidebar-box-header">История ходов</div>
+            <div class="move-history-list" id="move-history-list"></div>
+          </div>
+
+          <!-- Quick Reactions & Chat -->
+          <div class="sidebar-box chat-box">
+            <div class="sidebar-box-header">Реакции и чат</div>
+            <div class="quick-emojis">
+              <button class="emoji-btn" data-emoji="👍">👍</button>
+              <button class="emoji-btn" data-emoji="🔥">🔥</button>
+              <button class="emoji-btn" data-emoji="😮">😮</button>
+              <button class="emoji-btn" data-emoji="👏">👏</button>
+              <button class="emoji-btn" data-emoji="🤝">🤝</button>
+              <button class="emoji-btn" data-emoji="GG!">GG</button>
+            </div>
+            <div class="chat-messages" id="chat-messages"></div>
+            <div class="chat-input-row">
+              <input type="text" id="chat-input" class="form-input" placeholder="Сообщение..." maxlength="80">
+              <button id="btn-send-chat" class="btn btn-secondary">Отправить</button>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </main>
+
+    <!-- Game Over Modal -->
+    <div id="modal-gameover" class="modal-backdrop hidden">
+      <div class="modal-card">
+        <div class="gameover-trophy">🏆</div>
+        <h2 id="gameover-title">Партия завершена</h2>
+        <p id="gameover-desc" class="gameover-desc">Шах и мат</p>
+        <div class="modal-actions">
+          <button id="btn-rematch" class="btn btn-primary btn-block">🔄 Сыграть реванш</button>
+          <button id="btn-return-lobby" class="btn btn-outline btn-block mt-2">В главное меню</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notifications Container -->
+    <div id="toast-container" class="toast-container"></div>
+  </div>
+
+  <!-- Dependencies -->
+  <script src="js/chess.js"></script>
+  <script src="js/peerjs.min.js"></script>
+  <script src="js/pieces.js"></script>
+  <script src="js/sounds.js"></script>
+  <script src="js/bot.js"></script>
+  <script src="js/network.js"></script>
+  <script src="js/board.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
