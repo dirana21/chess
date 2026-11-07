@@ -1156,12 +1156,12 @@ body {
 
 .cards-hand-section {
   width: 100%;
-  max-width: 540px;
-  margin-top: 0.6rem;
+  max-width: 580px;
+  margin-top: 0.8rem;
   background-color: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 0.6rem 0.8rem 0.8rem;
+  border-radius: 10px;
+  padding: 0.8rem 1rem 1.2rem;
   position: relative;
   overflow: visible;
 }
@@ -1170,11 +1170,11 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 0.82rem;
+  font-size: 0.88rem;
   color: var(--text-muted);
-  margin-bottom: 0.6rem;
-  padding-bottom: 0.3rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  margin-bottom: 0.8rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .hand-title {
@@ -1190,23 +1190,23 @@ body {
   display: flex;
   justify-content: center;
   align-items: flex-end;
-  gap: 0.5rem;
-  min-height: 155px;
+  gap: 0.75rem;
+  min-height: 235px;
   perspective: 1000px;
-  padding: 0.5rem 0.2rem;
+  padding: 1rem 0.4rem 0.5rem;
 }
 
-/* Individual Card (Hearthstone style) */
+/* Individual Card (Hearthstone style - enlarged & crisp typography) */
 .hs-card {
-  width: 115px;
-  height: 160px;
-  border-radius: 10px;
+  width: 135px;
+  height: 220px;
+  border-radius: 12px;
   border: 2px solid var(--card-border);
   background: var(--card-bg);
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.7);
   display: flex;
   flex-direction: column;
-  padding: 0.4rem;
+  padding: 0.5rem;
   cursor: pointer;
   position: relative;
   user-select: none;
@@ -1215,23 +1215,23 @@ body {
 }
 
 /* Card Arc Layout in Hand */
-.hs-card:nth-child(1):nth-last-child(4) { transform: rotate(-6deg) translateY(4px); }
-.hs-card:nth-child(2):nth-last-child(3) { transform: rotate(-2deg) translateY(0); }
-.hs-card:nth-child(3):nth-last-child(2) { transform: rotate(2deg) translateY(0); }
-.hs-card:nth-child(4):nth-last-child(1) { transform: rotate(6deg) translateY(4px); }
+.hs-card:nth-child(1):nth-last-child(4) { transform: rotate(-5deg) translateY(4px); }
+.hs-card:nth-child(2):nth-last-child(3) { transform: rotate(-1.5deg) translateY(0); }
+.hs-card:nth-child(3):nth-last-child(2) { transform: rotate(1.5deg) translateY(0); }
+.hs-card:nth-child(4):nth-last-child(1) { transform: rotate(5deg) translateY(4px); }
 
-.hs-card:nth-child(1):nth-last-child(3) { transform: rotate(-4deg) translateY(2px); }
+.hs-card:nth-child(1):nth-last-child(3) { transform: rotate(-3.5deg) translateY(2px); }
 .hs-card:nth-child(2):nth-last-child(2) { transform: rotate(0deg) translateY(0); }
-.hs-card:nth-child(3):nth-last-child(1) { transform: rotate(4deg) translateY(2px); }
+.hs-card:nth-child(3):nth-last-child(1) { transform: rotate(3.5deg) translateY(2px); }
 
-.hs-card:nth-child(1):nth-last-child(2) { transform: rotate(-3deg); }
-.hs-card:nth-child(2):nth-last-child(1) { transform: rotate(3deg); }
+.hs-card:nth-child(1):nth-last-child(2) { transform: rotate(-2.5deg); }
+.hs-card:nth-child(2):nth-last-child(1) { transform: rotate(2.5deg); }
 
 /* Hover Zoom & Highlight */
 .hs-card:hover {
-  transform: translateY(-40px) scale(1.35) rotate(0deg) !important;
-  z-index: 100 !important;
-  box-shadow: 0 16px 30px rgba(0, 0, 0, 0.9), 0 0 20px var(--card-border) !important;
+  transform: translateY(-55px) scale(1.35) rotate(0deg) !important;
+  z-index: 200 !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.95), 0 0 25px var(--card-border) !important;
 }
 
 /* Card Elements */
@@ -1239,7 +1239,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.2rem;
+  margin-bottom: 0.3rem;
 }
 
 .card-gem {
@@ -1247,27 +1247,28 @@ body {
   height: 14px;
   border-radius: 50%;
   background-color: var(--card-border);
-  box-shadow: 0 0 6px var(--card-border);
+  box-shadow: 0 0 8px var(--card-border);
   display: inline-block;
 }
 
 .card-type-tag {
-  font-size: 0.6rem;
-  font-weight: 700;
+  font-size: 0.65rem;
+  font-weight: 800;
   text-transform: uppercase;
   color: var(--card-border);
   letter-spacing: 0.5px;
 }
 
 .card-art-box {
-  flex: 1;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.08) 0%, rgba(0, 0, 0, 0.4) 100%);
-  border-radius: 6px;
+  height: 52px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.12) 0%, rgba(0, 0, 0, 0.45) 100%);
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 0.3rem;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 0.35rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
 }
 
 .card-icon {
@@ -1276,47 +1277,57 @@ body {
 }
 
 .card-name {
-  font-size: 0.68rem;
-  font-weight: 700;
+  font-size: 0.8rem;
+  font-weight: 800;
   color: #fff;
   text-align: center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  margin-bottom: 0.2rem;
+  line-height: 1.25;
+  margin-bottom: 0.35rem;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  flex-shrink: 0;
 }
 
 .card-desc {
-  font-size: 0.56rem;
-  line-height: 1.25;
-  color: #cbd5e1;
-  background: rgba(0, 0, 0, 0.4);
-  padding: 0.25rem 0.35rem;
-  border-radius: 4px;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: #f1f5f9;
+  background: rgba(0, 0, 0, 0.55);
+  padding: 0.45rem 0.4rem;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   text-align: center;
-  min-height: 38px;
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: visible;
+  word-break: normal;
 }
 
 .btn-play-card {
   width: 100%;
-  margin-top: 0.25rem;
-  padding: 0.25rem 0;
-  font-size: 0.65rem;
-  font-weight: 700;
+  margin-top: 0.35rem;
+  padding: 0.4rem 0;
+  font-size: 0.75rem;
+  font-weight: 800;
   text-transform: uppercase;
   background-color: var(--primary);
   color: #fff;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .btn-play-card:hover {
   background-color: var(--primary-hover);
+  transform: translateY(-1px);
+}
+
+.btn-play-card:active {
+  transform: translateY(1px);
 }
 
 /* Card Draw Fly-in Announcement */
@@ -1369,4 +1380,27 @@ body {
 
 .full-width {
   grid-column: 1 / -1;
+}
+
+
+/* Responsive Hand on Small Screens */
+@media (max-width: 580px) {
+  .cards-hand-container {
+    justify-content: flex-start;
+    overflow-x: auto;
+    padding-bottom: 0.8rem;
+    -webkit-overflow-scrolling: touch;
+    gap: 0.5rem;
+  }
+
+  .hs-card {
+    flex-shrink: 0;
+    width: 125px;
+    height: 215px;
+    transform: none !important;
+  }
+
+  .hs-card:hover {
+    transform: translateY(-30px) scale(1.15) !important;
+  }
 }
