@@ -206,7 +206,7 @@ class ChessBoardUI {
 
   _isTargetValid(square, piece) {
     if (!this.targetingMode) return false;
-    const turn = this.game ? this.game.turn() : 'w';
+    const turn = this.options.playerColor || (this.game ? this.game.turn() : 'w');
     const opponent = turn === 'w' ? 'b' : 'w';
 
     switch (this.targetingMode) {
@@ -394,6 +394,15 @@ class ChessBoardUI {
 
     const onPointerDown = (e) => {
       if (!this.options.interactive || !this.game || this.game.game_over()) return;
+
+      // In targeting mode, execute target click immediately and do NOT drag!
+      if (this.targetingMode) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.onSquareClick(square, e);
+        return;
+      }
+
       const piece = this.getPieceAt(square);
       if (!piece || piece.color !== this.game.turn()) return;
       if (this.options.playerColor && this.options.playerColor !== piece.color) return;
@@ -456,6 +465,12 @@ class ChessBoardUI {
     };
 
     pieceEl.addEventListener('pointerdown', onPointerDown);
+    pieceEl.addEventListener('click', (e) => {
+      if (this.targetingMode) {
+        e.stopPropagation();
+        this.onSquareClick(square, e);
+      }
+    });
   }
 
   _positionGhost(el, x, y) {

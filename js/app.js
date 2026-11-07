@@ -461,7 +461,15 @@ document.addEventListener('DOMContentLoaded', () => {
     game.remove(knightSq);
     game.remove(pawnSq);
     game.put(kPiece, pawnSq);
-    game.put(pPiece, knightSq);
+
+    // If pawn lands on rank 1 or 8, promote it to a Knight so it never gets stuck
+    const destRank = parseInt(knightSq[1], 10);
+    const isPawnOnBackRank = (pPiece.type === 'p') && ((pPiece.color === 'w' && destRank === 1) || (pPiece.color === 'b' && destRank === 8));
+    if (isPawnOnBackRank) {
+      game.put({ type: 'n', color: pPiece.color }, knightSq);
+    } else {
+      game.put(pPiece, knightSq);
+    }
 
     if (window.sounds) window.sounds.play('castle');
 
@@ -480,11 +488,14 @@ document.addEventListener('DOMContentLoaded', () => {
           byPlayer: myColor
         });
       }
-      showToast(`👥 Обмен теней: Конь (${knightSq}) и Пешка (${pawnSq}) поменялись местами!`);
+      showToast(isPawnOnBackRank 
+        ? `👥 Обмен теней: Конь переместился на ${pawnSq}, а пешка стала всадником на ${knightSq}!` 
+        : `👥 Обмен теней: Конь (${knightSq}) и Пешка (${pawnSq}) поменялись местами!`, 4000);
     } else {
-      showToast(`👥 Соперник применил «Обмен теней»: Конь и Пешка поменялись местами!`);
+      showToast(`👥 Соперник применил «Обмен теней»: Конь и Пешка поменялись местами!`, 4000);
     }
 
+    boardUI.lastMove = { from: knightSq, to: pawnSq };
     renderCardsHand();
     if (boardUI) boardUI.render();
   }
