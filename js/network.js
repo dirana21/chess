@@ -197,6 +197,12 @@ class ChessNetwork {
         case 'rematch-accept':
           this._emit('rematchAccept', data);
           break;
+        case 'card-play':
+          this._emit('cardPlay', data);
+          break;
+        case 'card-draw':
+          this._emit('cardDraw', data);
+          break;
       }
     });
   }
@@ -250,6 +256,24 @@ class ChessNetwork {
 
   sendRematchAccept(newConfig) {
     this.send({ type: 'rematch-accept', config: newConfig });
+  }
+
+  sendCardPlay(card, targetSquare, byPlayer) {
+    this.send({
+      type: 'card-play',
+      card,
+      targetSquare,
+      byPlayer,
+      timestamp: Date.now()
+    });
+  }
+
+  sendCardDraw(count = 1) {
+    this.send({
+      type: 'card-draw',
+      count,
+      timestamp: Date.now()
+    });
   }
 
   cleanup() {

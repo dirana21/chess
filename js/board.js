@@ -5,10 +5,14 @@ class ChessBoardUI {
     this.options = Object.assign({
       orientation: 'w', // 'w' or 'b'
       interactive: true,
-      onMove: null // callback(from, to, promotion)
+      onMove: null, // callback(from, to, promotion)
+      deckManager: null, // reference to CardDeckManager
+      onSquareTargeted: null // callback(square) for card targeting
     }, options);
 
     this.game = null; // instance of Chess
+    this.deckManager = this.options.deckManager;
+    this.targetingMode = null; // 'empty_square', 'enemy_piece', etc.
     this.orientation = this.options.orientation;
     this.selectedSquare = null;
     this.legalMoves = [];
@@ -113,18 +117,64 @@ class ChessBoardUI {
           }
         }
 
+        // --- Card Effects Overlays ---
+        if (this.deckManager) {
+          // Frozen piece
+          if (this.deckManager.isPieceFrozen(square)) {
+            sqEl.classList.add('frozen-square');
+            const iceOverlay = document.createElement('div');
+            iceOverlay.className = 'ice-overlay';
+            iceOverlay.innerHTML = '❄️';
+            sqEl.appendChild(iceOverlay);
+          }
+
+          // Forbidden square
+          if (this.deckManager.forbiddenSquares[square]) {
+            sqEl.classList.add('forbidden-square');
+            const skullOverlay = document.createElement('div');
+            skullOverlay.className = 'forbidden-overlay';
+            skullOverlay.innerHTML = '☠️';
+            sqEl.appendChild(skullOverlay);
+          }
+
+          // Smoke screen
+          if (this.deckManager.smokeArea && this.deckManager.smokeArea.squares.includes(square)) {
+            sqEl.classList.add('smoke-square');
+          }
+        }
+
         // Render piece
         const piece = this.getPieceAt(square);
         if (piece) {
           const pieceEl = document.createElement('div');
           pieceEl.className = `piece ${piece.color === 'w' ? 'white-piece' : 'black-piece'}`;
+          
+          // Check if piece is under active decree
+          if (this.deckManager && this.deckManager.activeDecrees.some(d => d.penaltyTarget === piece.type && d.owner !== piece.color)) {
+            pieceEl.classList.add('cursed-piece');
+          }
+
           pieceEl.innerHTML = getPieceSvg(piece.type, piece.color);
           pieceEl.dataset.square = square;
 
-          // Drag & Touch support
-          this._bindPieceEvents(pieceEl, square);
+          // Drag & Touch support (only if not frozen)
+          const isFrozen = this.deckManager && this.deckManager.isPieceFrozen(square);
+          if (!isFrozen) {
+            this._bindPieceEvents(pieceEl, square);
+          } else {
+            pieceEl.style.cursor = 'not-allowed';
+            pieceEl.style.filter = 'drop-shadow(0 0 8px #38bdf8)';
+          }
 
           sqEl.appendChild(pieceEl);
+        }
+
+        // Targeting mode highlight
+        if (this.targetingMode) {
+          const isTargetValid = this._isTargetValid(square, piece);
+          if (isTargetValid) {
+            sqEl.classList.add('targetable-square');
+          }
         }
 
         // Destination dot or capture ring
@@ -141,6 +191,34 @@ class ChessBoardUI {
     }
   }
 
+  setTargetingMode(mode) {
+    this.targetingMode = mode;
+    this.selectedSquare = null;
+    this.legalMoves = [];
+    this.render();
+  }
+
+  _isTargetValid(square, piece) {
+    if (!this.targetingMode) return false;
+    const turn = this.game ? this.game.turn() : 'w';
+    const opponent = turn === 'w' ? 'b' : 'w';
+
+    switch (this.targetingMode) {
+      case 'empty_square':
+        return piece === null;
+      case 'enemy_piece':
+        return piece !== null && piece.color === opponent && piece.type !== 'k';
+      case 'square':
+        return true;
+      case 'spawn_square':
+        if (piece !== null) return false;
+        const rank = parseInt(square[1], 10);
+        return turn === 'w' ? (rank === 1 || rank === 2) : (rank === 7 || rank === 8);
+      default:
+        return false;
+    }
+  }
+
   getPieceAt(square) {
     if (!this.game) return null;
     const file = square.charCodeAt(0) - 97;
@@ -154,6 +232,23 @@ class ChessBoardUI {
 
   onSquareClick(square, event) {
     if (!this.options.interactive || !this.game || this.game.game_over()) return;
+
+    // Handle Targeting Mode for Spells
+    if (this.targetingMode) {
+      const piece = this.getPieceAt(square);
+      if (this._isTargetValid(square, piece)) {
+        if (typeof this.options.onSquareTargeted === 'function') {
+          this.options.onSquareTargeted(square);
+        }
+      }
+      return;
+    }
+
+    // Check if clicked piece is frozen
+    if (this.deckManager && this.deckManager.isPieceFrozen(square)) {
+      if (window.sounds) window.sounds.play('freeze');
+      return;
+    }
 
     // If already selected, check if clicked on a legal move destination
     if (this.selectedSquare) {
@@ -209,6 +304,42 @@ class ChessBoardUI {
       to: to,
       promotion: promotion || 'q'
     };
+
+    // Check custom card restrictions
+    if (this.deckManager) {
+      const piece = this.getPieceAt(from);
+      const targetPiece = this.getPieceAt(to);
+
+      // 1. Blind Bishop: cannot capture
+      if (piece && piece.type === 'b' && targetPiece) {
+        const isBlinded = this.deckManager.activeDecrees.some(d => d.id === 'curse_bishop' && d.owner !== piece.color);
+        if (isBlinded) {
+          if (window.sounds) window.sounds.play('illegal');
+          return;
+        }
+      }
+
+      // 2. Heavy Queen: max 2 squares distance
+      if (piece && piece.type === 'q') {
+        const isHeavy = this.deckManager.activeDecrees.some(d => d.id === 'queen_burden' && d.owner !== piece.color);
+        if (isHeavy) {
+          const fileDiff = Math.abs(from.charCodeAt(0) - to.charCodeAt(0));
+          const rankDiff = Math.abs(parseInt(from[1], 10) - parseInt(to[1], 10));
+          if (fileDiff > 2 || rankDiff > 2) {
+            if (window.sounds) window.sounds.play('illegal');
+            return;
+          }
+        }
+      }
+
+      // 3. Smoke Screen: no captures inside smoke
+      if (this.deckManager.smokeArea && targetPiece) {
+        if (this.deckManager.smokeArea.squares.includes(to)) {
+          if (window.sounds) window.sounds.play('illegal');
+          return;
+        }
+      }
+    }
 
     const result = this.game.move(moveData);
     if (result) {

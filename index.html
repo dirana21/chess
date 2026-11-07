@@ -29,6 +29,14 @@
         <!-- Common Game Settings -->
         <div class="settings-grid">
           <div class="setting-item">
+            <label for="game-variant-select">Режим игры</label>
+            <select id="game-variant-select" class="form-select highlight-select">
+              <option value="cards" selected>🃏 Карточные шахматы (С заклинаниями)</option>
+              <option value="classic">♟️ Классические шахматы</option>
+            </select>
+          </div>
+
+          <div class="setting-item">
             <label for="time-control-select">Контроль времени</label>
             <select id="time-control-select" class="form-select">
               <option value="600" selected>10 минут (Рапид)</option>
@@ -40,7 +48,7 @@
             </select>
           </div>
 
-          <div class="setting-item">
+          <div class="setting-item full-width">
             <label for="side-select">Играть за сторону</label>
             <select id="side-select" class="form-select">
               <option value="w" selected>Белые (первый ход)</option>
@@ -136,6 +144,26 @@
 
     <!-- 3. Active Game Screen -->
     <main id="screen-game" class="screen-view hidden">
+      <!-- Active Decrees / Traps HUD -->
+      <div id="active-decrees-container" class="active-decrees-container">
+        <div class="decrees-title">Активные Указы и Проклятия:</div>
+        <div id="active-decrees-list" class="active-decrees-list">
+          <span class="no-decrees-hint">Нет активных проклятий</span>
+        </div>
+      </div>
+
+      <!-- Targeting Cancel Banner -->
+      <div id="targeting-banner" class="targeting-banner hidden">
+        <span>Выберите цель на доске для карты: <strong id="targeting-card-name"></strong></span>
+        <button id="btn-cancel-target" class="btn btn-sm btn-outline">Отмена</button>
+      </div>
+
+      <!-- Card Draw Fly-in Announcement -->
+      <div id="card-draw-announcement" class="card-draw-announcement hidden">
+        <div class="announcement-card-back">🎴</div>
+        <div class="announcement-text">+1 Новая карта получена!</div>
+      </div>
+
       <div class="game-layout">
         <!-- Chess Board Column -->
         <div class="game-board-section">
@@ -167,6 +195,17 @@
               </div>
             </div>
             <div class="player-timer" id="timer-bottom">10:00</div>
+          </div>
+
+          <!-- Hearthstone-style Hand of Cards (Under board) -->
+          <div id="cards-hand-section" class="cards-hand-section">
+            <div class="hand-header">
+              <span class="hand-title">🃏 Ваша рука карт (<span id="hand-count">0</span>/4)</span>
+              <span class="hand-next-draw">Следующая карта через: <strong id="turns-until-card">3</strong> хода</span>
+            </div>
+            <div id="cards-hand-container" class="cards-hand-container">
+              <!-- Cards dynamically inserted here -->
+            </div>
           </div>
 
           <!-- In-Game Action Bar -->
@@ -229,6 +268,7 @@
   <script src="js/peerjs.min.js"></script>
   <script src="js/pieces.js"></script>
   <script src="js/sounds.js"></script>
+  <script src="js/cards.js"></script>
   <script src="js/bot.js"></script>
   <script src="js/network.js"></script>
   <script src="js/board.js"></script>

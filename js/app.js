@@ -47,6 +47,19 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnRematch = document.getElementById('btn-rematch');
   const btnReturnLobby = document.getElementById('btn-return-lobby');
 
+  // Cards UI Elements
+  const gameVariantSelect = document.getElementById('game-variant-select');
+  const activeDecreesContainer = document.getElementById('active-decrees-container');
+  const activeDecreesList = document.getElementById('active-decrees-list');
+  const cardsHandSection = document.getElementById('cards-hand-section');
+  const cardsHandContainer = document.getElementById('cards-hand-container');
+  const handCountEl = document.getElementById('hand-count');
+  const turnsUntilCardEl = document.getElementById('turns-until-card');
+  const targetingBanner = document.getElementById('targeting-banner');
+  const targetingCardName = document.getElementById('targeting-card-name');
+  const btnCancelTarget = document.getElementById('btn-cancel-target');
+  const cardDrawAnnouncement = document.getElementById('card-draw-announcement');
+
   // Chat & Reactions
   const chatMessagesEl = document.getElementById('chat-messages');
   const chatInput = document.getElementById('chat-input');
@@ -60,14 +73,19 @@ document.addEventListener('DOMContentLoaded', () => {
   let game = new Chess();
   let network = new ChessNetwork();
   let bot = new ChessBot();
+  let deckManager = new CardDeckManager();
   let boardUI = null;
 
   let mode = 'online'; // 'online', 'bot', 'pass'
+  let gameVariant = 'cards'; // 'cards' or 'classic'
   let myColor = 'w';
   let opponentColor = 'b';
   let opponentName = 'Соперник';
   let myName = 'Вы';
   let botDifficulty = 'medium';
+
+  let totalMovesCount = 0;
+  let pendingCard = null; // Card currently being targeted
 
   // Timers
   let timeInitial = 600; // in seconds (10 min)
@@ -91,8 +109,10 @@ document.addEventListener('DOMContentLoaded', () => {
     boardUI = new ChessBoardUI(boardContainer, {
       orientation: myColor,
       interactive: true,
+      deckManager: gameVariant === 'cards' ? deckManager : null,
       playerColor: (mode === 'online' || mode === 'bot') ? myColor : null,
-      onMove: handleLocalMove
+      onMove: handleLocalMove,
+      onSquareTargeted: handleSquareTargeted
     });
     boardUI.setGame(game);
   }
@@ -170,9 +190,298 @@ document.addEventListener('DOMContentLoaded', () => {
     endGame(`Время вышло!`, `Победа: ${winner}`);
   }
 
-  // --- Move Handling ---
+  // --- Card System Engine ---
+  function triggerCardDraw() {
+    if (gameVariant !== 'cards') return;
+    const drawn = deckManager.drawCard();
+    if (drawn) {
+      if (window.sounds) window.sounds.play('card_draw');
+      showCardDrawAnnouncement();
+      renderCardsHand();
+      showToast(`🎴 Получена карта: ${drawn.name}!`);
+    }
+  }
+
+  function showCardDrawAnnouncement() {
+    cardDrawAnnouncement.classList.remove('hidden');
+    setTimeout(() => {
+      cardDrawAnnouncement.classList.add('hidden');
+    }, 2400);
+  }
+
+  function renderCardsHand() {
+    if (gameVariant !== 'cards') {
+      cardsHandSection.classList.add('hidden');
+      activeDecreesContainer.classList.add('hidden');
+      return;
+    }
+
+    cardsHandSection.classList.remove('hidden');
+    activeDecreesContainer.classList.remove('hidden');
+
+    handCountEl.textContent = deckManager.hand.length;
+    const movesTillNext = 3 - (Math.floor(totalMovesCount / 2) % 3);
+    turnsUntilCardEl.textContent = movesTillNext === 0 ? 3 : movesTillNext;
+
+    cardsHandContainer.innerHTML = '';
+
+    if (deckManager.hand.length === 0) {
+      cardsHandContainer.innerHTML = `<div class="no-decrees-hint" style="align-self:center;">Рука пуста. Следующая карта через ${turnsUntilCardEl.textContent} хода.</div>`;
+      return;
+    }
+
+    deckManager.hand.forEach(card => {
+      const rarityData = CARD_RARITIES[card.rarity] || CARD_RARITIES.COMMON;
+      const cardEl = document.createElement('div');
+      cardEl.className = 'hs-card';
+      cardEl.style.setProperty('--card-bg', rarityData.bg);
+      cardEl.style.setProperty('--card-border', rarityData.border);
+
+      cardEl.innerHTML = `
+        <div class="card-top-bar">
+          <span class="card-gem"></span>
+          <span class="card-type-tag">${card.type === 'decree' ? 'УКАЗ' : 'СПЕЛЛ'}</span>
+        </div>
+        <div class="card-art-box">
+          <span class="card-icon">${card.icon}</span>
+        </div>
+        <div class="card-name">${card.name}</div>
+        <div class="card-desc">${card.description}</div>
+        <button class="btn-play-card">Разыграть</button>
+      `;
+
+      const btnPlay = cardEl.querySelector('.btn-play-card');
+      btnPlay.addEventListener('click', (e) => {
+        e.stopPropagation();
+        initiateCardPlay(card);
+      });
+
+      cardEl.addEventListener('click', () => {
+        initiateCardPlay(card);
+      });
+
+      cardsHandContainer.appendChild(cardEl);
+    });
+  }
+
+  function renderActiveDecrees() {
+    if (gameVariant !== 'cards') return;
+    activeDecreesList.innerHTML = '';
+
+    if (deckManager.activeDecrees.length === 0) {
+      activeDecreesList.innerHTML = '<span class="no-decrees-hint">Нет активных проклятий и указов</span>';
+      return;
+    }
+
+    deckManager.activeDecrees.forEach(d => {
+      const badge = document.createElement('div');
+      const isEnemyDecree = d.owner !== myColor;
+      badge.className = `decree-badge ${isEnemyDecree ? 'enemy-decree' : ''}`;
+      badge.innerHTML = `
+        <span>${d.icon}</span>
+        <strong>${d.name}</strong>
+        <span>(${isEnemyDecree ? 'вражеский' : 'ваш'})</span>
+        <span class="decree-timer">⏳ ${d.duration} ${d.duration === 1 ? 'ход' : 'хода'}</span>
+      `;
+      activeDecreesList.appendChild(badge);
+    });
+  }
+
+  function initiateCardPlay(card) {
+    if (game.game_over()) return;
+    // Check if it's player's turn (in online/bot mode)
+    if ((mode === 'online' || mode === 'bot') && game.turn() !== myColor) {
+      showToast('Карты можно разыгрывать только в свой ход!');
+      return;
+    }
+
+    if (card.requiresTarget) {
+      pendingCard = card;
+      targetingCardName.textContent = card.name;
+      targetingBanner.classList.remove('hidden');
+      boardUI.setTargetingMode(card.requiresTarget);
+      showToast(`Выберите цель на доске для «${card.name}»`);
+    } else {
+      applyCardEffect(card, null, false);
+    }
+  }
+
+  function cancelTargeting() {
+    pendingCard = null;
+    targetingBanner.classList.add('hidden');
+    if (boardUI) boardUI.setTargetingMode(null);
+  }
+
+  btnCancelTarget.addEventListener('click', cancelTargeting);
+
+  function handleSquareTargeted(square) {
+    if (!pendingCard) return;
+    const card = pendingCard;
+    cancelTargeting();
+    applyCardEffect(card, square, false);
+  }
+
+  function applyCardEffect(card, targetSquare, isRemote = false) {
+    if (window.sounds) window.sounds.play('card_play');
+
+    if (!isRemote) {
+      deckManager.removeCard(card.instanceId);
+      if (mode === 'online' && network.connected) {
+        network.sendCardPlay(card, targetSquare, myColor);
+      }
+    }
+
+    const casterColor = isRemote ? opponentColor : myColor;
+
+    // Apply Effect
+    if (card.type === 'decree') {
+      deckManager.addDecree(card, casterColor);
+      if (window.sounds) window.sounds.play('curse');
+      showToast(`📜 Разыгран Указ: «${card.name}»!`);
+    } else {
+      // Instant Spells
+      switch (card.id) {
+        case 'freeze_piece':
+          if (targetSquare) {
+            const piece = boardUI.getPieceAt(targetSquare);
+            const targetColor = piece ? piece.color : (casterColor === 'w' ? 'b' : 'w');
+            deckManager.freezePiece(targetSquare, targetColor, 1);
+            if (window.sounds) window.sounds.play('freeze');
+            showToast(`❄️ Фигура на ${targetSquare} заморожена!`);
+          }
+          break;
+
+        case 'smoke_screen':
+          if (targetSquare) {
+            const file = targetSquare[0];
+            const rank = parseInt(targetSquare[1], 10);
+            const nextFile = String.fromCharCode(Math.min(104, file.charCodeAt(0) + 1));
+            const nextRank = Math.min(8, rank + 1);
+            deckManager.smokeArea = {
+              squares: [targetSquare, nextFile + rank, file + nextRank, nextFile + nextRank],
+              turns: 2
+            };
+            showToast('🌫️ Туман окутал область 2х2 клетки!');
+          }
+          break;
+
+        case 'reinforcements':
+          if (targetSquare) {
+            // Spawn pawn
+            game.put({ type: 'p', color: casterColor }, targetSquare);
+            showToast(`🎺 Пешка призвана на ${targetSquare}!`);
+          }
+          break;
+
+        case 'kings_shield':
+          deckManager.kingsShield[casterColor] = 2;
+          showToast('✨ Король защищен от шаха легких фигур!');
+          break;
+
+        case 'alchemist_gold':
+          if (!isRemote) {
+            triggerCardDraw();
+            triggerCardDraw();
+            showToast('🔮 Получено 2 новые карты!');
+          }
+          break;
+
+        case 'time_warp':
+          if (casterColor === 'w') {
+            timerWhite += 45;
+            timerBlack = Math.max(5, timerBlack - 15);
+          } else {
+            timerBlack += 45;
+            timerWhite = Math.max(5, timerWhite - 15);
+          }
+          updateTimerDisplay();
+          showToast('⏳ Время искажено: +45 сек вам, -15 сек сопернику!');
+          break;
+
+        case 'divine_storm':
+          // Stuns all enemy knights and bishops
+          const enemyCol = casterColor === 'w' ? 'b' : 'w';
+          const bState = game.board();
+          for (let r = 0; r < 8; r++) {
+            for (let c = 0; c < 8; c++) {
+              const p = bState[r][c];
+              if (p && p.color === enemyCol && (p.type === 'n' || p.type === 'b')) {
+                const sq = String.fromCharCode(97 + c) + (8 - r);
+                deckManager.freezePiece(sq, enemyCol, 1);
+              }
+            }
+          }
+          if (window.sounds) window.sounds.play('freeze');
+          showToast('⚡ Небесный Гром заморозил всех вражеских коней и слонов!');
+          break;
+      }
+    }
+
+    renderCardsHand();
+    renderActiveDecrees();
+    if (boardUI) boardUI.render();
+  }
+
+  function checkDecreePenalties(moveResult, movedColor) {
+    if (gameVariant !== 'cards') return;
+
+    // Check if movedColor violated any decrees set by opponent
+    const opponent = movedColor === 'w' ? 'b' : 'w';
+    const decrees = deckManager.activeDecrees.filter(d => d.owner === opponent);
+
+    decrees.forEach(d => {
+      // 1. Curse Knight
+      if (d.id === 'curse_knight' && moveResult.piece === 'n') {
+        deckManager.freezePiece(moveResult.to, movedColor, 1);
+        if (window.sounds) window.sounds.play('freeze');
+        showToast(`⚠️ «Оковы Кентавра»: конь на ${moveResult.to} застыл во льду на 1 ход!`, 4000);
+      }
+
+      // 2. Curse Rook
+      if (d.id === 'curse_rook' && moveResult.piece === 'r') {
+        if (d.owner === myColor) {
+          triggerCardDraw();
+          showToast('🎁 Враг походил Ладьёй! Вы получаете бонусную карту!');
+        }
+      }
+
+      // 3. Tax Castle
+      if (d.id === 'tax_castle' && (moveResult.flags.includes('k') || moveResult.flags.includes('q'))) {
+        deckManager.freezePiece(moveResult.to, movedColor, 1);
+        if (window.sounds) window.sounds.play('freeze');
+        showToast(`⚠️ «Запрет на Бункер»: Король застыл во льду на 1 ход!`, 4000);
+      }
+
+      // 4. Blood Tribute
+      if (d.id === 'blood_tribute' && moveResult.captured) {
+        deckManager.freezePiece(moveResult.to, movedColor, 1);
+        if (window.sounds) window.sounds.play('freeze');
+        showToast(`🩸 «Возмездие Крови»: фигура на ${moveResult.to} заморожена за взятие!`, 4000);
+      }
+    });
+
+    // Check forbidden square trigger
+    if (deckManager.forbiddenSquares[moveResult.to]) {
+      deckManager.freezePiece(moveResult.to, movedColor, 1);
+      delete deckManager.forbiddenSquares[moveResult.to];
+      if (window.sounds) window.sounds.play('freeze');
+      showToast(`☠️ «Чёрная Метка»: фигура наступила на проклятую клетку и заморожена!`, 4000);
+    }
+  }
   function handleLocalMove(moveResult) {
+    totalMovesCount++;
     updateGameUI(moveResult);
+
+    // Check decree penalties on moved player
+    checkDecreePenalties(moveResult, myColor);
+    deckManager.tickTurn(game.turn());
+
+    // Draw card every 3 full turns (every 6 half-moves)
+    if (gameVariant === 'cards' && totalMovesCount % 6 === 0) {
+      triggerCardDraw();
+    }
+    renderCardsHand();
+    renderActiveDecrees();
 
     // Play move or capture sound
     if (moveResult.captured) {
@@ -201,6 +510,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // Bot move trigger
     if (mode === 'bot' && game.turn() === opponentColor) {
       setTimeout(() => {
+        // Bot can also randomly play a card if in cards mode
+        if (gameVariant === 'cards' && Math.random() < 0.35 && deckManager.hand.length > 0) {
+          const botCard = deckManager.hand[Math.floor(Math.random() * deckManager.hand.length)];
+          if (botCard && !botCard.requiresTarget) {
+            applyCardEffect(botCard, null, true);
+          }
+        }
+
         const botMove = bot.getBestMove(game, botDifficulty);
         if (botMove) {
           const res = game.move(botMove);
@@ -208,11 +525,12 @@ document.addEventListener('DOMContentLoaded', () => {
           boardUI.render();
           handleLocalMove(res);
         }
-      }, 350);
+      }, 450);
     }
   }
 
   function handleRemoteMove(data) {
+    totalMovesCount++;
     const res = game.move({
       from: data.from,
       to: data.to,
@@ -221,6 +539,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (res) {
       boardUI.lastMove = { from: data.from, to: data.to };
+      checkDecreePenalties(res, opponentColor);
+      deckManager.tickTurn(game.turn());
+
+      if (gameVariant === 'cards' && totalMovesCount % 6 === 0) {
+        triggerCardDraw();
+      }
+      renderCardsHand();
+      renderActiveDecrees();
       boardUI.render();
 
       if (data.timeWhite !== undefined) timerWhite = data.timeWhite;
@@ -353,6 +679,11 @@ document.addEventListener('DOMContentLoaded', () => {
     moveHistoryEl.innerHTML = '';
     chatMessagesEl.innerHTML = '';
 
+    gameVariant = config.variant || gameVariantSelect.value;
+    deckManager.reset();
+    totalMovesCount = 0;
+    cancelTargeting();
+
     timeInitial = config.time || 600;
     timerWhite = timeInitial;
     timerBlack = timeInitial;
@@ -367,8 +698,21 @@ document.addEventListener('DOMContentLoaded', () => {
       initBoard();
     } else {
       boardUI.setOrientation(myColor);
+      boardUI.deckManager = gameVariant === 'cards' ? deckManager : null;
+      boardUI.options.deckManager = boardUI.deckManager;
       boardUI.options.playerColor = (mode === 'online' || mode === 'bot') ? myColor : null;
       boardUI.setGame(game);
+    }
+
+    if (gameVariant === 'cards') {
+      // Deal 2 starting cards
+      deckManager.drawCard();
+      deckManager.drawCard();
+      renderCardsHand();
+      renderActiveDecrees();
+    } else {
+      cardsHandSection.classList.add('hidden');
+      activeDecreesContainer.classList.add('hidden');
     }
 
     updateTimerDisplay();
@@ -387,10 +731,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     const guestSide = hostSide === 'w' ? 'b' : 'w';
     const timeVal = parseInt(selectTimeControl.value, 10);
+    const chosenVariant = gameVariantSelect.value;
 
     const roomCode = network.generateRoomCode();
     const config = {
       time: timeVal,
+      variant: chosenVariant,
       hostSide: hostSide,
       guestSide: guestSide
     };
@@ -455,9 +801,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const chosenSide = selectColor.value === 'random' ? (Math.random() < 0.5 ? 'w' : 'b') : selectColor.value;
       const guestSide = chosenSide === 'w' ? 'b' : 'w';
       const timeVal = parseInt(selectTimeControl.value, 10);
+      const chosenVariant = gameVariantSelect.value;
 
       const gameConfig = {
         time: timeVal,
+        variant: chosenVariant,
         myColor: chosenSide
       };
       startNewGame(gameConfig);
@@ -468,8 +816,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // Guest receives init packet from host
     startNewGame({
       time: config.time,
+      variant: config.variant,
       myColor: config.guestSide
     });
+  });
+
+  network.on('cardPlay', (data) => {
+    applyCardEffect(data.card, data.targetSquare, true);
   });
 
   network.on('move', (data) => {
@@ -532,6 +885,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     startNewGame({
       time: timeVal,
+      variant: gameVariantSelect.value,
       myColor: side
     });
 
@@ -557,6 +911,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     startNewGame({
       time: timeVal,
+      variant: gameVariantSelect.value,
       myColor: 'w'
     });
   });

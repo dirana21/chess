@@ -53,6 +53,18 @@ class SoundManager {
         case 'illegal':
           this._playIllegalSound(t);
           break;
+        case 'card_draw':
+          this._playCardDrawSound(t);
+          break;
+        case 'card_play':
+          this._playCardPlaySound(t);
+          break;
+        case 'freeze':
+          this._playFreezeSound(t);
+          break;
+        case 'curse':
+          this._playCurseSound(t);
+          break;
       }
     } catch (e) {
       console.warn('Audio playback error:', e);
@@ -195,6 +207,109 @@ class SoundManager {
 
     osc.start(t);
     osc.stop(t + 0.14);
+  }
+
+  _playCardDrawSound(t) {
+    // Whoosh card sliding sound
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    const filter = this.ctx.createBiquadFilter();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(400, t);
+    osc.frequency.exponentialRampToValueAtTime(800, t + 0.12);
+
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(600, t);
+
+    gain.gain.setValueAtTime(0.25, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    osc.start(t);
+    osc.stop(t + 0.2);
+  }
+
+  _playCardPlaySound(t) {
+    // Hearthstone style card slam onto board (deep impact + mystical shimmer)
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(220, t);
+    osc.frequency.exponentialRampToValueAtTime(50, t + 0.25);
+
+    gain.gain.setValueAtTime(0.7, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    osc.start(t);
+    osc.stop(t + 0.3);
+
+    // Shimmer harmonic
+    [587.33, 880, 1174.66].forEach((f, i) => {
+      const sOsc = this.ctx.createOscillator();
+      const sGain = this.ctx.createGain();
+      const start = t + 0.05 + i * 0.04;
+
+      sOsc.type = 'sine';
+      sOsc.frequency.setValueAtTime(f, start);
+
+      sGain.gain.setValueAtTime(0.18, start);
+      sGain.gain.exponentialRampToValueAtTime(0.001, start + 0.35);
+
+      sOsc.connect(sGain);
+      sGain.connect(this.ctx.destination);
+
+      sOsc.start(start);
+      sOsc.stop(start + 0.38);
+    });
+  }
+
+  _playFreezeSound(t) {
+    // Glassy ice crack
+    [1200, 1800, 2400].forEach((freq, idx) => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      const start = t + idx * 0.03;
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, start);
+      osc.frequency.exponentialRampToValueAtTime(freq * 0.5, start + 0.15);
+
+      gain.gain.setValueAtTime(0.2, start);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.18);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+
+      osc.start(start);
+      osc.stop(start + 0.2);
+    });
+  }
+
+  _playCurseSound(t) {
+    // Deep dark curse vibration
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(110, t);
+    osc.frequency.exponentialRampToValueAtTime(65, t + 0.45);
+
+    gain.gain.setValueAtTime(0.35, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.48);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    osc.start(t);
+    osc.stop(t + 0.5);
   }
 }
 

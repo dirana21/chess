@@ -996,3 +996,377 @@ body {
     padding: 0.25rem 0.5rem;
   }
 }
+
+
+/* ==========================================================================
+   Hearthstone-style Card System & Animated Effects
+   ========================================================================== */
+
+/* Active Decrees & Traps HUD */
+.active-decrees-container {
+  width: 100%;
+  max-width: 980px;
+  background: linear-gradient(90deg, rgba(30, 27, 75, 0.8), rgba(15, 23, 42, 0.8));
+  border: 1px solid rgba(147, 51, 234, 0.4);
+  border-radius: var(--radius);
+  padding: 0.6rem 1rem;
+  margin-bottom: 0.75rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+}
+
+.decrees-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #c084fc;
+  margin-bottom: 0.4rem;
+}
+
+.active-decrees-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  min-height: 28px;
+  align-items: center;
+}
+
+.no-decrees-hint {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.decree-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background-color: rgba(0, 0, 0, 0.5);
+  border: 1px solid #a855f7;
+  padding: 0.3rem 0.65rem;
+  border-radius: 20px;
+  font-size: 0.82rem;
+  color: #fff;
+  box-shadow: 0 0 10px rgba(168, 85, 247, 0.3);
+  animation: pulse-decree 2s infinite alternate;
+}
+
+.decree-badge.enemy-decree {
+  border-color: #ef4444;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+}
+
+.decree-timer {
+  background: rgba(255, 255, 255, 0.15);
+  padding: 0.1rem 0.4rem;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.75rem;
+}
+
+@keyframes pulse-decree {
+  from { transform: scale(1); }
+  to { transform: scale(1.03); }
+}
+
+/* Targeting Mode Banner */
+.targeting-banner {
+  width: 100%;
+  max-width: 540px;
+  background-color: #0284c7;
+  color: #fff;
+  padding: 0.6rem 1rem;
+  border-radius: var(--radius);
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 0 15px rgba(2, 132, 199, 0.5);
+  font-size: 0.9rem;
+  animation: slide-down 0.2s ease;
+}
+
+@keyframes slide-down {
+  from { transform: translateY(-10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.targetable-square {
+  outline: 3px dashed #38bdf8 !important;
+  outline-offset: -3px;
+  cursor: crosshair !important;
+  background-color: rgba(56, 189, 248, 0.25) !important;
+  animation: pulse-target 1s infinite alternate;
+}
+
+@keyframes pulse-target {
+  from { background-color: rgba(56, 189, 248, 0.15); }
+  to { background-color: rgba(56, 189, 248, 0.4); }
+}
+
+/* Board Overlays: Ice, Forbidden, Smoke */
+.frozen-square {
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.6) 0%, rgba(14, 165, 233, 0.2) 100%) !important;
+}
+
+.ice-overlay {
+  position: absolute;
+  font-size: 1.4rem;
+  pointer-events: none;
+  z-index: 5;
+  filter: drop-shadow(0 0 6px #38bdf8);
+  animation: float-ice 2s infinite ease-in-out;
+}
+
+@keyframes float-ice {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-3px) rotate(5deg); }
+}
+
+.forbidden-square {
+  background: radial-gradient(circle, rgba(239, 68, 68, 0.5) 0%, rgba(127, 29, 29, 0.2) 100%) !important;
+}
+
+.forbidden-overlay {
+  position: absolute;
+  font-size: 1.3rem;
+  pointer-events: none;
+  z-index: 5;
+  filter: drop-shadow(0 0 6px #ef4444);
+}
+
+.smoke-square {
+  background-color: rgba(100, 116, 139, 0.65) !important;
+  backdrop-filter: blur(2px);
+}
+
+.cursed-piece {
+  animation: pulse-curse 1.5s infinite alternate;
+}
+
+@keyframes pulse-curse {
+  from { filter: drop-shadow(0 0 4px #c084fc); }
+  to { filter: drop-shadow(0 0 10px #9333ea); }
+}
+
+/* ==========================================================================
+   Hearthstone Hand of Cards (Under Board)
+   ========================================================================== */
+
+.cards-hand-section {
+  width: 100%;
+  max-width: 540px;
+  margin-top: 0.6rem;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.6rem 0.8rem 0.8rem;
+  position: relative;
+  overflow: visible;
+}
+
+.hand-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin-bottom: 0.6rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.hand-title {
+  font-weight: 700;
+  color: var(--text-bright);
+}
+
+.hand-next-draw strong {
+  color: #a3e635;
+}
+
+.cards-hand-container {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 0.5rem;
+  min-height: 155px;
+  perspective: 1000px;
+  padding: 0.5rem 0.2rem;
+}
+
+/* Individual Card (Hearthstone style) */
+.hs-card {
+  width: 115px;
+  height: 160px;
+  border-radius: 10px;
+  border: 2px solid var(--card-border);
+  background: var(--card-bg);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  padding: 0.4rem;
+  cursor: pointer;
+  position: relative;
+  user-select: none;
+  transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.25s ease, z-index 0.1s;
+  transform-origin: bottom center;
+}
+
+/* Card Arc Layout in Hand */
+.hs-card:nth-child(1):nth-last-child(4) { transform: rotate(-6deg) translateY(4px); }
+.hs-card:nth-child(2):nth-last-child(3) { transform: rotate(-2deg) translateY(0); }
+.hs-card:nth-child(3):nth-last-child(2) { transform: rotate(2deg) translateY(0); }
+.hs-card:nth-child(4):nth-last-child(1) { transform: rotate(6deg) translateY(4px); }
+
+.hs-card:nth-child(1):nth-last-child(3) { transform: rotate(-4deg) translateY(2px); }
+.hs-card:nth-child(2):nth-last-child(2) { transform: rotate(0deg) translateY(0); }
+.hs-card:nth-child(3):nth-last-child(1) { transform: rotate(4deg) translateY(2px); }
+
+.hs-card:nth-child(1):nth-last-child(2) { transform: rotate(-3deg); }
+.hs-card:nth-child(2):nth-last-child(1) { transform: rotate(3deg); }
+
+/* Hover Zoom & Highlight */
+.hs-card:hover {
+  transform: translateY(-40px) scale(1.35) rotate(0deg) !important;
+  z-index: 100 !important;
+  box-shadow: 0 16px 30px rgba(0, 0, 0, 0.9), 0 0 20px var(--card-border) !important;
+}
+
+/* Card Elements */
+.card-top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.2rem;
+}
+
+.card-gem {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background-color: var(--card-border);
+  box-shadow: 0 0 6px var(--card-border);
+  display: inline-block;
+}
+
+.card-type-tag {
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--card-border);
+  letter-spacing: 0.5px;
+}
+
+.card-art-box {
+  flex: 1;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.08) 0%, rgba(0, 0, 0, 0.4) 100%);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.3rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.card-icon {
+  font-size: 2.2rem;
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.8));
+}
+
+.card-name {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #fff;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 0.2rem;
+}
+
+.card-desc {
+  font-size: 0.56rem;
+  line-height: 1.25;
+  color: #cbd5e1;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 0.25rem 0.35rem;
+  border-radius: 4px;
+  text-align: center;
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-play-card {
+  width: 100%;
+  margin-top: 0.25rem;
+  padding: 0.25rem 0;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  background-color: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-play-card:hover {
+  background-color: var(--primary-hover);
+}
+
+/* Card Draw Fly-in Announcement */
+.card-draw-announcement {
+  position: fixed;
+  top: 70px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #d97706, #78350f);
+  color: #fff;
+  padding: 0.65rem 1.4rem;
+  border-radius: 30px;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  box-shadow: 0 8px 25px rgba(217, 119, 6, 0.6);
+  z-index: 1500;
+  animation: announcement-pop 2.5s ease forwards;
+  pointer-events: none;
+}
+
+.announcement-card-back {
+  font-size: 1.5rem;
+}
+
+.announcement-text {
+  font-weight: 700;
+  font-size: 0.95rem;
+  letter-spacing: 0.5px;
+}
+
+@keyframes announcement-pop {
+  0% { opacity: 0; transform: translate(-50%, -20px) scale(0.8); }
+  15% { opacity: 1; transform: translate(-50%, 0) scale(1.05); }
+  25% { transform: translate(-50%, 0) scale(1); }
+  80% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -15px) scale(0.9); }
+}
+
+.highlight-select {
+  border-color: #a855f7 !important;
+  background-color: #2e1065 !important;
+  color: #e9d5ff !important;
+}
+
+.btn-sm {
+  padding: 0.35rem 0.65rem;
+  font-size: 0.8rem;
+}
+
+.full-width {
+  grid-column: 1 / -1;
+}
