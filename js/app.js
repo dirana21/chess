@@ -86,6 +86,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let totalMovesCount = 0;
   let pendingCard = null; // Card currently being targeted
+  let targetingStep = 1;
+  let shadowSwapKnight = null;
 
   // Timers
   let timeInitial = 600; // in seconds (10 min)
@@ -277,12 +279,25 @@ document.addEventListener('DOMContentLoaded', () => {
       const badge = document.createElement('div');
       const isEnemyDecree = d.owner !== myColor;
       badge.className = `decree-badge ${isEnemyDecree ? 'enemy-decree' : ''}`;
+      badge.setAttribute('tabindex', '0');
       badge.innerHTML = `
-        <span>${d.icon}</span>
-        <strong>${d.name}</strong>
-        <span>(${isEnemyDecree ? 'вражеский' : 'ваш'})</span>
-        <span class="decree-timer">⏳ ${d.duration} ${d.duration === 1 ? 'ход' : 'хода'}</span>
+        <span class="decree-icon">${d.icon}</span>
+        <strong class="decree-name">${d.name}</strong>
+        <span class="decree-timer">⏳ ${d.duration} ${d.duration === 1 ? 'ход' : 'х.'}</span>
+        
+        <div class="decree-tooltip">
+          <div class="tooltip-title">${d.icon} ${d.name} (${isEnemyDecree ? 'Вражеский' : 'Ваш'})</div>
+          <div class="tooltip-trigger">⚡ <strong>Триггер:</strong> ${d.card.trigger || d.card.description}</div>
+          <div class="tooltip-penalty">⚠️ <strong>Штраф:</strong> ${d.card.penalty || 'Штрафной эффект'}</div>
+          <div class="tooltip-footer">Осталось ходов: <strong>${d.duration}</strong> • <em>Нажмите, чтобы закрыть</em></div>
+        </div>
       `;
+
+      badge.addEventListener('click', (e) => {
+        e.stopPropagation();
+        badge.classList.toggle('active-tooltip');
+      });
+
       activeDecreesList.appendChild(badge);
     });
   }
@@ -295,12 +310,40 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    // Special multi-step handling for Shadow Swap
+    if (card.id === 'shadow_swap') {
+      const bState = game.board();
+      let hasKnight = false, hasPawn = false;
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          const p = bState[r][c];
+          if (p && p.color === myColor) {
+            if (p.type === 'n') hasKnight = true;
+            if (p.type === 'p') hasPawn = true;
+          }
+        }
+      }
+      if (!hasKnight || !hasPawn) {
+        showToast('Для «Обмена теней» вам нужны и Конь, и Пешка на доске!');
+        return;
+      }
+
+      pendingCard = card;
+      targetingStep = 1;
+      shadowSwapKnight = null;
+      targetingBanner.classList.remove('hidden');
+      document.getElementById('targeting-instructions').innerHTML = 'Шаг 1 из 2: <strong>Выберите вашего Коня 🐎</strong> (подсвечен золотым)';
+      boardUI.setTargetingMode('my_knight');
+      showToast('Шаг 1: Кликните по вашему Коню на доске');
+      return;
+    }
+
     if (card.requiresTarget) {
       pendingCard = card;
-      targetingCardName.textContent = card.name;
       targetingBanner.classList.remove('hidden');
+      document.getElementById('targeting-instructions').innerHTML = card.targetHint || `Выберите цель на доске для «${card.name}»`;
       boardUI.setTargetingMode(card.requiresTarget);
-      showToast(`Выберите цель на доске для «${card.name}»`);
+      showToast(card.targetHint || `Выберите цель на доске для «${card.name}»`);
     } else {
       applyCardEffect(card, null, false);
     }
@@ -308,6 +351,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function cancelTargeting() {
     pendingCard = null;
+    targetingStep = 1;
+    shadowSwapKnight = null;
     targetingBanner.classList.add('hidden');
     if (boardUI) boardUI.setTargetingMode(null);
   }
@@ -316,9 +361,60 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function handleSquareTargeted(square) {
     if (!pendingCard) return;
+
+    if (pendingCard.id === 'shadow_swap') {
+      if (targetingStep === 1) {
+        shadowSwapKnight = square;
+        targetingStep = 2;
+        boardUI.setTargetingMode('my_pawn', shadowSwapKnight);
+        document.getElementById('targeting-instructions').innerHTML = `Шаг 2 из 2: <strong>Выберите вашу Пешку ♟️</strong> для обмена с конём (${square})`;
+        showToast(`Конь (${square}) выбран! Теперь кликните по вашей пешке`);
+        return;
+      } else if (targetingStep === 2) {
+        const swapPawn = square;
+        const swapKnight = shadowSwapKnight;
+        const card = pendingCard;
+        cancelTargeting();
+        applyShadowSwap(swapKnight, swapPawn, false, card);
+        return;
+      }
+    }
+
     const card = pendingCard;
     cancelTargeting();
     applyCardEffect(card, square, false);
+  }
+
+  function applyShadowSwap(knightSq, pawnSq, isRemote = false, card = null) {
+    const kPiece = game.get(knightSq);
+    const pPiece = game.get(pawnSq);
+    if (!kPiece || !pPiece) return;
+
+    game.remove(knightSq);
+    game.remove(pawnSq);
+    game.put(kPiece, pawnSq);
+    game.put(pPiece, knightSq);
+
+    if (window.sounds) window.sounds.play('castle');
+
+    if (!isRemote && card) {
+      deckManager.removeCard(card.instanceId);
+      if (mode === 'online' && network.connected) {
+        network.send({
+          type: 'card-play',
+          card: card,
+          action: 'shadow_swap',
+          extraData: { knightSq, pawnSq },
+          byPlayer: myColor
+        });
+      }
+      showToast(`👥 Обмен теней: Конь (${knightSq}) и Пешка (${pawnSq}) поменялись местами!`);
+    } else {
+      showToast(`👥 Соперник применил «Обмен теней»: Конь и Пешка поменялись местами!`);
+    }
+
+    renderCardsHand();
+    if (boardUI) boardUI.render();
   }
 
   function applyCardEffect(card, targetSquare, isRemote = false) {
@@ -822,7 +918,11 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   network.on('cardPlay', (data) => {
-    applyCardEffect(data.card, data.targetSquare, true);
+    if (data.action === 'shadow_swap' && data.extraData) {
+      applyShadowSwap(data.extraData.knightSq, data.extraData.pawnSq, true, data.card);
+    } else {
+      applyCardEffect(data.card, data.targetSquare, true);
+    }
   });
 
   network.on('move', (data) => {

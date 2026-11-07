@@ -17,6 +17,8 @@ const CARDS_DATABASE = [
     duration: 2, // rounds
     cost: 'Каждые 3 хода',
     description: 'Враг проклят: если он походит Конем в течение 2 ходов, этот конь застынет во льду на 1 ход.',
+    trigger: 'Ход вражеским Конём',
+    penalty: 'Заморозка коня на 1 ход',
     penaltyType: 'freeze',
     penaltyTarget: 'n',
     requiresTarget: false
@@ -29,6 +31,8 @@ const CARDS_DATABASE = [
     type: 'decree',
     duration: 2,
     description: 'Если враг походит Ладьёй в течение 2 ходов, вы немедленно берёте бонусную карту из колоды.',
+    trigger: 'Ход вражеской Ладьёй',
+    penalty: 'Вы получаете +1 бонусную карту',
     penaltyType: 'draw_card',
     penaltyTarget: 'r',
     requiresTarget: false
@@ -41,6 +45,8 @@ const CARDS_DATABASE = [
     type: 'decree',
     duration: 2,
     description: 'Слоны врага ослеплены: они могут ходить, но не могут совершать взятия фигур 2 хода.',
+    trigger: 'Попытка взятия Слоном',
+    penalty: 'Запрет на взятия фигур',
     penaltyType: 'disarm',
     penaltyTarget: 'b',
     requiresTarget: false
@@ -53,8 +59,11 @@ const CARDS_DATABASE = [
     type: 'decree',
     duration: 3,
     description: 'Выберите пустую клетку. Любая фигура врага, наступившая на неё, замораживается на 1 ход.',
+    trigger: 'Враг ступает на эту клетку',
+    penalty: 'Заморозка наступившей фигуры на 1 ход',
     penaltyType: 'freeze_square',
-    requiresTarget: 'empty_square'
+    requiresTarget: 'empty_square',
+    targetHint: 'Кликните по любой пустой клетке доски'
   },
   {
     id: 'queen_burden',
@@ -64,6 +73,8 @@ const CARDS_DATABASE = [
     type: 'decree',
     duration: 2,
     description: 'Ферзь врага перегружен: он может ходить максимум на 2 клетки в любом направлении следующие 2 хода.',
+    trigger: 'Ход Ферзём дальше 2 клеток',
+    penalty: 'Ход блокируется (макс. 2 клетки)',
     penaltyType: 'queen_slow',
     requiresTarget: false
   },
@@ -75,6 +86,8 @@ const CARDS_DATABASE = [
     type: 'decree',
     duration: 3,
     description: 'Если враг сделает рокировку, его Король застынет во льду на 1 ход.',
+    trigger: 'Любая рокировка врага',
+    penalty: 'Заморозка короля на 1 ход',
     penaltyType: 'castle_freeze',
     requiresTarget: false
   },
@@ -85,7 +98,9 @@ const CARDS_DATABASE = [
     rarity: 'EPIC',
     type: 'decree',
     duration: 2,
-    description: 'Если враг заберёт вашу фигуру, атаковавшая фигура отбрасывается назад или замораживается.',
+    description: 'Если враг заберёт вашу фигуру, атаковавшая фигура замораживается на 1 ход.',
+    trigger: 'Взятие любой вашей фигуры',
+    penalty: 'Заморозка нападавшего на 1 ход',
     penaltyType: 'retaliation',
     requiresTarget: false
   },
@@ -107,7 +122,8 @@ const CARDS_DATABASE = [
     rarity: 'RARE',
     type: 'spell',
     description: 'Заморозьте любую фигуру врага (кроме короля) на 1 ход. Она не сможет двигаться.',
-    requiresTarget: 'enemy_piece'
+    requiresTarget: 'enemy_piece',
+    targetHint: 'Кликните по фигуре врага (кроме короля)'
   },
   {
     id: 'shadow_swap',
@@ -116,7 +132,8 @@ const CARDS_DATABASE = [
     rarity: 'RARE',
     type: 'spell',
     description: 'Выберите своего коня и свою пешку. Они мгновенно меняются местами на доске!',
-    requiresTarget: 'my_knight_and_pawn'
+    requiresTarget: 'shadow_swap',
+    targetHint: 'Шаг 1 из 2: Выберите вашего Коня 🐎'
   },
   {
     id: 'smoke_screen',
@@ -126,7 +143,8 @@ const CARDS_DATABASE = [
     type: 'spell',
     duration: 1,
     description: 'Выберите область 2х2 клетки. На 1 ход в этой области полностью запрещены любые взятия фигур.',
-    requiresTarget: 'square'
+    requiresTarget: 'square',
+    targetHint: 'Кликните по клетке для левого-нижнего угла тумана 2х2'
   },
   {
     id: 'reinforcements',
@@ -135,7 +153,8 @@ const CARDS_DATABASE = [
     rarity: 'EPIC',
     type: 'spell',
     description: 'Возрождает потерянную пешку на любую свободную клетку вашего 1-го или 2-го ряда.',
-    requiresTarget: 'spawn_square'
+    requiresTarget: 'spawn_square',
+    targetHint: 'Кликните по свободной клетке на вашем 1-м или 2-м ряду'
   },
   {
     id: 'kings_shield',

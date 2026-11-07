@@ -144,20 +144,6 @@
 
     <!-- 3. Active Game Screen -->
     <main id="screen-game" class="screen-view hidden">
-      <!-- Active Decrees / Traps HUD -->
-      <div id="active-decrees-container" class="active-decrees-container">
-        <div class="decrees-title">Активные Указы и Проклятия:</div>
-        <div id="active-decrees-list" class="active-decrees-list">
-          <span class="no-decrees-hint">Нет активных проклятий</span>
-        </div>
-      </div>
-
-      <!-- Targeting Cancel Banner -->
-      <div id="targeting-banner" class="targeting-banner hidden">
-        <span>Выберите цель на доске для карты: <strong id="targeting-card-name"></strong></span>
-        <button id="btn-cancel-target" class="btn btn-sm btn-outline">Отмена</button>
-      </div>
-
       <!-- Card Draw Fly-in Announcement -->
       <div id="card-draw-announcement" class="card-draw-announcement hidden">
         <div class="announcement-card-back">🎴</div>
@@ -167,6 +153,15 @@
       <div class="game-layout">
         <!-- Chess Board Column -->
         <div class="game-board-section">
+          <!-- Targeting Step Banner directly above Board -->
+          <div id="targeting-banner" class="targeting-banner hidden">
+            <div class="targeting-info">
+              <span class="targeting-icon">🎯</span>
+              <span id="targeting-instructions">Выберите цель на доске: <strong id="targeting-card-name"></strong></span>
+            </div>
+            <button id="btn-cancel-target" class="btn btn-sm btn-cancel-spell">❌ Отмена</button>
+          </div>
+
           <!-- Top Opponent Bar -->
           <div class="player-bar" id="player-bar-top">
             <div class="player-info">
@@ -219,6 +214,16 @@
 
         <!-- Sidebar (History, Chat, Emojis) -->
         <aside class="game-sidebar">
+          <!-- Active Decrees & Curses HUD (integrated in sidebar to avoid pushing board) -->
+          <div class="sidebar-box decrees-box" id="active-decrees-container">
+            <div class="sidebar-box-header decrees-header">
+              <span>⚡ Активные Проклятия и Указы</span>
+            </div>
+            <div id="active-decrees-list" class="active-decrees-list">
+              <span class="no-decrees-hint">Нет активных проклятий</span>
+            </div>
+          </div>
+
           <!-- Move History -->
           <div class="sidebar-box history-box">
             <div class="sidebar-box-header">История ходов</div>

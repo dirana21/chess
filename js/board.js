@@ -171,9 +171,14 @@ class ChessBoardUI {
 
         // Targeting mode highlight
         if (this.targetingMode) {
-          const isTargetValid = this._isTargetValid(square, piece);
-          if (isTargetValid) {
+          if (this.selectedTargetSquare && this.selectedTargetSquare === square) {
+            sqEl.classList.add('targeting-selected');
+          } else if (this._isTargetValid(square, piece)) {
             sqEl.classList.add('targetable-square');
+            if (this.targetingMode === 'my_knight') sqEl.classList.add('targetable-knight');
+            else if (this.targetingMode === 'my_pawn') sqEl.classList.add('targetable-pawn');
+            else if (this.targetingMode === 'enemy_piece') sqEl.classList.add('targetable-enemy');
+            else if (this.targetingMode === 'empty_square') sqEl.classList.add('targetable-empty');
           }
         }
 
@@ -191,8 +196,9 @@ class ChessBoardUI {
     }
   }
 
-  setTargetingMode(mode) {
+  setTargetingMode(mode, selectedSquare = null) {
     this.targetingMode = mode;
+    this.selectedTargetSquare = selectedSquare;
     this.selectedSquare = null;
     this.legalMoves = [];
     this.render();
@@ -204,6 +210,10 @@ class ChessBoardUI {
     const opponent = turn === 'w' ? 'b' : 'w';
 
     switch (this.targetingMode) {
+      case 'my_knight':
+        return piece !== null && piece.color === turn && piece.type === 'n';
+      case 'my_pawn':
+        return piece !== null && piece.color === turn && piece.type === 'p';
       case 'empty_square':
         return piece === null;
       case 'enemy_piece':
