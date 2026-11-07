@@ -142,6 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let network = new ChessNetwork();
   let bot = new ChessBot();
   let deckManager = new CardDeckManager();
+  let botDeckManager = null;
   let boardUI = null;
 
   let mode = 'online'; // 'online', 'bot', 'pass'
@@ -470,6 +471,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       game.put(pPiece, knightSq);
     }
+    game.load(game.fen());
 
     if (window.sounds) window.sounds.play('castle');
 
@@ -516,8 +518,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // Apply Effect
     if (card.type === 'decree') {
       deckManager.addDecree(card, casterColor);
+      if (card.id === 'forbidden_square' && targetSquare) {
+        deckManager.forbiddenSquares[targetSquare] = { turns: card.duration || 3, byPlayer: casterColor };
+        showToast(`☠️ «Чёрная Метка» установлена на ${targetSquare}! Любой враг застынет во льду!`);
+      } else {
+        showToast(`📜 Разыгран Указ: «${card.name}»!`);
+      }
       if (window.sounds) window.sounds.play('curse');
-      showToast(`📜 Разыгран Указ: «${card.name}»!`);
     } else {
       // Instant Spells
       switch (card.id) {
@@ -533,29 +540,55 @@ document.addEventListener('DOMContentLoaded', () => {
 
         case 'smoke_screen':
           if (targetSquare) {
-            const file = targetSquare[0];
-            const rank = parseInt(targetSquare[1], 10);
-            const nextFile = String.fromCharCode(Math.min(104, file.charCodeAt(0) + 1));
-            const nextRank = Math.min(8, rank + 1);
+            let fileChar = targetSquare[0];
+            let rankNum = parseInt(targetSquare[1], 10);
+            if (fileChar === 'h') fileChar = 'g';
+            if (rankNum === 8) rankNum = 7;
+            const nextFile = String.fromCharCode(fileChar.charCodeAt(0) + 1);
+            const nextRank = rankNum + 1;
             deckManager.smokeArea = {
-              squares: [targetSquare, nextFile + rank, file + nextRank, nextFile + nextRank],
+              squares: [fileChar + rankNum, nextFile + rankNum, fileChar + nextRank, nextFile + nextRank],
               turns: 2
             };
-            showToast('🌫️ Туман окутал область 2х2 клетки!');
+            showToast(`🌫️ Туман окутал клетки ${fileChar + rankNum}–${nextFile + nextRank}! Взятия запрещены!`);
           }
           break;
 
         case 'reinforcements':
           if (targetSquare) {
-            // Spawn pawn
             game.put({ type: 'p', color: casterColor }, targetSquare);
-            showToast(`🎺 Пешка призвана на ${targetSquare}!`);
+            game.load(game.fen());
+            if (window.sounds) window.sounds.play('card_play');
+            showToast(`🎺 «Зов Резерва»: Пешка призвана на ${targetSquare}!`);
+          }
+          break;
+
+        case 'infantry_march':
+          if (targetSquare) {
+            const piece = game.get(targetSquare);
+            if (piece && piece.type === 'p') {
+              const file = targetSquare[0];
+              const rank = parseInt(targetSquare[1], 10);
+              const forwardRank = piece.color === 'w' ? rank + 1 : rank - 1;
+              const forwardSquare = file + forwardRank;
+              if (forwardRank >= 1 && forwardRank <= 8 && !game.get(forwardSquare)) {
+                game.remove(targetSquare);
+                const isPromo = (piece.color === 'w' && forwardRank === 8) || (piece.color === 'b' && forwardRank === 1);
+                game.put({ type: isPromo ? 'q' : 'p', color: piece.color }, forwardSquare);
+                game.load(game.fen());
+                boardUI.lastMove = { from: targetSquare, to: forwardSquare };
+                if (window.sounds) window.sounds.play('move');
+                showToast(isPromo 
+                  ? `⚔️ Марш Пехоты: Пешка прорвалась на ${forwardSquare} и стала Ферзём!` 
+                  : `⚔️ Марш Пехоты: Пешка совершила марш-бросок на ${forwardSquare}!`);
+              }
+            }
           }
           break;
 
         case 'kings_shield':
           deckManager.kingsShield[casterColor] = 2;
-          showToast('✨ Король защищен от шаха легких фигур!');
+          showToast('✨ «Аура Стойкости»: Король защищен золотым щитом на 2 хода!');
           break;
 
         case 'alchemist_gold':
@@ -563,6 +596,9 @@ document.addEventListener('DOMContentLoaded', () => {
             triggerCardDraw();
             triggerCardDraw();
             showToast('🔮 Получено 2 новые карты!');
+          } else if (botDeckManager) {
+            botDeckManager.drawCard();
+            botDeckManager.drawCard();
           }
           break;
 
@@ -591,7 +627,7 @@ document.addEventListener('DOMContentLoaded', () => {
               }
             }
           }
-          if (window.sounds) window.sounds.play('freeze');
+          if (window.sounds) window.sounds.play('thunder');
           showToast('⚡ Небесный Гром заморозил всех вражеских коней и слонов!');
           break;
       }
@@ -626,6 +662,9 @@ document.addEventListener('DOMContentLoaded', () => {
           if (window.sounds) window.sounds.play('card_draw');
           triggerCardDraw();
           showToast('🎁 Враг походил Ладьёй! Вы получаете бонусную карту!');
+        } else if (botDeckManager && d.owner === opponentColor) {
+          botDeckManager.drawCard();
+          showToast('🎁 Вражеский Указ сработал: Соперник получил бонусную карту за ход ладьёй!');
         }
       }
 
@@ -657,7 +696,166 @@ document.addEventListener('DOMContentLoaded', () => {
       if (window.sounds) window.sounds.play('freeze');
       showToast(`☠️ «Чёрная Метка»: фигура наступила на проклятую клетку и заморожена!`, 4000);
     }
+
+    // Check King's Shield retaliation if move delivered check
+    if (game.in_check()) {
+      const kingColor = game.turn();
+      if (deckManager.kingsShield && deckManager.kingsShield[kingColor] > 0) {
+        deckManager.freezePiece(moveResult.to, movedColor, 1);
+        if (window.sounds) {
+          window.sounds.play('curse_trigger');
+          setTimeout(() => window.sounds.play('freeze'), 150);
+        }
+        showToast(`✨ «Аура Стойкости»: Король защищён! Атаковавшая фигура на ${moveResult.to} застыла во льду!`, 4000);
+      }
+    }
   }
+
+  function botAttemptCardPlay() {
+    if (!botDeckManager || botDeckManager.hand.length === 0 || game.game_over()) return;
+    if (Math.random() > 0.45) return;
+
+    const hand = botDeckManager.hand;
+    const card = hand[Math.floor(Math.random() * hand.length)];
+    if (!card) return;
+
+    const botColor = opponentColor;
+    const humanColor = myColor;
+
+    if (card.type === 'decree') {
+      if (card.id === 'forbidden_square') {
+        const targetSquares = ['d4', 'e4', 'd5', 'e5', 'c5', 'f5', 'd3', 'e3'];
+        const emptySq = targetSquares.find(sq => !game.get(sq) && !deckManager.forbiddenSquares[sq]);
+        if (emptySq) {
+          botDeckManager.removeCard(card.instanceId);
+          applyCardEffect(card, emptySq, true);
+        }
+      } else {
+        botDeckManager.removeCard(card.instanceId);
+        applyCardEffect(card, null, true);
+      }
+      return;
+    }
+
+    // Spells
+    switch (card.id) {
+      case 'freeze_piece': {
+        const b = game.board();
+        let targetSq = null;
+        let bestValue = -1;
+        const valMap = { q: 9, r: 5, b: 3, n: 3, p: 1 };
+        for (let r = 0; r < 8; r++) {
+          for (let c = 0; c < 8; c++) {
+            const p = b[r][c];
+            if (p && p.color === humanColor && p.type !== 'k') {
+              const sq = String.fromCharCode(97 + c) + (8 - r);
+              if (!deckManager.isPieceFrozen(sq) && valMap[p.type] > bestValue) {
+                bestValue = valMap[p.type];
+                targetSq = sq;
+              }
+            }
+          }
+        }
+        if (targetSq) {
+          botDeckManager.removeCard(card.instanceId);
+          applyCardEffect(card, targetSq, true);
+        }
+        break;
+      }
+
+      case 'shadow_swap': {
+        const b = game.board();
+        let kSq = null, pSq = null;
+        for (let r = 0; r < 8; r++) {
+          for (let c = 0; c < 8; c++) {
+            const p = b[r][c];
+            if (p && p.color === botColor) {
+              const sq = String.fromCharCode(97 + c) + (8 - r);
+              if (p.type === 'n' && !kSq) kSq = sq;
+              if (p.type === 'p' && !pSq) pSq = sq;
+            }
+          }
+        }
+        if (kSq && pSq) {
+          botDeckManager.removeCard(card.instanceId);
+          applyShadowSwap(kSq, pSq, true, card);
+        }
+        break;
+      }
+
+      case 'smoke_screen': {
+        const smokeCenters = ['d4', 'e4', 'd5', 'e5', 'c4'];
+        const chosen = smokeCenters[Math.floor(Math.random() * smokeCenters.length)];
+        botDeckManager.removeCard(card.instanceId);
+        applyCardEffect(card, chosen, true);
+        break;
+      }
+
+      case 'reinforcements': {
+        const ranks = botColor === 'b' ? [8, 7] : [1, 2];
+        let spawnSq = null;
+        for (const r of ranks) {
+          for (let c = 0; c < 8; c++) {
+            const sq = String.fromCharCode(97 + c) + r;
+            if (!game.get(sq)) {
+              spawnSq = sq;
+              break;
+            }
+          }
+          if (spawnSq) break;
+        }
+        if (spawnSq) {
+          botDeckManager.removeCard(card.instanceId);
+          applyCardEffect(card, spawnSq, true);
+        }
+        break;
+      }
+
+      case 'infantry_march': {
+        const b = game.board();
+        let pawnToMarch = null;
+        for (let r = 0; r < 8; r++) {
+          for (let c = 0; c < 8; c++) {
+            const p = b[r][c];
+            if (p && p.color === botColor && p.type === 'p') {
+              const sq = String.fromCharCode(97 + c) + (8 - r);
+              const forwardRank = botColor === 'w' ? (8 - r) + 1 : (8 - r) - 1;
+              if (forwardRank >= 1 && forwardRank <= 8) {
+                const fwdSq = String.fromCharCode(97 + c) + forwardRank;
+                if (!game.get(fwdSq)) {
+                  pawnToMarch = sq;
+                  break;
+                }
+              }
+            }
+          }
+          if (pawnToMarch) break;
+        }
+        if (pawnToMarch) {
+          botDeckManager.removeCard(card.instanceId);
+          applyCardEffect(card, pawnToMarch, true);
+        }
+        break;
+      }
+
+      case 'alchemist_gold': {
+        botDeckManager.removeCard(card.instanceId);
+        botDeckManager.drawCard();
+        botDeckManager.drawCard();
+        applyCardEffect(card, null, true);
+        break;
+      }
+
+      default: {
+        if (!card.requiresTarget) {
+          botDeckManager.removeCard(card.instanceId);
+          applyCardEffect(card, null, true);
+        }
+        break;
+      }
+    }
+  }
+
   function handleLocalMove(moveResult) {
     totalMovesCount++;
     updateGameUI(moveResult);
@@ -669,6 +867,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Draw card every 3 full turns (every 6 half-moves)
     if (gameVariant === 'cards' && totalMovesCount % 6 === 0) {
       triggerCardDraw();
+      if (botDeckManager) {
+        botDeckManager.drawCard();
+      }
     }
     renderCardsHand();
     renderActiveDecrees();
@@ -700,22 +901,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // Bot move trigger
     if (mode === 'bot' && game.turn() === opponentColor) {
       setTimeout(() => {
-        // Bot can also randomly play a card if in cards mode
-        if (gameVariant === 'cards' && Math.random() < 0.35 && deckManager.hand.length > 0) {
-          const botCard = deckManager.hand[Math.floor(Math.random() * deckManager.hand.length)];
-          if (botCard && !botCard.requiresTarget) {
-            applyCardEffect(botCard, null, true);
-          }
+        if (gameVariant === 'cards') {
+          botAttemptCardPlay();
         }
 
-        const botMove = bot.getBestMove(game, botDifficulty);
+        const botMove = bot.getBestMove(game, botDifficulty, gameVariant === 'cards' ? deckManager : null);
         if (botMove) {
           const res = game.move(botMove);
           boardUI.lastMove = { from: res.from, to: res.to };
           boardUI.render();
           handleLocalMove(res);
         }
-      }, 450);
+      }, 550);
     }
   }
 
@@ -841,11 +1038,28 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function checkGameOver() {
-    if (game.in_checkmate()) {
+    let isCheckmate = game.in_checkmate();
+    let isStalemate = game.in_stalemate();
+
+    if (gameVariant === 'cards' && !isCheckmate && !isStalemate) {
+      const allMoves = game.moves({ verbose: true });
+      if (allMoves.length > 0) {
+        const playable = allMoves.filter(m => !deckManager.isPieceFrozen(m.from));
+        if (playable.length === 0) {
+          if (game.in_check()) {
+            isCheckmate = true;
+          } else {
+            isStalemate = true;
+          }
+        }
+      }
+    }
+
+    if (isCheckmate) {
       const winner = game.turn() === 'w' ? 'Чёрные' : 'Белые';
       endGame('Шах и мат!', `Победили: ${winner}`);
-    } else if (game.in_stalemate()) {
-      endGame('Ничья!', 'Пат — у игрока нет ходов.');
+    } else if (isStalemate) {
+      endGame('Ничья!', 'Пат — нет ходов.');
     } else if (game.in_threefold_repetition()) {
       endGame('Ничья!', 'Троекратное повторение ходов.');
     } else if (game.insufficient_material()) {
@@ -898,9 +1112,17 @@ document.addEventListener('DOMContentLoaded', () => {
       // Deal 2 starting cards
       deckManager.drawCard();
       deckManager.drawCard();
+      if (mode === 'bot') {
+        botDeckManager = new CardDeckManager();
+        botDeckManager.drawCard();
+        botDeckManager.drawCard();
+      } else {
+        botDeckManager = null;
+      }
       renderCardsHand();
       renderActiveDecrees();
     } else {
+      botDeckManager = null;
       cardsHandSection.classList.add('hidden');
       activeDecreesContainer.classList.add('hidden');
     }
@@ -1085,7 +1307,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (side === 'b') {
       setTimeout(() => {
-        const botMove = bot.getBestMove(game, botDifficulty);
+        if (gameVariant === 'cards') {
+          botAttemptCardPlay();
+        }
+        const botMove = bot.getBestMove(game, botDifficulty, gameVariant === 'cards' ? deckManager : null);
         if (botMove) {
           const res = game.move(botMove);
           boardUI.lastMove = { from: res.from, to: res.to };
@@ -1197,6 +1422,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const urlParams = new URLSearchParams(window.location.search);
   const roomParam = urlParams.get('room') ? urlParams.get('room').trim().toUpperCase() : '';
   const initialRoom = hash || roomParam;
+
+  // Dismiss decree tooltips on click outside
+  document.addEventListener('click', () => {
+    document.querySelectorAll('.decree-badge.active-tooltip').forEach(b => b.classList.remove('active-tooltip'));
+  });
 
   if (initialRoom && initialRoom.length >= 4) {
     inputJoinCode.value = initialRoom;

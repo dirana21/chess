@@ -139,8 +139,45 @@ class ChessBot {
     }
   }
 
-  getBestMove(game, difficulty = 'medium') {
-    const moves = game.moves({ verbose: true });
+  getBestMove(game, difficulty = 'medium', deckManager = null) {
+    let moves = game.moves({ verbose: true });
+    if (moves.length === 0) return null;
+
+    // Filter out moves restricted by Card Chess decrees & ice
+    if (deckManager) {
+      const activeColor = game.turn();
+      moves = moves.filter(m => !deckManager.isPieceFrozen(m.from));
+
+      // Blind Bishop decree: no captures
+      moves = moves.filter(m => {
+        if (m.piece === 'b' && m.captured) {
+          return !deckManager.activeDecrees.some(d => d.id === 'curse_bishop' && d.owner !== activeColor);
+        }
+        return true;
+      });
+
+      // Heavy Queen decree: max 2 squares
+      moves = moves.filter(m => {
+        if (m.piece === 'q') {
+          const isHeavy = deckManager.activeDecrees.some(d => d.id === 'queen_burden' && d.owner !== activeColor);
+          if (isHeavy) {
+            const fileDiff = Math.abs(m.from.charCodeAt(0) - m.to.charCodeAt(0));
+            const rankDiff = Math.abs(parseInt(m.from[1], 10) - parseInt(m.to[1], 10));
+            return fileDiff <= 2 && rankDiff <= 2;
+          }
+        }
+        return true;
+      });
+
+      // Smoke screen: no captures inside smoke
+      if (deckManager.smokeArea) {
+        moves = moves.filter(m => {
+          if (m.captured && deckManager.smokeArea.squares.includes(m.to)) return false;
+          return true;
+        });
+      }
+    }
+
     if (moves.length === 0) return null;
 
     if (difficulty === 'easy') {

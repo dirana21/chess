@@ -112,8 +112,9 @@ const CARDS_DATABASE = [
     icon: '⚔️',
     rarity: 'COMMON',
     type: 'spell',
-    description: 'В этот ход ЛЮБАЯ ваша пешка может сделать ход сразу на 2 клетки вперёд (даже если уже ходила).',
-    requiresTarget: false
+    description: 'Выберите вашу пешку. Она совершает стремительный рывок на 1 клетку вперёд (если путь свободен)!',
+    requiresTarget: 'my_pawn',
+    targetHint: 'Кликните по вашей пешке, перед которой есть свободная клетка'
   },
   {
     id: 'freeze_piece',

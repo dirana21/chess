@@ -93,8 +93,16 @@ class SoundManager {
       this.play('curse_trigger');
       return;
     }
+    if (type === 'thunder') {
+      this.play('curse_trigger');
+      return;
+    }
     if (type === 'notify') {
       this.play('card_draw');
+      return;
+    }
+    if (type === 'error') {
+      this.play('illegal');
       return;
     }
 

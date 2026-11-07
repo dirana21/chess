@@ -154,6 +154,11 @@ class ChessBoardUI {
             pieceEl.classList.add('cursed-piece');
           }
 
+          // Check if King has King's Shield active
+          if (this.deckManager && this.deckManager.kingsShield && this.deckManager.kingsShield[piece.color] > 0 && piece.type === 'k') {
+            sqEl.classList.add('king-shielded-square');
+          }
+
           pieceEl.innerHTML = getPieceSvg(piece.type, piece.color);
           pieceEl.dataset.square = square;
 
@@ -163,7 +168,11 @@ class ChessBoardUI {
             this._bindPieceEvents(pieceEl, square);
           } else {
             pieceEl.style.cursor = 'not-allowed';
-            pieceEl.style.filter = 'drop-shadow(0 0 8px #38bdf8)';
+            pieceEl.style.filter = 'drop-shadow(0 0 10px #38bdf8)';
+            pieceEl.addEventListener('click', (e) => {
+              e.stopPropagation();
+              this.onSquareClick(square, e);
+            });
           }
 
           sqEl.appendChild(pieceEl);
@@ -212,8 +221,16 @@ class ChessBoardUI {
     switch (this.targetingMode) {
       case 'my_knight':
         return piece !== null && piece.color === turn && piece.type === 'n';
-      case 'my_pawn':
-        return piece !== null && piece.color === turn && piece.type === 'p';
+      case 'my_pawn': {
+        if (!piece || piece.color !== turn || piece.type !== 'p') return false;
+        if (this.selectedTargetSquare) return true; // Step 2 of shadow swap
+        // For infantry march, square ahead must be on board and unoccupied
+        const fChar = square[0];
+        const cRank = parseInt(square[1], 10);
+        const nRank = turn === 'w' ? cRank + 1 : cRank - 1;
+        if (nRank < 1 || nRank > 8) return false;
+        return this.getPieceAt(fChar + nRank) === null;
+      }
       case 'empty_square':
         return piece === null;
       case 'enemy_piece':
@@ -227,6 +244,40 @@ class ChessBoardUI {
       default:
         return false;
     }
+  }
+
+  _filterMovesByDecrees(moves, from) {
+    if (!this.deckManager || !moves) return moves;
+    const piece = this.getPieceAt(from);
+    if (!piece) return moves;
+
+    return moves.filter(m => {
+      // 1. Frozen piece cannot move
+      if (this.deckManager.isPieceFrozen(m.from)) return false;
+
+      // 2. Blind Bishop: cannot capture
+      if (piece.type === 'b' && m.captured) {
+        const isBlinded = this.deckManager.activeDecrees.some(d => d.id === 'curse_bishop' && d.owner !== piece.color);
+        if (isBlinded) return false;
+      }
+
+      // 3. Heavy Queen: max 2 squares distance
+      if (piece.type === 'q') {
+        const isHeavy = this.deckManager.activeDecrees.some(d => d.id === 'queen_burden' && d.owner !== piece.color);
+        if (isHeavy) {
+          const fileDiff = Math.abs(from.charCodeAt(0) - m.to.charCodeAt(0));
+          const rankDiff = Math.abs(parseInt(from[1], 10) - parseInt(m.to[1], 10));
+          if (fileDiff > 2 || rankDiff > 2) return false;
+        }
+      }
+
+      // 4. Smoke Screen: no captures inside smoke
+      if (this.deckManager.smokeArea && m.captured) {
+        if (this.deckManager.smokeArea.squares.includes(m.to)) return false;
+      }
+
+      return true;
+    });
   }
 
   getPieceAt(square) {
@@ -285,7 +336,7 @@ class ChessBoardUI {
         return;
       }
       this.selectedSquare = square;
-      this.legalMoves = this.game.moves({ square: square, verbose: true });
+      this.legalMoves = this._filterMovesByDecrees(this.game.moves({ square: square, verbose: true }), square);
       this.render();
     } else {
       this.selectedSquare = null;
@@ -317,6 +368,13 @@ class ChessBoardUI {
 
     // Check custom card restrictions
     if (this.deckManager) {
+      if (this.deckManager.isPieceFrozen(from)) {
+        if (window.sounds) window.sounds.play('freeze');
+        this.selectedSquare = null;
+        this.legalMoves = [];
+        this.render();
+        return;
+      }
       const piece = this.getPieceAt(from);
       const targetPiece = this.getPieceAt(to);
 
@@ -407,12 +465,18 @@ class ChessBoardUI {
       if (!piece || piece.color !== this.game.turn()) return;
       if (this.options.playerColor && this.options.playerColor !== piece.color) return;
 
+      // Check if piece is frozen
+      if (this.deckManager && this.deckManager.isPieceFrozen(square)) {
+        if (window.sounds) window.sounds.play('freeze');
+        return;
+      }
+
       isDragging = true;
       startX = e.clientX || (e.touches && e.touches[0].clientX);
       startY = e.clientY || (e.touches && e.touches[0].clientY);
 
       this.selectedSquare = square;
-      this.legalMoves = this.game.moves({ square: square, verbose: true });
+      this.legalMoves = this._filterMovesByDecrees(this.game.moves({ square: square, verbose: true }), square);
       this.render();
 
       // Create floating drag clone
