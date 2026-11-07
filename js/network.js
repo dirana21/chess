@@ -114,12 +114,14 @@ class ChessNetwork {
 
         this.conn.on('open', () => {
           this.connected = true;
+          this._startHeartbeat();
           this._setupDataListener();
           this._emit('connected', { isHost: false, roomCode: this.roomCode });
           resolve({ roomCode: this.roomCode });
         });
 
         this.conn.on('close', () => {
+          this._stopHeartbeat();
           this.connected = false;
           this._emit('disconnected');
         });
@@ -141,6 +143,7 @@ class ChessNetwork {
   _setupConnection(initialConfig) {
     this.conn.on('open', () => {
       this.connected = true;
+      this._startHeartbeat();
       this._setupDataListener();
       this._emit('connected', { isHost: true, roomCode: this.roomCode });
 
@@ -154,6 +157,7 @@ class ChessNetwork {
     });
 
     this.conn.on('close', () => {
+      this._stopHeartbeat();
       this.connected = false;
       this._emit('disconnected');
     });
@@ -167,7 +171,16 @@ class ChessNetwork {
     if (!this.conn) return;
 
     this.conn.on('data', (data) => {
+      this.lastHeartbeat = Date.now();
       if (!data || !data.type) return;
+
+      if (data.type === 'ping') {
+        this.send({ type: 'pong' });
+        return;
+      }
+      if (data.type === 'pong') {
+        return;
+      }
 
       switch (data.type) {
         case 'init':
@@ -276,7 +289,32 @@ class ChessNetwork {
     });
   }
 
+  _startHeartbeat() {
+    this._stopHeartbeat();
+    this.lastHeartbeat = Date.now();
+    this.heartbeatTimer = setInterval(() => {
+      if (!this.connected || !this.conn || !this.conn.open) return;
+      this.send({ type: 'ping' });
+
+      // If no packet or pong received for 8 seconds:
+      if (Date.now() - this.lastHeartbeat > 8000) {
+        console.warn('Network heartbeat timeout: Peer disconnected.');
+        this._stopHeartbeat();
+        this.connected = false;
+        this._emit('disconnected');
+      }
+    }, 2500);
+  }
+
+  _stopHeartbeat() {
+    if (this.heartbeatTimer) {
+      clearInterval(this.heartbeatTimer);
+      this.heartbeatTimer = null;
+    }
+  }
+
   cleanup() {
+    this._stopHeartbeat();
     if (this.conn) {
       try { this.conn.close(); } catch(e){}
       this.conn = null;

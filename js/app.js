@@ -144,6 +144,11 @@ document.addEventListener('DOMContentLoaded', () => {
   let deckManager = new CardDeckManager();
   let botDeckManager = null;
   let boardUI = null;
+  let gameEnded = false;
+
+  if (game && typeof game.set_freeze_fn === 'function') {
+    game.set_freeze_fn((sq) => (gameVariant === 'cards' && deckManager) ? deckManager.isPieceFrozen(sq) : false);
+  }
 
   let mode = 'online'; // 'online', 'bot', 'pass'
   let gameVariant = 'cards'; // 'cards' or 'classic'
@@ -532,9 +537,14 @@ document.addEventListener('DOMContentLoaded', () => {
           if (targetSquare) {
             const piece = boardUI.getPieceAt(targetSquare);
             const targetColor = piece ? piece.color : (casterColor === 'w' ? 'b' : 'w');
+            const wasInCheck = game.in_check();
             deckManager.freezePiece(targetSquare, targetColor, 1);
             if (window.sounds) window.sounds.play('freeze');
-            showToast(`❄️ Фигура на ${targetSquare} заморожена!`);
+            if (wasInCheck && !game.in_check()) {
+              showToast(`❄️ Шах снят! Атакующая фигура на ${targetSquare} закована во лёд!`, 5000);
+            } else {
+              showToast(`❄️ Фигура на ${targetSquare} заморожена!`);
+            }
           }
           break;
 
@@ -862,7 +872,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Check decree penalties on moved player
     checkDecreePenalties(moveResult, myColor);
-    deckManager.tickTurn(game.turn());
+    deckManager.tickTurn(myColor);
 
     // Draw card every 3 full turns (every 6 half-moves)
     if (gameVariant === 'cards' && totalMovesCount % 6 === 0) {
@@ -927,7 +937,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (res) {
       boardUI.lastMove = { from: data.from, to: data.to };
       checkDecreePenalties(res, opponentColor);
-      deckManager.tickTurn(game.turn());
+      deckManager.tickTurn(opponentColor);
 
       if (gameVariant === 'cards' && totalMovesCount % 6 === 0) {
         triggerCardDraw();
@@ -1038,18 +1048,40 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function checkGameOver() {
+    if (gameEnded) return;
     let isCheckmate = game.in_checkmate();
     let isStalemate = game.in_stalemate();
 
-    if (gameVariant === 'cards' && !isCheckmate && !isStalemate) {
-      const allMoves = game.moves({ verbose: true });
-      if (allMoves.length > 0) {
-        const playable = allMoves.filter(m => !deckManager.isPieceFrozen(m.from));
-        if (playable.length === 0) {
-          if (game.in_check()) {
-            isCheckmate = true;
-          } else {
-            isStalemate = true;
+    if (gameVariant === 'cards') {
+      const defendingColor = game.turn();
+      const currentDeck = (mode === 'bot' && defendingColor === opponentColor) ? botDeckManager : deckManager;
+
+      // In cards mode, if threatened with mate, give player with cards a chance to cast a spell!
+      if (isCheckmate) {
+        if (defendingColor === myColor && currentDeck && currentDeck.hand && currentDeck.hand.length > 0) {
+          showToast('⚠️ ВАМ УГРОЖАЕТ МАТ! Используйте карту из руки (например, заморозьте фигуру), чтобы спастись!', 6000);
+          return;
+        }
+        if (mode === 'online' && defendingColor === opponentColor) {
+          showToast('⚠️ Сопернику угрожает мат. Ожидание хода или применения заклинания...', 3500);
+          return;
+        }
+      }
+
+      if (!isCheckmate && !isStalemate) {
+        const allMoves = game.moves({ verbose: true });
+        if (allMoves.length > 0) {
+          const playable = allMoves.filter(m => !deckManager.isPieceFrozen(m.from));
+          if (playable.length === 0) {
+            if (game.in_check()) {
+              if (defendingColor === myColor && currentDeck && currentDeck.hand && currentDeck.hand.length > 0) {
+                showToast('⚠️ Все ходы заблокированы льдом! Сыграйте карту, чтобы спастись!', 6000);
+                return;
+              }
+              isCheckmate = true;
+            } else {
+              isStalemate = true;
+            }
           }
         }
       }
@@ -1070,6 +1102,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function endGame(title, desc) {
+    gameEnded = true;
     stopTimer();
     window.sounds.play('gameover');
     gameOverTitle.textContent = title;
@@ -1079,6 +1112,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function startNewGame(config) {
     game.reset();
+    gameEnded = false;
+    if (game && typeof game.set_freeze_fn === 'function') {
+      game.set_freeze_fn((sq) => (gameVariant === 'cards' && deckManager) ? deckManager.isPieceFrozen(sq) : false);
+    }
     modalGameOver.classList.add('hidden');
     moveHistoryEl.innerHTML = '';
     chatMessagesEl.innerHTML = '';
@@ -1286,7 +1323,11 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   network.on('disconnected', () => {
-    showToast('Соперник отключился.');
+    if (mode === 'online' && !gameEnded && !game.game_over()) {
+      endGame('Победа!', 'Соперник отключился от игры. Вам автоматически засчитана техническая победа!');
+    } else {
+      showToast('Соперник отключился.');
+    }
   });
 
   // --- Single Player vs Bot ---
@@ -1364,6 +1405,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   btnLeaveGame.addEventListener('click', () => {
     if (confirm('Покинуть игру и вернуться в главное меню?')) {
+      if (mode === 'online' && !gameEnded && network.connected) {
+        network.sendResign(myColor);
+      }
       stopTimer();
       network.cleanup();
       switchScreen(screenLobby);

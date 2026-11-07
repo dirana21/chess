@@ -251,19 +251,19 @@ class CardDeckManager {
     return null;
   }
 
-  // Decrement decree and frozen counters on each turn
-  tickTurn(activeColor) {
-    // Decrement decrees of the player whose turn just ended or started
+  // Decrement decree and frozen counters when a player finishes their turn
+  tickTurn(justMovedColor) {
+    // Decrement decrees when the opponent of the decree caster completes a move
     this.activeDecrees.forEach(d => {
-      if (d.owner !== activeColor) {
+      if (d.owner !== justMovedColor) {
         d.duration--;
       }
     });
     this.activeDecrees = this.activeDecrees.filter(d => d.duration > 0);
 
-    // Decrement frozen pieces for the active color
+    // Decrement frozen pieces for the player who just completed their turn with that piece frozen
     for (const sq in this.frozenPieces) {
-      if (this.frozenPieces[sq].color === activeColor) {
+      if (this.frozenPieces[sq].color === justMovedColor) {
         this.frozenPieces[sq].turns--;
         if (this.frozenPieces[sq].turns <= 0) {
           delete this.frozenPieces[sq];
@@ -271,11 +271,13 @@ class CardDeckManager {
       }
     }
 
-    // Decrement forbidden squares
+    // Decrement forbidden squares after a round
     for (const sq in this.forbiddenSquares) {
-      this.forbiddenSquares[sq].turns--;
-      if (this.forbiddenSquares[sq].turns <= 0) {
-        delete this.forbiddenSquares[sq];
+      if (this.forbiddenSquares[sq].byPlayer !== justMovedColor) {
+        this.forbiddenSquares[sq].turns--;
+        if (this.forbiddenSquares[sq].turns <= 0) {
+          delete this.forbiddenSquares[sq];
+        }
       }
     }
 
@@ -286,8 +288,8 @@ class CardDeckManager {
       }
     }
 
-    if (this.kingsShield[activeColor] > 0) {
-      this.kingsShield[activeColor]--;
+    if (this.kingsShield[justMovedColor] > 0) {
+      this.kingsShield[justMovedColor]--;
     }
 
     this.infantryMarchActive = false;

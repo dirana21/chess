@@ -37,6 +37,7 @@ for (let g = 1; g <= 500; g++) {
   const deckB = new CardDeckManager();
   deckW.drawCard(); deckW.drawCard();
   deckB.drawCard(); deckB.drawCard();
+  game.set_freeze_fn((sq) => deckW.isPieceFrozen(sq) || deckB.isPieceFrozen(sq));
 
   let moves = 0;
   while (!game.game_over() && moves < 100) {
