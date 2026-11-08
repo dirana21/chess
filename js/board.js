@@ -308,7 +308,27 @@ class ChessBoardUI {
     // Check if clicked piece is frozen
     if (this.deckManager && this.deckManager.isPieceFrozen(square)) {
       if (window.sounds) window.sounds.play('freeze');
+      if (window.chessApp && window.chessApp.getAllActiveEffects && window.chessApp.openEffectDetailsModal) {
+        const effects = window.chessApp.getAllActiveEffects();
+        const frozenEff = effects.find(e => e.id === 'frozen_' + square);
+        if (frozenEff) {
+          window.chessApp.openEffectDetailsModal(frozenEff, effects);
+          return;
+        }
+      }
       return;
+    }
+
+    // Check if clicked square has a trap or field effect (when no piece is selected to move)
+    if (this.deckManager && this.deckManager.forbiddenSquares && this.deckManager.forbiddenSquares[square] && !this.selectedSquare) {
+      if (window.chessApp && window.chessApp.getAllActiveEffects && window.chessApp.openEffectDetailsModal) {
+        const effects = window.chessApp.getAllActiveEffects();
+        const trapEff = effects.find(e => e.id === 'trap_' + square);
+        if (trapEff) {
+          window.chessApp.openEffectDetailsModal(trapEff, effects);
+          return;
+        }
+      }
     }
 
     // If already selected, check if clicked on a legal move destination

@@ -186,12 +186,22 @@
                 <span id="hud-cards-badge" class="hud-badge">0/4</span>
                 <span id="hud-cards-indicator" class="hud-indicator hidden">●</span>
               </button>
+
+              <!-- Active Effects HUD Button (Visible when effects > 0) -->
+              <button id="btn-open-effects-modal" class="btn-hud btn-hud-effects hidden" title="Посмотреть активные эффекты и проклятия">
+                <span class="hud-icon">⚡</span>
+                <span class="hud-label">Эффекты</span>
+                <span id="hud-effects-badge" class="hud-badge hud-badge-effects">0</span>
+              </button>
             </div>
 
             <div class="hud-right-group">
               <span id="hud-next-card-timer" class="hud-timer-hint">Карта через <strong>3</strong> х.</span>
             </div>
           </div>
+
+          <!-- Active Effects Ticker Bar directly above Opponent Bar -->
+          <div id="active-effects-ticker" class="active-effects-ticker hidden"></div>
 
           <!-- Targeting Step Banner directly above Board -->
           <div id="targeting-banner" class="targeting-banner hidden">
@@ -238,10 +248,14 @@
           <!-- Active Decrees & Curses HUD -->
           <div class="sidebar-box decrees-box" id="active-decrees-container">
             <div class="sidebar-box-header decrees-header">
-              <span>⚡ Активные Проклятия и Указы</span>
+              <span>⚡ Активные Эффекты и Указы</span>
+              <span id="sidebar-effects-count" class="effects-count-badge hidden">0</span>
             </div>
             <div id="active-decrees-list" class="active-decrees-list">
-              <span class="no-decrees-hint">Нет активных проклятий</span>
+              <div class="no-decrees-hint">
+                <span class="no-decrees-icon">🛡️</span>
+                <span>Нет активных проклятий и указов. Все фигуры подчиняются классическим правилам.</span>
+              </div>
             </div>
           </div>
 
@@ -304,6 +318,56 @@
 
         <div class="inventory-footer">
           <span class="inv-tip">💡 Нажмите на карту или кнопку «Разыграть». Шахматная доска остаётся видимой на фоне.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cinematic Active Effect Detail Modal -->
+    <div id="effect-details-modal" class="effect-details-modal hidden">
+      <div class="effect-modal-backdrop" id="effect-modal-backdrop"></div>
+      <div class="effect-modal-dialog">
+        <button id="btn-close-effect-modal" class="effect-modal-close" title="Закрыть (Esc)">✕</button>
+
+        <div class="effect-modal-header">
+          <div class="effect-modal-icon-wrap" id="effect-modal-icon-wrap">
+            <span class="effect-modal-icon" id="effect-modal-icon">⚡</span>
+          </div>
+          <div class="effect-modal-title-group">
+            <span class="effect-modal-badge" id="effect-modal-badge">ВРАЖЕСКОЕ ПРОКЛЯТИЕ</span>
+            <h3 class="effect-modal-title" id="effect-modal-title">Оковы Кентавра</h3>
+            <div class="effect-modal-duration-tag">
+              ⏳ Осталось действовать: <strong id="effect-modal-turns">2 хода</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Multi-effects switcher tabs (if multiple active) -->
+        <div id="effect-modal-tabs" class="effect-modal-tabs hidden"></div>
+
+        <div class="effect-modal-body">
+          <div class="effect-detail-card effect-target-card">
+            <div class="effect-card-label">🎯 ОБЪЕКТ ДЕЙСТВИЯ:</div>
+            <div class="effect-card-text" id="effect-modal-target">Все вражеские кони</div>
+          </div>
+
+          <div class="effect-detail-card effect-trigger-card">
+            <div class="effect-card-label">⚡ УСЛОВИЕ СРАБАТЫВАНИЯ (ТРИГГЕР):</div>
+            <div class="effect-card-text" id="effect-modal-trigger">Ход вражеским Конём</div>
+          </div>
+
+          <div class="effect-detail-card effect-penalty-card">
+            <div class="effect-card-label">⚠️ ПОСЛЕДСТВИЕ (ШТРАФ / ЭФФЕКТ):</div>
+            <div class="effect-card-text" id="effect-modal-penalty">Конь застынет во льду на 1 ход</div>
+          </div>
+
+          <div class="effect-advice-box" id="effect-modal-advice-box">
+            <span class="advice-icon">💡</span>
+            <div class="advice-text" id="effect-modal-advice">Тактический совет</div>
+          </div>
+        </div>
+
+        <div class="effect-modal-footer">
+          <button id="btn-effect-modal-ok" class="btn btn-primary effect-btn-ok">Понятно</button>
         </div>
       </div>
     </div>

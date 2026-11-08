@@ -77,6 +77,26 @@ document.addEventListener('DOMContentLoaded', () => {
   const invTurnsUntil = document.getElementById('inv-turns-until');
   const inventoryCardsContainer = document.getElementById('inventory-cards-container');
 
+  // Active Effects HUD & Modal Elements
+  const btnOpenEffectsModal = document.getElementById('btn-open-effects-modal');
+  const hudEffectsBadge = document.getElementById('hud-effects-badge');
+  const activeEffectsTicker = document.getElementById('active-effects-ticker');
+  const sidebarEffectsCount = document.getElementById('sidebar-effects-count');
+  const effectDetailsModal = document.getElementById('effect-details-modal');
+  const effectModalBackdrop = document.getElementById('effect-modal-backdrop');
+  const btnCloseEffectModal = document.getElementById('btn-close-effect-modal');
+  const btnEffectModalOk = document.getElementById('btn-effect-modal-ok');
+  const effectModalTabs = document.getElementById('effect-modal-tabs');
+  const effectModalDialog = document.querySelector('.effect-modal-dialog');
+  const effectModalIcon = document.getElementById('effect-modal-icon');
+  const effectModalBadge = document.getElementById('effect-modal-badge');
+  const effectModalTitle = document.getElementById('effect-modal-title');
+  const effectModalTurns = document.getElementById('effect-modal-turns');
+  const effectModalTarget = document.getElementById('effect-modal-target');
+  const effectModalTrigger = document.getElementById('effect-modal-trigger');
+  const effectModalPenalty = document.getElementById('effect-modal-penalty');
+  const effectModalAdvice = document.getElementById('effect-modal-advice');
+
   // Card Showcase Cinematic Elements
   const cardShowcaseOverlay = document.getElementById('card-showcase-overlay');
   const showcaseBanner = document.getElementById('showcase-banner');
@@ -564,41 +584,331 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  function renderActiveDecrees() {
-    if (gameVariant !== 'cards') return;
-    activeDecreesList.innerHTML = '';
+  function getPieceTypeName(code) {
+    switch (code) {
+      case 'p': return 'Пешки ♟️';
+      case 'n': return 'Кони 🐎';
+      case 'b': return 'Слоны ⛪';
+      case 'r': return 'Ладьи 🏰';
+      case 'q': return 'Ферзь 👑';
+      case 'k': return 'Король 🛡️';
+      default: return 'Фигура';
+    }
+  }
 
-    if (deckManager.activeDecrees.length === 0) {
-      activeDecreesList.innerHTML = '<span class="no-decrees-hint">Нет активных проклятий и указов</span>';
+  function getAllActiveEffects() {
+    if (!deckManager || gameVariant !== 'cards') return [];
+    const list = [];
+
+    // 1. Decrees & Curses
+    if (deckManager.activeDecrees && deckManager.activeDecrees.length > 0) {
+      deckManager.activeDecrees.forEach(d => {
+        const isEnemy = d.owner !== myColor;
+        let targetText = 'Фигуры соперника';
+        if (d.penaltyTarget) targetText = `Все ${getPieceTypeName(d.penaltyTarget)}`;
+        else if (d.id === 'queen_burden') targetText = 'Вражеский Ферзь 👑';
+        else if (d.id === 'tax_castle') targetText = 'Вражеская Рокировка 🛡️';
+        else if (d.id === 'blood_tribute') targetText = 'Любые взятия фигур ⚔️';
+        else if (d.id === 'curse_rook') targetText = 'Все вражеские Ладьи 🏰';
+        else if (d.id === 'curse_bishop') targetText = 'Все вражеские Слоны ⛪';
+        else if (d.id === 'curse_knight') targetText = 'Все вражеские Кони 🐎';
+
+        list.push({
+          id: 'decree_' + (d.instanceId || d.id),
+          name: d.name,
+          icon: d.icon || '⚡',
+          category: isEnemy ? 'enemy_decree' : 'my_decree',
+          badgeText: isEnemy ? '⚠️ ВРАЖЕСКОЕ ПРОКЛЯТИЕ' : '🛡️ ВАШ УКАЗ',
+          owner: d.owner,
+          turns: d.duration,
+          target: targetText,
+          trigger: d.card.trigger || d.card.description,
+          penalty: d.card.penalty || 'Штрафной эффект заклинания',
+          advice: isEnemy
+            ? 'Внимание! Если вы совершите указанное действие, ваша фигура мгновенно получит штраф. Сделайте другой ход или переждите.'
+            : 'Этот указ наложен вами. Если соперник нарушит его условия, он немедленно понесёт наказание.'
+        });
+      });
+    }
+
+    // 2. Frozen Pieces
+    if (deckManager.frozenPieces) {
+      for (const sq in deckManager.frozenPieces) {
+        const fp = deckManager.frozenPieces[sq];
+        const pieceOnSq = boardUI ? boardUI.getPieceAt(sq) : null;
+        const isMyPiece = pieceOnSq ? pieceOnSq.color === myColor : fp.color === myColor;
+        const pieceColorName = fp.color === 'w' ? 'Белая' : 'Чёрная';
+        const pName = pieceOnSq ? getPieceTypeName(pieceOnSq.type) : 'Фигура';
+
+        list.push({
+          id: 'frozen_' + sq,
+          name: `Ледяная Окова (${sq.toUpperCase()})`,
+          icon: '❄️',
+          category: isMyPiece ? 'my_frozen' : 'enemy_frozen',
+          badgeText: isMyPiece ? '❄️ ВАША ФИГУРА ЗАМОРОЖЕНА' : '❄️ ФИГУРА ВРАГА ЗАМОРОЖЕНА',
+          owner: fp.color,
+          turns: fp.turns,
+          target: `${pieceColorName} ${pName} на клетке ${sq.toUpperCase()}`,
+          trigger: 'Любая попытка совершить ход этой фигурой',
+          penalty: 'Фигура скована магическим льдом и не может перемещаться или рубить',
+          advice: isMyPiece
+            ? `Фигура полностью обездвижена ещё ${fp.turns} ход(а). Прикрывайте её соседними фигурами до оттаивания!`
+            : `Фигура соперника выведена из строя на ${fp.turns} ход(а). Используйте этот момент для прорыва!`
+        });
+      }
+    }
+
+    // 3. Forbidden Squares (Black Mark / Traps)
+    if (deckManager.forbiddenSquares) {
+      for (const sq in deckManager.forbiddenSquares) {
+        const fs = deckManager.forbiddenSquares[sq];
+        const isMyTrap = fs.byPlayer === myColor;
+
+        list.push({
+          id: 'trap_' + sq,
+          name: `Чёрная Метка (${sq.toUpperCase()})`,
+          icon: '☠️',
+          category: isMyTrap ? 'my_trap' : 'enemy_trap',
+          badgeText: isMyTrap ? '☠️ ВАША ЛОВУШКА' : '⚠️ ВРАЖЕСКАЯ ЛОВУШКА',
+          owner: fs.byPlayer,
+          turns: fs.turns,
+          target: `Клетка ${sq.toUpperCase()}`,
+          trigger: `Фигура наступает на клетку ${sq.toUpperCase()}`,
+          penalty: 'Наступившая фигура мгновенно застынет во льду на 1 ход',
+          advice: isMyTrap
+            ? 'Клетка заминирована вами. Если враг ступит на неё, он немедленно покроется льдом!'
+            : `Осторожно! Не ставьте свои фигуры на клетку ${sq.toUpperCase()}, иначе они замёрзнут!`
+        });
+      }
+    }
+
+    // 4. Smoke Screen Area
+    if (deckManager.smokeArea && deckManager.smokeArea.turns > 0) {
+      const sa = deckManager.smokeArea;
+      list.push({
+        id: 'smoke_area',
+        name: 'Густой Туман',
+        icon: '🌫️',
+        category: 'neutral_field',
+        badgeText: '🌫️ ПОЛЕВОЙ ЭФФЕКТ',
+        owner: null,
+        turns: sa.turns,
+        target: `Область клеток: ${sa.squares.map(s => s.toUpperCase()).join(', ')}`,
+        trigger: 'Попытка взять фигуру внутри тумана',
+        penalty: 'Взятия фигур в этой области заблокированы магической пеленой',
+        advice: 'В тумане никто не может рубить фигуры. Используйте эту область как надёжное укрытие!'
+      });
+    }
+
+    // 5. King's Shield
+    if (deckManager.kingsShield) {
+      ['w', 'b'].forEach(col => {
+        if (deckManager.kingsShield[col] > 0) {
+          const isMyShield = col === myColor;
+          list.push({
+            id: 'shield_' + col,
+            name: isMyShield ? 'Аура Стойкости Короля' : 'Вражеский Щит Короля',
+            icon: '🛡️',
+            category: isMyShield ? 'my_buff' : 'enemy_buff',
+            badgeText: isMyShield ? '🛡️ ВАШ БАФФ' : '🛡️ БАФФ СОПЕРНИКА',
+            owner: col,
+            turns: deckManager.kingsShield[col],
+            target: isMyShield ? 'Ваш Король 👑' : 'Король соперника 👑',
+            trigger: 'Попытка шаха от коней или пешек',
+            penalty: 'Шахи от лёгких фигур полностью игнорируются',
+            advice: isMyShield
+              ? 'Ваш король неуязвим к шахам от пешек и коней. Можете атаковать без опаски!'
+              : 'Не пытайтесь шаховать короля соперника конями или пешками — атакуйте тяжёлыми фигурами.'
+          });
+        }
+      });
+    }
+
+    return list;
+  }
+
+  function openEffectDetailsModal(effect, allEffects = null) {
+    if (!effectDetailsModal) return;
+    if (!allEffects) allEffects = getAllActiveEffects();
+
+    // Theme dialog border/shadow based on effect category
+    if (effectModalDialog) {
+      effectModalDialog.classList.remove('modal-enemy', 'modal-freeze', 'modal-trap');
+      if (effect.category && effect.category.includes('enemy')) {
+        effectModalDialog.classList.add('modal-enemy');
+      } else if (effect.category && effect.category.includes('frozen')) {
+        effectModalDialog.classList.add('modal-freeze');
+      } else if (effect.category && effect.category.includes('trap')) {
+        effectModalDialog.classList.add('modal-trap');
+      }
+    }
+
+    // Populate switcher tabs if more than 1 active effect
+    if (effectModalTabs) {
+      if (allEffects.length > 1) {
+        effectModalTabs.classList.remove('hidden');
+        effectModalTabs.innerHTML = '';
+        allEffects.forEach(eff => {
+          const tab = document.createElement('button');
+          const isEnemy = eff.category && eff.category.includes('enemy');
+          const isFrozen = eff.category && eff.category.includes('frozen');
+          tab.className = `effect-tab-pill ${eff.id === effect.id ? 'active' : ''} ${isEnemy ? 'tab-enemy' : (isFrozen ? 'tab-freeze' : '')}`;
+          tab.innerHTML = `<span>${eff.icon}</span> <span>${eff.name}</span>`;
+          tab.addEventListener('click', () => {
+            openEffectDetailsModal(eff, allEffects);
+          });
+          effectModalTabs.appendChild(tab);
+        });
+      } else {
+        effectModalTabs.classList.add('hidden');
+        effectModalTabs.innerHTML = '';
+      }
+    }
+
+    if (effectModalIcon) effectModalIcon.textContent = effect.icon || '⚡';
+    if (effectModalBadge) effectModalBadge.textContent = effect.badgeText || 'АКТИВНЫЙ ЭФФЕКТ';
+    if (effectModalTitle) effectModalTitle.textContent = effect.name || 'Эффект';
+    if (effectModalTurns) effectModalTurns.textContent = `${effect.turns} ${effect.turns === 1 ? 'ход' : (effect.turns < 5 ? 'хода' : 'ходов')}`;
+    if (effectModalTarget) effectModalTarget.textContent = effect.target || 'Фигуры на доске';
+    if (effectModalTrigger) effectModalTrigger.textContent = effect.trigger || 'Особое условие';
+    if (effectModalPenalty) effectModalPenalty.textContent = effect.penalty || 'Штрафной эффект';
+    if (effectModalAdvice) effectModalAdvice.textContent = effect.advice || 'Внимательно следите за позицией на доске.';
+
+    effectDetailsModal.classList.remove('hidden');
+  }
+
+  function closeEffectDetailsModal() {
+    if (effectDetailsModal) effectDetailsModal.classList.add('hidden');
+  }
+
+  function renderActiveDecrees() {
+    if (gameVariant !== 'cards') {
+      if (btnOpenEffectsModal) btnOpenEffectsModal.classList.add('hidden');
+      if (activeEffectsTicker) activeEffectsTicker.classList.add('hidden');
+      if (sidebarEffectsCount) sidebarEffectsCount.classList.add('hidden');
       return;
     }
 
-    deckManager.activeDecrees.forEach(d => {
-      const badge = document.createElement('div');
-      const isEnemyDecree = d.owner !== myColor;
-      badge.className = `decree-badge ${isEnemyDecree ? 'enemy-decree' : ''}`;
-      badge.setAttribute('tabindex', '0');
-      badge.innerHTML = `
-        <span class="decree-icon">${d.icon}</span>
-        <strong class="decree-name">${d.name}</strong>
-        <span class="decree-timer">⏳ ${d.duration} ${d.duration === 1 ? 'ход' : 'х.'}</span>
-        
-        <div class="decree-tooltip">
-          <div class="tooltip-title">${d.icon} ${d.name} (${isEnemyDecree ? 'Вражеский' : 'Ваш'})</div>
-          <div class="tooltip-trigger">⚡ <strong>Триггер:</strong> ${d.card.trigger || d.card.description}</div>
-          <div class="tooltip-penalty">⚠️ <strong>Штраф:</strong> ${d.card.penalty || 'Штрафной эффект'}</div>
-          <div class="tooltip-footer">Осталось ходов: <strong>${d.duration}</strong> • <em>Нажмите, чтобы закрыть</em></div>
-        </div>
-      `;
+    const allEffects = getAllActiveEffects();
 
-      badge.addEventListener('click', (e) => {
-        e.stopPropagation();
-        badge.classList.toggle('active-tooltip');
+    // 1. Update Top HUD Button & Badge
+    if (btnOpenEffectsModal && hudEffectsBadge) {
+      if (allEffects.length > 0) {
+        btnOpenEffectsModal.classList.remove('hidden');
+        hudEffectsBadge.textContent = allEffects.length;
+        const hasEnemyCurse = allEffects.some(e => e.category && e.category.includes('enemy'));
+        btnOpenEffectsModal.classList.toggle('has-enemy-curse', hasEnemyCurse);
+      } else {
+        btnOpenEffectsModal.classList.add('hidden');
+      }
+    }
+
+    // 2. Update Top Active Effects Ticker above Board
+    if (activeEffectsTicker) {
+      if (allEffects.length > 0) {
+        activeEffectsTicker.classList.remove('hidden');
+        activeEffectsTicker.innerHTML = '';
+        allEffects.forEach(eff => {
+          const chip = document.createElement('div');
+          const isEnemy = eff.category && eff.category.includes('enemy');
+          const isFrozen = eff.category && eff.category.includes('frozen');
+          const isTrap = eff.category && eff.category.includes('trap');
+          const isFriendly = eff.category && (eff.category.includes('my') || eff.category.includes('friendly'));
+
+          let chipClass = 'chip-neutral';
+          if (isEnemy) chipClass = 'chip-enemy';
+          else if (isFrozen) chipClass = 'chip-freeze';
+          else if (isTrap) chipClass = 'chip-trap';
+          else if (isFriendly) chipClass = 'chip-friendly';
+
+          chip.className = `ticker-chip ${chipClass}`;
+          chip.title = `${eff.name}: нажмите для описания`;
+          chip.innerHTML = `
+            <span class="chip-icon">${eff.icon}</span>
+            <span class="chip-title">${eff.name}</span>
+            <span class="chip-turns">⏳ ${eff.turns}х</span>
+            <span class="chip-info-btn">🔍</span>
+          `;
+          chip.addEventListener('click', () => {
+            openEffectDetailsModal(eff, allEffects);
+          });
+          activeEffectsTicker.appendChild(chip);
+        });
+      } else {
+        activeEffectsTicker.classList.add('hidden');
+        activeEffectsTicker.innerHTML = '';
+      }
+    }
+
+    // 3. Update Sidebar Active Effects Container
+    if (sidebarEffectsCount) {
+      if (allEffects.length > 0) {
+        sidebarEffectsCount.classList.remove('hidden');
+        sidebarEffectsCount.textContent = allEffects.length;
+      } else {
+        sidebarEffectsCount.classList.add('hidden');
+      }
+    }
+
+    if (activeDecreesList) {
+      activeDecreesList.innerHTML = '';
+      if (allEffects.length === 0) {
+        activeDecreesList.innerHTML = `
+          <div class="no-decrees-hint">
+            <span class="no-decrees-icon">🛡️</span>
+            <span>Нет активных проклятий и указов. Все фигуры подчиняются классическим правилам.</span>
+          </div>
+        `;
+        return;
+      }
+
+      allEffects.forEach(eff => {
+        const isEnemy = eff.category && eff.category.includes('enemy');
+        const isFrozen = eff.category && eff.category.includes('frozen');
+        const isTrap = eff.category && eff.category.includes('trap');
+        const isFriendly = eff.category && (eff.category.includes('my') || eff.category.includes('friendly'));
+
+        let stripClass = 'strip-neutral';
+        if (isEnemy) stripClass = 'strip-enemy';
+        else if (isFrozen) stripClass = 'strip-freeze';
+        else if (isTrap) stripClass = 'strip-trap';
+        else if (isFriendly) stripClass = 'strip-friendly';
+
+        const strip = document.createElement('div');
+        strip.className = `effect-strip ${stripClass}`;
+        strip.title = `Нажмите для подробного описания`;
+        strip.innerHTML = `
+          <div class="strip-left">
+            <span class="strip-icon">${eff.icon}</span>
+            <div class="strip-text-group">
+              <div class="strip-badge-row">
+                <span class="strip-tag">${eff.badgeText}</span>
+              </div>
+              <strong class="strip-title">${eff.name}</strong>
+              <div class="strip-desc">${eff.trigger} ➔ ${eff.penalty}</div>
+            </div>
+          </div>
+          <div class="strip-right">
+            <span class="strip-timer">⏳ ${eff.turns} ${eff.turns === 1 ? 'ход' : 'х.'}</span>
+            <span class="strip-arrow">›</span>
+          </div>
+        `;
+
+        strip.addEventListener('click', () => {
+          openEffectDetailsModal(eff, allEffects);
+        });
+
+        activeDecreesList.appendChild(strip);
       });
-
-      activeDecreesList.appendChild(badge);
-    });
+    }
   }
+
+  // Expose to window for board clicks on frozen pieces / traps
+  window.chessApp = {
+    getAllActiveEffects,
+    openEffectDetailsModal,
+    closeEffectDetailsModal
+  };
 
   function initiateCardPlay(card) {
     closeCardsInventory();
@@ -1772,6 +2082,18 @@ document.addEventListener('DOMContentLoaded', () => {
     inventoryBackdrop.addEventListener('click', closeCardsInventory);
   }
 
+  // Active Effects Modal Controls
+  if (btnOpenEffectsModal) {
+    btnOpenEffectsModal.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const allEffects = getAllActiveEffects();
+      if (allEffects.length > 0) openEffectDetailsModal(allEffects[0], allEffects);
+    });
+  }
+  if (btnCloseEffectModal) btnCloseEffectModal.addEventListener('click', closeEffectDetailsModal);
+  if (btnEffectModalOk) btnEffectModalOk.addEventListener('click', closeEffectDetailsModal);
+  if (effectModalBackdrop) effectModalBackdrop.addEventListener('click', closeEffectDetailsModal);
+
   // Global document click to close HUD menu
   document.addEventListener('click', (e) => {
     if (gameMenuDropdown && !gameMenuDropdown.classList.contains('hidden')) {
@@ -1784,6 +2106,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Global Escape key handler
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
+      closeEffectDetailsModal();
       closeCardsInventory();
       toggleGameMenu(true);
       if (pendingCard) cancelTargeting();
@@ -1883,5 +2206,33 @@ document.addEventListener('DOMContentLoaded', () => {
         toggleGameMenu();
       }, 300);
     }, 150);
+  } else if (urlParams.get('test_effects')) {
+    setTimeout(() => {
+      btnPlayBot.click();
+      if (deckManager) {
+        const curseCard = CARDS_DATABASE.find(c => c.id === 'curse_knight');
+        if (curseCard) deckManager.addDecree(curseCard, 'b'); // enemy curse on white
+        deckManager.freezePiece('f3', 'w', 1);
+        deckManager.forbiddenSquares['d5'] = { turns: 2, byPlayer: 'b' };
+        renderActiveDecrees();
+        if (boardUI) boardUI.render();
+      }
+    }, 200);
+  } else if (urlParams.get('test_effect_modal')) {
+    setTimeout(() => {
+      btnPlayBot.click();
+      if (deckManager) {
+        const curseCard = CARDS_DATABASE.find(c => c.id === 'curse_knight');
+        if (curseCard) deckManager.addDecree(curseCard, 'b'); // enemy curse on white
+        deckManager.freezePiece('f3', 'w', 1);
+        deckManager.forbiddenSquares['d5'] = { turns: 2, byPlayer: 'b' };
+        renderActiveDecrees();
+        if (boardUI) boardUI.render();
+        setTimeout(() => {
+          const allEff = getAllActiveEffects();
+          if (allEff.length > 0) openEffectDetailsModal(allEff[0], allEff);
+        }, 350);
+      }
+    }, 200);
   }
 });
