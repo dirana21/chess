@@ -462,6 +462,17 @@ class ChessBoardUI {
       this.promotionChoices.appendChild(btn);
     });
 
+    const cancelBtn = document.createElement('button');
+    cancelBtn.className = 'promotion-cancel-btn';
+    cancelBtn.textContent = '✕ Отмена';
+    cancelBtn.onclick = () => {
+      this.promotionModal.classList.add('hidden');
+      this.selectedSquare = null;
+      this.legalMoves = [];
+      this.render();
+    };
+    this.promotionChoices.appendChild(cancelBtn);
+
     this.promotionModal.classList.remove('hidden');
   }
 

@@ -111,6 +111,43 @@ document.addEventListener('DOMContentLoaded', () => {
   const showcaseTargetTag = document.getElementById('showcase-target-tag');
   const showcaseTargetText = document.getElementById('showcase-target-text');
 
+  // Rules & Spell Book Elements
+  const btnOpenRulesHeader = document.getElementById('btn-open-rules-header');
+  const btnOpenRulesLobby = document.getElementById('btn-open-rules-lobby');
+  const menuItemRules = document.getElementById('menu-item-rules');
+  const btnOpenRulesInv = document.getElementById('btn-open-rules-inv');
+  const modalRules = document.getElementById('modal-rules');
+  const btnCloseRules = document.getElementById('btn-close-rules');
+  const btnCloseRulesOk = document.getElementById('btn-close-rules-ok');
+  const rulesTabBtns = document.querySelectorAll('.rules-tab-btn');
+  const rulesTabContents = document.querySelectorAll('.rules-tab-content');
+
+  function openRulesModal(tabName = 'cards-guide') {
+    if (!modalRules) return;
+    switchRulesTab(tabName);
+    modalRules.classList.remove('hidden');
+  }
+
+  function closeRulesModal() {
+    if (!modalRules) return;
+    modalRules.classList.add('hidden');
+  }
+
+  function switchRulesTab(tabId) {
+    if (rulesTabBtns) {
+      rulesTabBtns.forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-tab') === tabId);
+      });
+    }
+    if (rulesTabContents) {
+      rulesTabContents.forEach(content => {
+        const isTarget = content.id === `tab-${tabId}`;
+        content.classList.toggle('hidden', !isTarget);
+        content.classList.toggle('active', isTarget);
+      });
+    }
+  }
+
   let showcaseTimeout = null;
 
   function getCardPerspectiveDescription(card, isViewerCaster, targetSquare = null) {
@@ -579,6 +616,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (hudCardsBadge) hudCardsBadge.textContent = `${handLen}/4`;
     if (invCardsCount) invCardsCount.textContent = handLen;
     if (invTurnsUntil) invTurnsUntil.textContent = turnsVal;
+    if (btnOpenCardsInv) {
+      btnOpenCardsInv.classList.toggle('has-playable-cards', handLen > 0 && game && game.turn() === myColor);
+    }
     if (hudNextCardTimer) {
       hudNextCardTimer.innerHTML = `Карта через: <strong>${turnsVal}</strong> х.`;
     }
@@ -1996,13 +2036,34 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   btnJoinOnline.addEventListener('click', async () => {
-    const code = inputJoinCode.value.trim().toUpperCase();
-    if (!code) {
-      showToast('Введите 6-значный код комнаты!');
+    let raw = inputJoinCode.value.trim();
+    if (!raw) {
+      showToast('Введите код комнаты или вставьте ссылку-приглашение!');
+      return;
+    }
+    // Extract code if user pasted a full URL (e.g. https://.../?room=ABC123)
+    let code = raw.toUpperCase();
+    if (code.includes('ROOM=')) {
+      const m = code.match(/ROOM=([A-Z0-9]+)/i);
+      if (m) code = m[1].toUpperCase();
+    }
+    code = code.replace(/[^A-Z0-9]/g, '');
+    if (code.length > 6) code = code.slice(-6);
+
+    if (code.length < 4) {
+      showToast('Неверный код комнаты! Код состоит из 6 символов.');
       return;
     }
     joinOnlineRoom(code);
   });
+
+  if (inputJoinCode) {
+    inputJoinCode.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        btnJoinOnline.click();
+      }
+    });
+  }
 
   async function joinOnlineRoom(code) {
     mode = 'online';
@@ -2287,6 +2348,37 @@ document.addEventListener('DOMContentLoaded', () => {
   if (btnEffectModalOk) btnEffectModalOk.addEventListener('click', closeEffectDetailsModal);
   if (effectModalBackdrop) effectModalBackdrop.addEventListener('click', closeEffectDetailsModal);
 
+  // Rules & Spell Book Modal Controls
+  if (btnOpenRulesHeader) btnOpenRulesHeader.addEventListener('click', () => openRulesModal());
+  if (btnOpenRulesLobby) btnOpenRulesLobby.addEventListener('click', () => openRulesModal());
+  if (menuItemRules) {
+    menuItemRules.addEventListener('click', () => {
+      toggleGameMenu(true);
+      openRulesModal();
+    });
+  }
+  if (btnOpenRulesInv) {
+    btnOpenRulesInv.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openRulesModal('spellbook');
+    });
+  }
+  if (btnCloseRules) btnCloseRules.addEventListener('click', closeRulesModal);
+  if (btnCloseRulesOk) btnCloseRulesOk.addEventListener('click', closeRulesModal);
+  if (modalRules) {
+    modalRules.addEventListener('click', (e) => {
+      if (e.target === modalRules) closeRulesModal();
+    });
+  }
+  if (rulesTabBtns) {
+    rulesTabBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tab = btn.getAttribute('data-tab');
+        if (tab) switchRulesTab(tab);
+      });
+    });
+  }
+
   // Global document click to close HUD menu
   document.addEventListener('click', (e) => {
     if (gameMenuDropdown && !gameMenuDropdown.classList.contains('hidden')) {
@@ -2296,13 +2388,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Global Escape key handler
+  // Global Escape & Hotkey handler
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       closeEffectDetailsModal();
       closeCardsInventory();
+      closeRulesModal();
+      if (modalLogs) modalLogs.classList.add('hidden');
       toggleGameMenu(true);
       if (pendingCard) cancelTargeting();
+    }
+    // Hotkey C or I to toggle cards inventory
+    if ((e.key === 'c' || e.key === 'C' || e.key === 'i' || e.key === 'I') && mode && screenGame && !screenGame.classList.contains('hidden') && !e.target.matches('input, textarea')) {
+      toggleCardsInventory();
     }
   });
 
@@ -2432,6 +2530,14 @@ document.addEventListener('DOMContentLoaded', () => {
       gameVariantSelect.value = 'classic';
       selectColor.value = 'b';
       btnPlayBot.click();
+    }, 150);
+  } else if (urlParams.get('test_rules')) {
+    setTimeout(() => {
+      openRulesModal('cards-guide');
+    }, 150);
+  } else if (urlParams.get('test_spellbook')) {
+    setTimeout(() => {
+      openRulesModal('spellbook');
     }, 150);
   } else if (urlParams.get('test_showcase')) {
     setTimeout(() => {

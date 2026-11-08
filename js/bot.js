@@ -1,7 +1,8 @@
 // Simple, fast chess bot using minimax + alpha-beta and piece-square tables
 class ChessBot {
-  constructor(depth = 3) {
+  constructor(depth = 3, game = null) {
     this.depth = depth;
+    this.game = game;
 
     this.weights = {
       p: 100,
@@ -139,13 +140,15 @@ class ChessBot {
     }
   }
 
-  getBestMove(game, difficulty = 'medium', deckManager = null) {
-    let moves = game.moves({ verbose: true });
+  getBestMove(game = null, difficulty = 'medium', deckManager = null) {
+    const activeGame = game || this.game;
+    if (!activeGame) return null;
+    let moves = activeGame.moves({ verbose: true });
     if (moves.length === 0) return null;
 
     // Filter out moves restricted by Card Chess decrees & ice
     if (deckManager) {
-      const activeColor = game.turn();
+      const activeColor = activeGame.turn();
       moves = moves.filter(m => !deckManager.isPieceFrozen(m.from));
 
       // Blind Bishop decree: no captures
@@ -191,7 +194,7 @@ class ChessBot {
       this.depth = 2;
     }
 
-    const isWhite = game.turn() === 'w';
+    const isWhite = activeGame.turn() === 'w';
     let bestMove = null;
     let bestValue = isWhite ? -Infinity : Infinity;
     const alpha = -Infinity;
@@ -202,9 +205,9 @@ class ChessBot {
     moves.sort((a, b) => (b.captured ? 1 : 0) - (a.captured ? 1 : 0));
 
     for (const m of moves) {
-      game.move(m);
-      const moveValue = this.minimax(game, this.depth - 1, alpha, beta, !isWhite);
-      game.undo();
+      activeGame.move(m);
+      const moveValue = this.minimax(activeGame, this.depth - 1, alpha, beta, !isWhite);
+      activeGame.undo();
 
       if (isWhite) {
         if (moveValue > bestValue) {

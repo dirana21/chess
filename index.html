@@ -16,6 +16,9 @@
         <span class="logo-title">Шахматы Онлайн</span>
       </div>
       <div class="header-actions">
+        <button id="btn-open-rules-header" class="btn-action-logs" title="Правила игры и книга заклинаний">
+          📖 Правила
+        </button>
         <button id="btn-open-logs" class="btn-action-logs" title="Сетевые логи и диагностика">
           📋 Логи <span id="logs-badge" class="logs-badge hidden">0</span>
         </button>
@@ -80,7 +83,7 @@
             <div class="divider"><span>ИЛИ</span></div>
 
             <div class="join-row">
-              <input type="text" id="join-code-input" class="form-input code-input" placeholder="Код (например, ABC123)" maxlength="6">
+              <input type="text" id="join-code-input" class="form-input code-input" placeholder="Код комнаты или ссылка" maxlength="150" autocomplete="off" spellcheck="false">
               <button id="btn-join-online" class="btn btn-secondary">Войти</button>
             </div>
           </div>
@@ -118,6 +121,18 @@
               <button id="btn-pass-play" class="btn btn-outline btn-block">Начать на одном экране</button>
             </div>
           </div>
+        </div>
+
+        <!-- Rules & Spellbook Quick Access Banner -->
+        <div class="lobby-rules-banner">
+          <button id="btn-open-rules-lobby" class="btn-rules-banner" type="button">
+            <span class="rules-banner-icon">📖</span>
+            <div class="rules-banner-text">
+              <strong>Справка: Как играть и Книга заклинаний</strong>
+              <span>Узнайте все 10 карт, королевские указы и правила шахмат</span>
+            </div>
+            <span class="rules-banner-arrow">➔</span>
+          </button>
         </div>
       </div>
     </main>
@@ -172,6 +187,7 @@
                   <button id="menu-item-resign" class="menu-item">🏳️ Сдаться</button>
                   <button id="menu-item-flip" class="menu-item">🔄 Повернуть доску</button>
                   <div class="menu-divider"></div>
+                  <button id="menu-item-rules" class="menu-item">📖 Справка и карты</button>
                   <button id="menu-item-logs" class="menu-item">📋 Сетевые логи</button>
                   <button id="menu-item-sound" class="menu-item">🔊 Звук: Вкл</button>
                   <div class="menu-divider"></div>
@@ -309,7 +325,10 @@
               Следующая карта через: <strong id="inv-turns-until">3</strong> хода • Выберите карту для розыгрыша
             </div>
           </div>
-          <button id="btn-close-inventory" class="btn-close-inv" title="Закрыть инвентарь (Esc)">✕</button>
+          <div class="inv-header-actions">
+            <button id="btn-open-rules-inv" class="btn-inv-rules" title="Справка по всем картам">📖 Книга карт</button>
+            <button id="btn-close-inventory" class="btn-close-inv" title="Закрыть инвентарь (Esc)">✕</button>
+          </div>
         </div>
 
         <div id="inventory-cards-container" class="inventory-cards-container">
@@ -445,6 +464,250 @@
         <div class="logs-actions">
           <button id="btn-copy-logs" class="btn btn-primary">📋 Скопировать весь лог</button>
           <button id="btn-clear-logs" class="btn btn-outline">Очистить</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rules & Spell Book Modal -->
+    <div id="modal-rules" class="modal-backdrop hidden">
+      <div class="modal-card rules-modal-card">
+        <div class="rules-header">
+          <div class="rules-title-row">
+            <span class="rules-icon">📖</span>
+            <h3>Правила игры и Книга заклинаний</h3>
+          </div>
+          <button id="btn-close-rules" class="btn-icon" title="Закрыть (Esc)">✕</button>
+        </div>
+
+        <div class="rules-nav-tabs">
+          <button class="rules-tab-btn active" data-tab="cards-guide">🃏 Карты и Магия</button>
+          <button class="rules-tab-btn" data-tab="spellbook">✨ 10 Заклинаний</button>
+          <button class="rules-tab-btn" data-tab="classic-guide">♟️ Шахматы и таймеры</button>
+          <button class="rules-tab-btn" data-tab="online-guide">🌐 Игра по сети</button>
+        </div>
+
+        <div class="rules-tab-content active" id="tab-cards-guide">
+          <div class="rules-section">
+            <h4>🌟 Как устроен режим «Нова» (Карточные шахматы)?</h4>
+            <p>Вы играете в настоящие шахматы, но с мощным арсеналом магии! Доска, фигуры и правила ходов подчиняются законам шахмат, но каждый игрок может переворачивать ход партии с помощью карт заклинаний и указов.</p>
+          </div>
+
+          <div class="rules-grid">
+            <div class="rules-feature-card">
+              <span class="rfc-icon">🎁</span>
+              <strong>Старт и получение карт</strong>
+              <p>В начале игры каждому выдаётся <strong>2 случайные карты</strong>. Затем каждые <strong>3 хода</strong> вы получаете <strong>+1 новую карту</strong>. В руке может быть максимум 4 карты.</p>
+            </div>
+            <div class="rules-feature-card">
+              <span class="rfc-icon">⚡</span>
+              <strong>Заклинания прямого действия</strong>
+              <p>Мгновенная магия: Заморозка фигуры на 1 ход, спасение от мата, Рокировка теней, призыв Пешки или Дымовая завеса.</p>
+            </div>
+            <div class="rules-feature-card">
+              <span class="rfc-icon">📜</span>
+              <strong>Королевские Указы (Проклятия)</strong>
+              <p>Действуют 2–3 хода. Накладывают запрет на действия врага. Если враг нарушит закон (пойдёт конём, сделает рокировку и т.д.), он будет наказан льдом!</p>
+            </div>
+            <div class="rules-feature-card">
+              <span class="rfc-icon">❄️</span>
+              <strong>Как работает Заморозка?</strong>
+              <p>Замороженная фигура покрывается ледяной коркой на 1 полный ход её владельца. Она не может ходить, рубить и объявлять шах. Если вам поставили шах замороженной фигурой — шах немедленно снимается!</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="rules-tab-content hidden" id="tab-spellbook">
+          <div class="spellbook-list">
+            <!-- 1. Freeze Piece -->
+            <div class="spellbook-card rarity-common">
+              <div class="sbc-header">
+                <span class="sbc-icon">❄️</span>
+                <div class="sbc-title-group">
+                  <div class="sbc-name">Оковы Льда</div>
+                  <div class="sbc-tags"><span class="sbc-tag spell">ЗАКЛИНАНИЕ</span><span class="sbc-rarity common">Обычная</span></div>
+                </div>
+              </div>
+              <div class="sbc-desc">Замораживает выбранную вражескую фигуру на 1 ход. Фигура теряет способность двигаться и атаковать.</div>
+              <div class="sbc-tip">💡 Совет: используйте против ферзя или коня при атаке на вашего короля, чтобы сорвать план соперника!</div>
+            </div>
+
+            <!-- 2. Shadow Swap -->
+            <div class="spellbook-card rarity-rare">
+              <div class="sbc-header">
+                <span class="sbc-icon">👥</span>
+                <div class="sbc-title-group">
+                  <div class="sbc-name">Рокировка Теней</div>
+                  <div class="sbc-tags"><span class="sbc-tag spell">ЗАКЛИНАНИЕ</span><span class="sbc-rarity rare">Редкая</span></div>
+                </div>
+              </div>
+              <div class="sbc-desc">Мгновенно меняет местами вашего Коня и вашу Пешку на доске.</div>
+              <div class="sbc-tip">💡 Совет: перебросьте коня с края доски прямо в центр на место продвинутой пешки для внезапного удара.</div>
+            </div>
+
+            <!-- 3. Reinforcements -->
+            <div class="spellbook-card rarity-common">
+              <div class="sbc-header">
+                <span class="sbc-icon">🛡️</span>
+                <div class="sbc-title-group">
+                  <div class="sbc-name">Подкрепление</div>
+                  <div class="sbc-tags"><span class="sbc-tag spell">ЗАКЛИНАНИЕ</span><span class="sbc-rarity common">Обычная</span></div>
+                </div>
+              </div>
+              <div class="sbc-desc">Призывает дополнительную пешку на любую свободную клетку вашей домашней горизонтали (2-я для белых, 7-я для чёрных).</div>
+              <div class="sbc-tip">💡 Совет: закрывайте открытые вертикали против вражеских ладей или укрепляйте королевский фланг.</div>
+            </div>
+
+            <!-- 4. Smoke Screen -->
+            <div class="spellbook-card rarity-rare">
+              <div class="sbc-header">
+                <span class="sbc-icon">🌫️</span>
+                <div class="sbc-title-group">
+                  <div class="sbc-name">Дымовая Завеса</div>
+                  <div class="sbc-tags"><span class="sbc-tag spell">ЗАКЛИНАНИЕ • 2 ХОДА</span><span class="sbc-rarity rare">Редкая</span></div>
+                </div>
+              </div>
+              <div class="sbc-desc">Окутывает центральные поля (d4, d5, e4, e5) густым туманом на 2 хода. Ни одна фигура внутри тумана не может быть взята!</div>
+              <div class="sbc-tip">💡 Совет: ставьте ферзя или слона в самый центр для безопасной доминации.</div>
+            </div>
+
+            <!-- 5. King's Shield -->
+            <div class="spellbook-card rarity-epic">
+              <div class="sbc-header">
+                <span class="sbc-icon">👑</span>
+                <div class="sbc-title-group">
+                  <div class="sbc-name">Аура Стойкости</div>
+                  <div class="sbc-tags"><span class="sbc-tag spell">ЗАКЛИНАНИЕ • 2 ХОДА</span><span class="sbc-rarity epic">Эпическая</span></div>
+                </div>
+              </div>
+              <div class="sbc-desc">Окружает вашего Короля защитным щитом. Любая фигура противника, объявившая шах, мгновенно замораживается на 1 ход!</div>
+              <div class="sbc-tip">💡 Совет: активируйте перед вскрытием позиций, чтобы контратаковать дерзких атакующих фигур.</div>
+            </div>
+
+            <!-- 6. Divine Storm -->
+            <div class="spellbook-card rarity-rare">
+              <div class="sbc-header">
+                <span class="sbc-icon">🌪️</span>
+                <div class="sbc-title-group">
+                  <div class="sbc-name">Божественная Буря</div>
+                  <div class="sbc-tags"><span class="sbc-tag spell">ЗАКЛИНАНИЕ</span><span class="sbc-rarity rare">Редкая</span></div>
+                </div>
+              </div>
+              <div class="sbc-desc">Мощный порыв ветра отбрасывает выбранную фигуру соперника на 1 клетку назад к его базовой линии.</div>
+              <div class="sbc-tip">💡 Совет: сдувайте вражеские фигуры из ключевых опорных пунктов и линий атаки.</div>
+            </div>
+
+            <!-- 7. Curse Knight -->
+            <div class="spellbook-card rarity-common">
+              <div class="sbc-header">
+                <span class="sbc-icon">🐎</span>
+                <div class="sbc-title-group">
+                  <div class="sbc-name">Оковы Кентавра</div>
+                  <div class="sbc-tags"><span class="sbc-tag decree">УКАЗ • 2 ХОДА</span><span class="sbc-rarity common">Обычная</span></div>
+                </div>
+              </div>
+              <div class="sbc-desc">Если соперник сделает ход своим Конём — этот конь тут же застывает во льду на 1 ход!</div>
+              <div class="sbc-tip">💡 Совет: полностью парализует конную активность соперника в дебюте и миттельшпиле.</div>
+            </div>
+
+            <!-- 8. Curse Rook -->
+            <div class="spellbook-card rarity-common">
+              <div class="sbc-header">
+                <span class="sbc-icon">🏰</span>
+                <div class="sbc-title-group">
+                  <div class="sbc-name">Осадный Налог</div>
+                  <div class="sbc-tags"><span class="sbc-tag decree">УКАЗ • 2 ХОДА</span><span class="sbc-rarity common">Обычная</span></div>
+                </div>
+              </div>
+              <div class="sbc-desc">Если соперник походит Ладьёй — вы немедленно получаете +1 бонусную карту в руку.</div>
+              <div class="sbc-tip">💡 Совет: выгодно применять, когда у соперника ладьи стоят на открытых вертикалях.</div>
+            </div>
+
+            <!-- 9. Forbidden Square -->
+            <div class="spellbook-card rarity-rare">
+              <div class="sbc-header">
+                <span class="sbc-icon">🚫</span>
+                <div class="sbc-title-group">
+                  <div class="sbc-name">Чёрная Метка</div>
+                  <div class="sbc-tags"><span class="sbc-tag decree">УКАЗ-ЛОВУШКА • 3 ХОДА</span><span class="sbc-rarity rare">Редкая</span></div>
+                </div>
+              </div>
+              <div class="sbc-desc">Вы накладываете ловушку на любую свободную клетку доски. Первая же вражеская фигура, наступившая на неё, замораживается на 1 ход.</div>
+              <div class="sbc-tip">💡 Совет: ставьте ловушку на форпосты (d5, e5, f5), куда рвётся вражеский конь или ферзь!</div>
+            </div>
+
+            <!-- 10. Blood Tribute -->
+            <div class="spellbook-card rarity-epic">
+              <div class="sbc-header">
+                <span class="sbc-icon">🩸</span>
+                <div class="sbc-title-group">
+                  <div class="sbc-name">Возмездие Крови</div>
+                  <div class="sbc-tags"><span class="sbc-tag decree">УКАЗ • 2 ХОДА</span><span class="sbc-rarity epic">Эпическая</span></div>
+                </div>
+              </div>
+              <div class="sbc-desc">Если соперник срубит любую вашу фигуру — его атаковавшая фигура моментально застывает во льду на 1 ход.</div>
+              <div class="sbc-tip">💡 Совет: идеальная защита при обороне: враг не решится разменивать фигуры, зная, что его фигура застынет!</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="rules-tab-content hidden" id="tab-classic-guide">
+          <div class="rules-section">
+            <h4>♟️ Шахматные правила и управление</h4>
+            <div class="rules-grid">
+              <div class="rules-feature-card">
+                <span class="rfc-icon">🎯</span>
+                <strong>Ходы и выбор фигур</strong>
+                <p>Кликните по своей фигуре — подсвечиваются все легальные ходы зелёными точками. Кликните по целевой клетке (или перетащите фигуру пальцем/мышкой).</p>
+              </div>
+              <div class="rules-feature-card">
+                <span class="rfc-icon">👑</span>
+                <strong>Превращение пешки</strong>
+                <p>Достигнув противоположного края доски, пешка может превратиться в Ферзя, Ладью, Слона или Коня через удобное меню выбора.</p>
+              </div>
+              <div class="rules-feature-card">
+                <span class="rfc-icon">⏱️</span>
+                <strong>Контроль времени</strong>
+                <p>Доступны форматы Рапид (10 и 15 мин), Блиц (3 и 5 мин), Пуля (1 мин) и режим «Без времени» (∞). Время начинает идти после вашего хода.</p>
+              </div>
+              <div class="rules-feature-card">
+                <span class="rfc-icon">⌨️</span>
+                <strong>Горячие клавиши на ПК</strong>
+                <p><code>C</code> или <code>I</code> — Инвентарь карт<br><code>M</code> — Меню игры<br><code>L</code> — Логи сети<br><code>Esc</code> — Закрыть окно / Отмена<br><code>F</code> — Повернуть доску</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="rules-tab-content hidden" id="tab-online-guide">
+          <div class="rules-section">
+            <h4>🌐 Сетевая игра с друзьями без регистрации</h4>
+            <div class="rules-grid">
+              <div class="rules-feature-card">
+                <span class="rfc-icon">✨</span>
+                <strong>Как создать комнату?</strong>
+                <p>Нажмите «Создать комнату» в лобби. Появится ваш 6-значный код и прямая ссылка. Нажмите «Скопировать ссылку» и отправьте её другу в любой мессенджер!</p>
+              </div>
+              <div class="rules-feature-card">
+                <span class="rfc-icon">🚀</span>
+                <strong>Как подключиться?</strong>
+                <p>Ваш друг может просто перейти по ссылке — партия начнётся мгновенно! Либо ввести 6-значный код в поле «Войти» на главной странице.</p>
+              </div>
+              <div class="rules-feature-card">
+                <span class="rfc-icon">🛡️</span>
+                <strong>Авто-повтор подключения</strong>
+                <p>Система автоматически повторяет соединение при микрозадержках сети или регистрации хоста — никаких лишних кликов не требуется.</p>
+              </div>
+              <div class="rules-feature-card">
+                <span class="rfc-icon">🏆</span>
+                <strong>Защита от выхода соперника</strong>
+                <p>Если соперник разорвал соединение или закрыл браузер во время партии, вам автоматически присуждается техническая победа!</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="rules-footer">
+          <button id="btn-close-rules-ok" class="btn btn-primary btn-block">Понятно, играть! ⚔️</button>
         </div>
       </div>
     </div>
