@@ -736,6 +736,7 @@ document.addEventListener('DOMContentLoaded', () => {
       deckManager.activeDecrees.forEach(d => {
         const isEnemy = d.owner !== myColor;
         const details = getDecreeDetailsForPerspective(d, isEnemy);
+        const stateBadge = d.state === 'APPLIED' ? '✨ Только наложен' : (d.state === 'TICKING' ? '⏳ Тикает' : '🟢 Есть эффект');
 
         list.push({
           id: 'decree_' + (d.instanceId || d.id),
@@ -745,6 +746,8 @@ document.addEventListener('DOMContentLoaded', () => {
           badgeText: isEnemy ? '⚠️ ВРАЖЕСКОЕ ПРОКЛЯТИЕ' : '🛡️ ВАШ УКАЗ',
           owner: d.owner,
           turns: d.duration,
+          state: d.state || 'ACTIVE',
+          stateBadge: stateBadge,
           target: details.target,
           trigger: details.trigger,
           penalty: details.penalty,
@@ -762,6 +765,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const isMyPiece = pieceOnSq ? pieceOnSq.color === myColor : fp.color === myColor;
         const pieceColorName = fp.color === 'w' ? 'Белая' : 'Чёрная';
         const pName = pieceOnSq ? getPieceTypeName(pieceOnSq.type) : 'Фигура';
+        const stateBadge = fp.state === 'APPLIED' ? '✨ Только наложен' : (fp.state === 'TICKING' ? '⏳ Тикает' : '🟢 Есть эффект');
 
         list.push({
           id: 'frozen_' + sq,
@@ -771,6 +775,8 @@ document.addEventListener('DOMContentLoaded', () => {
           badgeText: isMyPiece ? '❄️ ВАША ФИГУРА ЗАМОРОЖЕНА' : '❄️ ФИГУРА ВРАГА ЗАМОРОЖЕНА',
           owner: fp.color,
           turns: fp.turns,
+          state: fp.state || 'ACTIVE',
+          stateBadge: stateBadge,
           target: isMyPiece ? `Ваш(а) ${pName} на клетке ${sq.toUpperCase()}` : `Вражеский ${pName} на клетке ${sq.toUpperCase()}`,
           trigger: isMyPiece ? 'Любая попытка совершить ход этой фигурой' : 'Попытка соперника сделать ход этой фигурой',
           penalty: isMyPiece ? 'Ваша фигура скована магическим льдом и не может перемещаться или рубить' : 'Фигура соперника скована магическим льдом и не может ходить',
@@ -787,6 +793,7 @@ document.addEventListener('DOMContentLoaded', () => {
       for (const sq in deckManager.forbiddenSquares) {
         const fs = deckManager.forbiddenSquares[sq];
         const isMyTrap = fs.byPlayer === myColor;
+        const stateBadge = fs.state === 'APPLIED' ? '✨ Только наложен' : (fs.state === 'TICKING' ? '⏳ Тикает' : '🟢 Есть эффект');
 
         list.push({
           id: 'trap_' + sq,
@@ -796,6 +803,8 @@ document.addEventListener('DOMContentLoaded', () => {
           badgeText: isMyTrap ? '☠️ ВАША ЛОВУШКА' : '⚠️ ВРАЖЕСКАЯ ЛОВУШКА',
           owner: fs.byPlayer,
           turns: fs.turns,
+          state: fs.state || 'ACTIVE',
+          stateBadge: stateBadge,
           target: isMyTrap ? `Клетка ${sq.toUpperCase()} (заминирована вами)` : `Проклятая клетка ${sq.toUpperCase()} (ловушка соперника)`,
           trigger: isMyTrap ? `Фигура соперника наступает на клетку ${sq.toUpperCase()}` : `Если ВАША фигура наступит на клетку ${sq.toUpperCase()}`,
           penalty: isMyTrap ? 'Фигура соперника мгновенно застынет во льду на 1 ход' : 'Ваша наступившая фигура мгновенно застынет во льду на 1 ход ❄️',
@@ -810,6 +819,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 4. Smoke Screen Area
     if (deckManager.smokeArea && deckManager.smokeArea.turns > 0) {
       const sa = deckManager.smokeArea;
+      const stateBadge = sa.state === 'APPLIED' ? '✨ Только наложен' : (sa.state === 'TICKING' ? '⏳ Тикает' : '🟢 Есть эффект');
       list.push({
         id: 'smoke_area',
         name: 'Густой Туман',
@@ -818,6 +828,8 @@ document.addEventListener('DOMContentLoaded', () => {
         badgeText: '🌫️ ПОЛЕВОЙ ЭФФЕКТ',
         owner: null,
         turns: sa.turns,
+        state: sa.state || 'ACTIVE',
+        stateBadge: stateBadge,
         target: `Область клеток: ${sa.squares.map(s => s.toUpperCase()).join(', ')}`,
         trigger: 'Попытка взять фигуру внутри тумана',
         penalty: 'Взятия фигур в этой области заблокированы магической пеленой',
@@ -831,6 +843,8 @@ document.addEventListener('DOMContentLoaded', () => {
       ['w', 'b'].forEach(col => {
         if (deckManager.kingsShield[col] > 0) {
           const isMyShield = col === myColor;
+          const kData = deckManager.kingsShieldData ? deckManager.kingsShieldData[col] : null;
+          const stateBadge = (kData && kData.state === 'APPLIED') ? '✨ Только наложен' : ((kData && kData.state === 'TICKING') ? '⏳ Тикает' : '🟢 Есть эффект');
           list.push({
             id: 'shield_' + col,
             name: isMyShield ? 'Аура Стойкости Короля' : 'Вражеский Щит Короля',
@@ -839,6 +853,8 @@ document.addEventListener('DOMContentLoaded', () => {
             badgeText: isMyShield ? '🛡️ ВАШ БАФФ' : '🛡️ БАФФ СОПЕРНИКА',
             owner: col,
             turns: deckManager.kingsShield[col],
+            state: kData ? kData.state : 'ACTIVE',
+            stateBadge: stateBadge,
             target: isMyShield ? 'Ваш Король 👑' : 'Король соперника 👑',
             trigger: isMyShield ? 'Попытка шаха от коней или пешек соперника' : 'Попытка шаха от ваших коней или пешек',
             penalty: isMyShield ? 'Шахи от лёгких фигур полностью игнорируются' : 'Шахи лёгкими фигурами заблокированы аурой',
@@ -895,7 +911,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (effectModalIcon) effectModalIcon.textContent = effect.icon || '⚡';
     if (effectModalBadge) effectModalBadge.textContent = effect.badgeText || 'АКТИВНЫЙ ЭФФЕКТ';
     if (effectModalTitle) effectModalTitle.textContent = effect.name || 'Эффект';
-    if (effectModalTurns) effectModalTurns.textContent = `${effect.turns} ${effect.turns === 1 ? 'ход' : (effect.turns < 5 ? 'хода' : 'ходов')}`;
+    const turnWord = effect.turns === 1 ? 'ход' : (effect.turns < 5 ? 'хода' : 'ходов');
+    const stateBadgeText = effect.stateBadge || '🟢 Есть эффект';
+    if (effectModalTurns) effectModalTurns.textContent = `${effect.turns} ${turnWord} • ${stateBadgeText}`;
     if (effectModalTarget) effectModalTarget.textContent = effect.target || 'Фигуры на доске';
     if (effectModalTrigger) effectModalTrigger.textContent = effect.trigger || 'Особое условие';
     if (effectModalPenalty) effectModalPenalty.textContent = effect.penalty || 'Штрафной эффект';
@@ -1186,9 +1204,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Apply Effect
     if (card.type === 'decree') {
-      deckManager.addDecree(card, casterColor);
+      deckManager.addDecree(card, casterColor, totalMovesCount);
       if (card.id === 'forbidden_square' && targetSquare) {
-        deckManager.forbiddenSquares[targetSquare] = { turns: card.duration || 3, byPlayer: casterColor };
+        deckManager.setForbiddenSquare(targetSquare, casterColor, card.duration || 3, totalMovesCount);
         if (casterColor === myColor) {
           showToast(`☠️ Вы установили «Чёрную Метку» на клетку ${targetSquare.toUpperCase()}! Любой враг застынет во льду.`);
         } else {
@@ -1210,7 +1228,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const piece = boardUI.getPieceAt(targetSquare);
             const targetColor = piece ? piece.color : (casterColor === 'w' ? 'b' : 'w');
             const wasInCheck = game.in_check();
-            deckManager.freezePiece(targetSquare, targetColor, 1);
+            deckManager.freezePiece(targetSquare, targetColor, 1, totalMovesCount, 'freeze_piece');
             if (window.sounds) window.sounds.play('freeze');
             if (casterColor === myColor) {
               if (wasInCheck && !game.in_check()) {
@@ -1232,10 +1250,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (rankNum === 8) rankNum = 7;
             const nextFile = String.fromCharCode(fileChar.charCodeAt(0) + 1);
             const nextRank = rankNum + 1;
-            deckManager.smokeArea = {
-              squares: [fileChar + rankNum, nextFile + rankNum, fileChar + nextRank, nextFile + nextRank],
-              turns: 2
-            };
+            deckManager.setSmokeArea(
+              [fileChar + rankNum, nextFile + rankNum, fileChar + nextRank, nextFile + nextRank],
+              2,
+              totalMovesCount
+            );
             showToast(`🌫️ Туман окутал клетки ${fileChar + rankNum}–${nextFile + nextRank}! Взятия запрещены!`);
           }
           break;
@@ -1273,7 +1292,7 @@ document.addEventListener('DOMContentLoaded', () => {
           break;
 
         case 'kings_shield':
-          deckManager.kingsShield[casterColor] = 2;
+          deckManager.setKingsShield(casterColor, 2, totalMovesCount);
           showToast('✨ «Аура Стойкости»: Король защищен золотым щитом на 2 хода!');
           break;
 
@@ -1309,7 +1328,7 @@ document.addEventListener('DOMContentLoaded', () => {
               const p = bState[r][c];
               if (p && p.color === enemyCol && (p.type === 'n' || p.type === 'b')) {
                 const sq = String.fromCharCode(97 + c) + (8 - r);
-                deckManager.freezePiece(sq, enemyCol, 1);
+                deckManager.freezePiece(sq, enemyCol, 1, totalMovesCount, 'divine_storm');
               }
             }
           }
@@ -1324,8 +1343,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (boardUI) boardUI.render();
   }
 
-  function checkDecreePenalties(moveResult, movedColor) {
+  function checkDecreePenalties(moveResult, movedColor, currentPly = null) {
     if (gameVariant !== 'cards') return;
+    const ply = (currentPly !== null && currentPly !== undefined) ? currentPly : totalMovesCount;
 
     // Check if movedColor violated any decrees set by opponent
     const opponent = movedColor === 'w' ? 'b' : 'w';
@@ -1334,7 +1354,7 @@ document.addEventListener('DOMContentLoaded', () => {
     decrees.forEach(d => {
       // 1. Curse Knight
       if (d.id === 'curse_knight' && moveResult.piece === 'n') {
-        deckManager.freezePiece(moveResult.to, movedColor, 1);
+        deckManager.freezePiece(moveResult.to, movedColor, 1, ply, 'curse_knight');
         if (window.sounds) {
           window.sounds.play('curse_trigger');
           setTimeout(() => window.sounds.play('freeze'), 150);
@@ -1360,7 +1380,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // 3. Tax Castle
       if (d.id === 'tax_castle' && (moveResult.flags.includes('k') || moveResult.flags.includes('q'))) {
-        deckManager.freezePiece(moveResult.to, movedColor, 1);
+        deckManager.freezePiece(moveResult.to, movedColor, 1, ply, 'tax_castle');
         if (window.sounds) {
           window.sounds.play('curse_trigger');
           setTimeout(() => window.sounds.play('freeze'), 150);
@@ -1374,7 +1394,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // 4. Blood Tribute
       if (d.id === 'blood_tribute' && moveResult.captured) {
-        deckManager.freezePiece(moveResult.to, movedColor, 1);
+        deckManager.freezePiece(moveResult.to, movedColor, 1, ply, 'blood_tribute');
         if (window.sounds) {
           window.sounds.play('curse_trigger');
           setTimeout(() => window.sounds.play('freeze'), 150);
@@ -1389,7 +1409,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Check forbidden square trigger
     if (deckManager.forbiddenSquares[moveResult.to]) {
-      deckManager.freezePiece(moveResult.to, movedColor, 1);
+      deckManager.freezePiece(moveResult.to, movedColor, 1, ply, 'forbidden_square');
       delete deckManager.forbiddenSquares[moveResult.to];
       if (window.sounds) window.sounds.play('freeze');
       if (movedColor === myColor) {
@@ -1403,7 +1423,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (game.in_check()) {
       const kingColor = game.turn();
       if (deckManager.kingsShield && deckManager.kingsShield[kingColor] > 0) {
-        deckManager.freezePiece(moveResult.to, movedColor, 1);
+        deckManager.freezePiece(moveResult.to, movedColor, 1, ply, 'kings_shield');
         if (window.sounds) {
           window.sounds.play('curse_trigger');
           setTimeout(() => window.sounds.play('freeze'), 150);
@@ -1559,15 +1579,21 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function handleLocalMove(moveResult) {
+    const movedColor = moveResult.color;
     totalMovesCount++;
     if (window.logger) {
-      window.logger.move(myColor, moveResult, game.fen(), false);
+      window.logger.move(movedColor, moveResult, game.fen(), false);
     }
     updateGameUI(moveResult);
 
+    // State Pattern Turn Transition: MOVED ("Походил")
+    if (deckManager && deckManager.turnState) {
+      deckManager.turnState.onMoveExecuted(movedColor, totalMovesCount);
+    }
+
     // Check decree penalties on moved player
-    checkDecreePenalties(moveResult, myColor);
-    deckManager.tickTurn(myColor);
+    checkDecreePenalties(moveResult, movedColor, totalMovesCount);
+    deckManager.tickTurn(movedColor, totalMovesCount, game);
 
     // Draw card every 3 full turns (every 6 half-moves)
     if (gameVariant === 'cards' && totalMovesCount % 6 === 0) {
@@ -1661,8 +1687,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (res) {
       boardUI.lastMove = { from: data.from, to: data.to };
-      checkDecreePenalties(res, opponentColor);
-      deckManager.tickTurn(opponentColor);
+      const movedColor = res.color || opponentColor;
+
+      // State Pattern Turn Transition: MOVED ("Походил")
+      if (deckManager && deckManager.turnState) {
+        deckManager.turnState.onMoveExecuted(movedColor, totalMovesCount);
+      }
+
+      checkDecreePenalties(res, movedColor, totalMovesCount);
+      deckManager.tickTurn(movedColor, totalMovesCount, game);
 
       if (gameVariant === 'cards' && totalMovesCount % 6 === 0) {
         triggerCardDraw();
@@ -1867,6 +1900,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     gameVariant = config.variant || gameVariantSelect.value;
     deckManager.reset();
+    deckManager.turnState.onTurnStart('w', 0);
     totalMovesCount = 0;
     cancelTargeting();
 
@@ -2386,9 +2420,9 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => {
           const allEff = getAllActiveEffects();
           if (allEff.length > 0) openEffectDetailsModal(allEff[0], allEff);
-        }, 350);
+        }, 300);
       }
-    }, 200);
+    }, 150);
   } else if (urlParams.get('test_showcase')) {
     setTimeout(() => {
       btnPlayBot.click();
