@@ -16,6 +16,9 @@
         <span class="logo-title">Шахматы Онлайн</span>
       </div>
       <div class="header-actions">
+        <button id="btn-open-logs" class="btn-action-logs" title="Сетевые логи и диагностика">
+          📋 Логи <span id="logs-badge" class="logs-badge hidden">0</span>
+        </button>
         <button id="btn-toggle-sound" class="btn-icon" title="Включить / Выключить звук">🔊</button>
       </div>
     </header>
@@ -290,11 +293,50 @@
       </div>
     </div>
 
+    <!-- Network Logs Diagnostic Modal -->
+    <div id="modal-logs" class="modal-backdrop hidden">
+      <div class="modal-card logs-modal-card">
+        <div class="logs-header">
+          <div class="logs-title-row">
+            <span class="logs-icon">📋</span>
+            <h3>Сетевые логи и диагностика</h3>
+          </div>
+          <button id="btn-close-logs" class="btn-icon" title="Закрыть">✕</button>
+        </div>
+        
+        <div class="logs-status-bar">
+          <div class="status-indicator-row">
+            <span class="status-dot" id="log-status-dot"></span>
+            <span id="log-connection-status">Статус: Не подключено</span>
+          </div>
+          <div class="logs-meta-info" id="log-meta-info">Комната: — | Роль: —</div>
+        </div>
+
+        <div class="logs-filter-bar">
+          <button class="btn-filter active" data-filter="all">Все (<span id="count-all-logs">0</span>)</button>
+          <button class="btn-filter filter-errors" data-filter="error">⚠️ Ошибки (<span id="count-error-logs">0</span>)</button>
+          <button class="btn-filter" data-filter="net">🌐 Сеть (<span id="count-net-logs">0</span>)</button>
+          <button class="btn-filter" data-filter="moves">♟️ Ходы</button>
+          <button class="btn-filter" data-filter="cards">🃏 Карты</button>
+        </div>
+
+        <div class="logs-viewer-box" id="logs-viewer">
+          <!-- Formatted log entries -->
+        </div>
+
+        <div class="logs-actions">
+          <button id="btn-copy-logs" class="btn btn-primary">📋 Скопировать весь лог</button>
+          <button id="btn-clear-logs" class="btn btn-outline">Очистить</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Toast Notifications Container -->
     <div id="toast-container" class="toast-container"></div>
   </div>
 
   <!-- Dependencies -->
+  <script src="js/logger.js"></script>
   <script src="js/chess.js"></script>
   <script src="js/peerjs.min.js"></script>
   <script src="js/pieces.js"></script>

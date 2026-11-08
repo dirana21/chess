@@ -32,6 +32,9 @@ class ChessNetwork {
     // Auto-ping when tab becomes active again to prevent background throttling disconnects
     if (typeof document !== 'undefined' && document.addEventListener) {
       document.addEventListener('visibilitychange', () => {
+        if (window.logger) {
+          window.logger.info('SYSTEM', `Видимость вкладки изменена: ${document.visibilityState}`);
+        }
         if (document.visibilityState === 'visible') {
           this.lastHeartbeat = Date.now();
           if (this.conn && this.conn.open) {
@@ -71,6 +74,10 @@ class ChessNetwork {
       this.roomCode = roomCode || this.generateRoomCode();
       const peerId = this.peerPrefix + this.roomCode;
 
+      if (window.logger) {
+        window.logger.info('PEER', `Создание комнаты хостом [${this.roomCode}]`, { peerId, config: initialConfig });
+      }
+
       this.peer = new Peer(peerId, {
         debug: 1,
         config: {
@@ -82,12 +89,20 @@ class ChessNetwork {
       });
 
       this.peer.on('open', (id) => {
+        if (window.logger) {
+          window.logger.info('PEER', `Сервер PeerJS зарегистрировал ID хоста: ${id}`, { roomCode: this.roomCode });
+        }
         resolve({ roomCode: this.roomCode, peerId: id });
       });
 
       this.peer.on('connection', (connection) => {
+        if (window.logger) {
+          window.logger.info('PEER', `Входящее WebRTC-подключение от гостя [${connection.peer}]`, { roomCode: this.roomCode });
+        }
         if (this.conn) {
-          // If already connected, reject extra connections
+          if (window.logger) {
+            window.logger.warn('PEER', 'Уже есть активное подключение, отклоняем лишнее соединение');
+          }
           try { connection.close(); } catch(e){}
           return;
         }
@@ -96,6 +111,9 @@ class ChessNetwork {
       });
 
       this.peer.on('error', (err) => {
+        if (window.logger) {
+          window.logger.error('PEER', `Ошибка Peer хоста: ${err.type || err.message}`, err);
+        }
         console.error('Peer error:', err);
         if (err.type === 'unavailable-id') {
           // Retry with new code
@@ -115,6 +133,10 @@ class ChessNetwork {
       this.roomCode = roomCode.toUpperCase().trim();
       const hostPeerId = this.peerPrefix + this.roomCode;
 
+      if (window.logger) {
+        window.logger.info('PEER', `Подключение к комнате [${this.roomCode}], целевой хост: ${hostPeerId}`);
+      }
+
       this.peer = new Peer(null, {
         debug: 1,
         config: {
@@ -125,7 +147,10 @@ class ChessNetwork {
         }
       });
 
-      this.peer.on('open', () => {
+      this.peer.on('open', (myPeerId) => {
+        if (window.logger) {
+          window.logger.info('PEER', `Гость получил ID от PeerJS: ${myPeerId}, устанавливаем соединение с ${hostPeerId}`);
+        }
         this.conn = this.peer.connect(hostPeerId, {
           reliable: true
         });
@@ -135,6 +160,9 @@ class ChessNetwork {
         const onOpen = () => {
           this.connected = true;
           this._startHeartbeat();
+          if (window.logger) {
+            window.logger.info('PEER', `Соединение с хостом [${this.roomCode}] успешно открыто!`);
+          }
           this._emit('connected', { isHost: false, roomCode: this.roomCode });
           // Inform host guest is connected and ready
           this.send({ type: 'guest-ready' });
@@ -148,18 +176,27 @@ class ChessNetwork {
         }
 
         this.conn.on('close', () => {
+          if (window.logger) {
+            window.logger.warn('PEER', `Соединение с хостом закрыто (close)`);
+          }
           this._stopHeartbeat();
           this.connected = false;
           this._emit('disconnected');
         });
 
         this.conn.on('error', (err) => {
+          if (window.logger) {
+            window.logger.error('PEER', `Ошибка DataConnection у гостя: ${err.message || err}`, err);
+          }
           this._emit('error', err);
           reject(err);
         });
       });
 
       this.peer.on('error', (err) => {
+        if (window.logger) {
+          window.logger.error('PEER', `Ошибка подключения PeerJS: ${err.type || err.message}`, err);
+        }
         console.error('Peer join error:', err);
         this._emit('error', err);
         reject(err);
@@ -174,6 +211,9 @@ class ChessNetwork {
     const onOpen = () => {
       this.connected = true;
       this._startHeartbeat();
+      if (window.logger) {
+        window.logger.info('PEER', `Канал данных открыт, хост отправляет init гостю`);
+      }
       this._emit('connected', { isHost: true, roomCode: this.roomCode });
 
       // Host sends initial game configuration to guest
@@ -192,12 +232,18 @@ class ChessNetwork {
     }
 
     this.conn.on('close', () => {
+      if (window.logger) {
+        window.logger.warn('PEER', `Соединение с гостем закрыто (close)`);
+      }
       this._stopHeartbeat();
       this.connected = false;
       this._emit('disconnected');
     });
 
     this.conn.on('error', (err) => {
+      if (window.logger) {
+        window.logger.error('PEER', `Ошибка соединения с гостем: ${err.message || err}`, err);
+      }
       this._emit('error', err);
     });
   }
@@ -215,6 +261,10 @@ class ChessNetwork {
       }
       if (data.type === 'pong') {
         return;
+      }
+
+      if (window.logger) {
+        window.logger.netRecv(data.type, data);
       }
 
       switch (data.type) {
@@ -271,9 +321,19 @@ class ChessNetwork {
     try {
       if (this.conn && (this.conn.open || (this.conn.dataChannel && this.conn.dataChannel.readyState === 'open'))) {
         this.conn.send(data);
+        if (window.logger && data.type !== 'ping' && data.type !== 'pong') {
+          window.logger.netSend(data.type, data);
+        }
         return true;
+      } else {
+        if (window.logger && data.type !== 'ping' && data.type !== 'pong') {
+          window.logger.warn('NETWORK', `Попытка отправки при закрытом канале [${data.type}]`, data);
+        }
       }
     } catch (e) {
+      if (window.logger) {
+        window.logger.error('NETWORK', `Исключение при send() [${data ? data.type : 'unknown'}]: ${e.message}`, { error: e, data });
+      }
       console.warn('Network send exception:', e, data);
     }
     return false;
@@ -356,6 +416,10 @@ class ChessNetwork {
 
       // Disconnect timeout: 35 seconds (resilient to tab switches and network jitter)
       if (Date.now() - this.lastHeartbeat > 35000) {
+        const elapsedSec = Math.round((Date.now() - this.lastHeartbeat) / 1000);
+        if (window.logger) {
+          window.logger.error('HEARTBEAT', `Таймаут пинга сети! Нет ответа ${elapsedSec} сек. Фиксируем дисконнект.`, { elapsedSec });
+        }
         console.warn('Network heartbeat timeout: Peer disconnected.');
         this._stopHeartbeat();
         this.connected = false;

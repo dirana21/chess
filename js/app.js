@@ -137,6 +137,160 @@ document.addEventListener('DOMContentLoaded', () => {
   // Notifications Toast
   const toastContainer = document.getElementById('toast-container');
 
+  // Logs Diagnostic UI Elements
+  const btnOpenLogs = document.getElementById('btn-open-logs');
+  const modalLogs = document.getElementById('modal-logs');
+  const btnCloseLogs = document.getElementById('btn-close-logs');
+  const logsBadge = document.getElementById('logs-badge');
+  const logsViewer = document.getElementById('logs-viewer');
+  const logConnectionStatus = document.getElementById('log-connection-status');
+  const logStatusDot = document.getElementById('log-status-dot');
+  const logMetaInfo = document.getElementById('log-meta-info');
+  const btnCopyLogs = document.getElementById('btn-copy-logs');
+  const btnClearLogs = document.getElementById('btn-clear-logs');
+  const countAllLogs = document.getElementById('count-all-logs');
+  const countErrorLogs = document.getElementById('count-error-logs');
+  const countNetLogs = document.getElementById('count-net-logs');
+  let currentLogFilter = 'all';
+
+  function updateLogsBadge() {
+    if (!window.logger || !logsBadge) return;
+    const errors = window.logger.errorCount;
+    if (errors > 0) {
+      logsBadge.textContent = errors;
+      logsBadge.classList.remove('hidden');
+    } else {
+      logsBadge.classList.add('hidden');
+    }
+    if (countAllLogs) countAllLogs.textContent = window.logger.logs.length;
+    if (countErrorLogs) countErrorLogs.textContent = window.logger.errorCount + window.logger.warnCount;
+    if (countNetLogs) countNetLogs.textContent = window.logger.netCount;
+
+    const errBtn = document.querySelector('.btn-filter.filter-errors');
+    if (errBtn) {
+      errBtn.classList.toggle('has-errors', (window.logger.errorCount + window.logger.warnCount) > 0);
+    }
+  }
+
+  function escapeHtml(str) {
+    if (typeof str !== 'string') return String(str);
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function renderLogs() {
+    if (!logsViewer || !window.logger) return;
+    const logs = window.logger.getLogs(currentLogFilter);
+    logsViewer.innerHTML = '';
+
+    if (logs.length === 0) {
+      logsViewer.innerHTML = '<div style="color: #64748b; text-align: center; padding: 2rem;">Записей в логе пока нет</div>';
+      return;
+    }
+
+    logs.forEach(l => {
+      const entryEl = document.createElement('div');
+      entryEl.className = `log-entry level-${l.level}`;
+      
+      let detailsHtml = '';
+      if (l.details) {
+        detailsHtml = `<div class="log-details-block">${escapeHtml(JSON.stringify(l.details, null, 2))}</div>`;
+      }
+
+      entryEl.innerHTML = `
+        <div class="log-header-line">
+          <span class="log-time">${l.time}</span>
+          <span class="log-tag">${l.category}</span>
+          <span class="log-msg">${escapeHtml(l.message)}</span>
+        </div>
+        ${detailsHtml}
+      `;
+      logsViewer.appendChild(entryEl);
+    });
+
+    logsViewer.scrollTop = logsViewer.scrollHeight;
+
+    if (logConnectionStatus && logStatusDot) {
+      const isConn = network && network.isConnected();
+      logStatusDot.className = `status-dot ${isConn ? 'online' : 'offline'}`;
+      logConnectionStatus.textContent = isConn ? 'Статус: Подключено (WebRTC P2P)' : 'Статус: Не подключено';
+    }
+
+    if (logMetaInfo) {
+      logMetaInfo.textContent = `Комната: ${network && network.roomCode ? network.roomCode : '—'} | Вы: ${myColor === 'w' ? 'Белые' : 'Чёрные'} | Режим: ${mode}`;
+    }
+
+    updateLogsBadge();
+  }
+
+  function openLogsModal() {
+    renderLogs();
+    if (modalLogs) modalLogs.classList.remove('hidden');
+  }
+
+  function closeLogsModal() {
+    if (modalLogs) modalLogs.classList.add('hidden');
+  }
+
+  if (btnOpenLogs) btnOpenLogs.addEventListener('click', openLogsModal);
+  if (btnCloseLogs) btnCloseLogs.addEventListener('click', closeLogsModal);
+
+  document.querySelectorAll('.logs-filter-bar .btn-filter').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.logs-filter-bar .btn-filter').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentLogFilter = btn.dataset.filter;
+      renderLogs();
+    });
+  });
+
+  if (btnCopyLogs) {
+    btnCopyLogs.addEventListener('click', () => {
+      if (!window.logger) return;
+      const meta = {
+        roomCode: network ? network.roomCode : null,
+        myName,
+        myColor,
+        opponentName,
+        opponentColor,
+        connected: network ? network.isConnected() : false,
+        mode,
+        variant: gameVariant
+      };
+      const text = window.logger.exportFormattedText(meta);
+      navigator.clipboard.writeText(text).then(() => {
+        showToast('📋 Логи скопированы в буфер обмена!');
+      }).catch(() => {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        ta.remove();
+        showToast('📋 Логи скопированы!');
+      });
+    });
+  }
+
+  if (btnClearLogs) {
+    btnClearLogs.addEventListener('click', () => {
+      if (window.logger) {
+        window.logger.clear();
+        renderLogs();
+        showToast('Логи очищены');
+      }
+    });
+  }
+
+  if (window.logger) {
+    window.logger.onLog(() => {
+      updateLogsBadge();
+      if (modalLogs && !modalLogs.classList.contains('hidden')) {
+        renderLogs();
+      }
+    });
+    updateLogsBadge();
+  }
+
   // Application State
   let game = new Chess();
   let network = new ChessNetwork();
@@ -485,6 +639,10 @@ document.addEventListener('DOMContentLoaded', () => {
       showCardPlayCinematic(card, !isRemote, `Конь (${knightSq}) ⇄ Пешка (${pawnSq})`);
     }
 
+    if (window.logger) {
+      window.logger.card(isRemote ? opponentColor : myColor, card, `Конь ${knightSq} ⇄ Пешка ${pawnSq}`, isRemote);
+    }
+
     if (!isRemote && card) {
       deckManager.removeCard(card.instanceId);
       if (mode === 'online') {
@@ -514,6 +672,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const casterColor = isRemote ? opponentColor : myColor;
+
+    if (window.logger) {
+      window.logger.card(casterColor, card, targetSquare, isRemote);
+    }
 
     // Apply Effect
     if (card.type === 'decree') {
@@ -863,6 +1025,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function handleLocalMove(moveResult) {
     totalMovesCount++;
+    if (window.logger) {
+      window.logger.move(myColor, moveResult, game.fen(), false);
+    }
     updateGameUI(moveResult);
 
     // Check decree penalties on moved player
@@ -923,6 +1088,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function handleRemoteMove(data) {
     totalMovesCount++;
+    if (window.logger) {
+      window.logger.move(opponentColor, { from: data.from, to: data.to, promotion: data.promotion }, data.fen, true);
+    }
     let res = game.move({
       from: data.from,
       to: data.to,
@@ -931,6 +1099,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // If move was rejected locally (desync recovery), recover using authoritative FEN
     if (!res && data.fen) {
+      if (window.logger) {
+        window.logger.warn('DESYNC', 'Локальный движок не нашел легальный ход, восстанавливаем состояние по FEN', {
+          data,
+          localFenBefore: game.fen(),
+          targetFen: data.fen,
+          turn: game.turn()
+        });
+      }
       console.warn('Remote move failed locally. Recovering state via FEN:', data);
       const loaded = game.load(data.fen);
       if (loaded) {
@@ -942,6 +1118,9 @@ document.addEventListener('DOMContentLoaded', () => {
         };
       }
     } else if (res && data.fen && game.fen() !== data.fen) {
+      if (window.logger) {
+        window.logger.info('DESYNC', 'Синхронизация микро-расхождений FEN с соперником', { targetFen: data.fen });
+      }
       game.load(data.fen);
     }
 
@@ -975,6 +1154,14 @@ document.addEventListener('DOMContentLoaded', () => {
       updateGameUI(res);
       checkGameOver();
     } else {
+      if (window.logger) {
+        window.logger.error('DESYNC', 'КРИТИЧЕСКАЯ ОШИБКА: ход соперника полностью не удалось применить!', {
+          data,
+          currentFen: game.fen(),
+          turn: game.turn()
+        });
+      }
+      showToast('⚠️ Ошибка применения хода соперника! Лог записан (кнопка "Логи")', 6000);
       console.error('CRITICAL: Remote move completely failed to apply!', data);
     }
   }
@@ -1121,6 +1308,16 @@ document.addEventListener('DOMContentLoaded', () => {
     gameOverTitle.textContent = title;
     gameOverDesc.textContent = desc;
     modalGameOver.classList.remove('hidden');
+
+    if (window.logger) {
+      window.logger.info('GAME', `Партия завершена: ${title} (${desc})`, {
+        turn: game.turn(),
+        inCheck: game.in_check(),
+        inCheckmate: game.in_checkmate(),
+        fen: game.fen(),
+        totalMoves: totalMovesCount
+      });
+    }
   }
 
   function startNewGame(config) {
@@ -1144,6 +1341,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     myColor = config.myColor || 'w';
     opponentColor = myColor === 'w' ? 'b' : 'w';
+
+    if (window.logger) {
+      window.logger.info('GAME', `Старт партии: Вы играете за [${myColor === 'w' ? 'Белые' : 'Чёрные'}], режим: ${mode}`, {
+        config,
+        time: timeInitial,
+        variant: gameVariant
+      });
+    }
 
     nameBottomEl.textContent = `${myName} (${myColor === 'w' ? 'Белые' : 'Чёрные'})`;
     nameTopEl.textContent = `${opponentName} (${opponentColor === 'w' ? 'Белые' : 'Чёрные'})`;
@@ -1257,6 +1462,9 @@ document.addEventListener('DOMContentLoaded', () => {
   network.on('connected', (info) => {
     window.sounds.play('notify');
     showToast('Соперник подключился!');
+    if (window.logger) {
+      window.logger.info('NETWORK', 'Соперник подключился (event connected)', info);
+    }
     if (!info.isHost) {
       // Guest waiting for host init packet
     } else {
@@ -1276,6 +1484,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   network.on('init', (config) => {
     // Guest receives init packet from host
+    if (window.logger) {
+      window.logger.info('NETWORK', 'Гость получил init конфигурацию', config);
+    }
     startNewGame({
       time: config.time,
       variant: config.variant,
@@ -1341,11 +1552,21 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   network.on('disconnected', () => {
+    if (window.logger) {
+      window.logger.warn('NETWORK', 'Событие network.disconnected: соединение разорвано', { mode, gameEnded });
+    }
     if (mode === 'online' && !gameEnded && !game.game_over()) {
       endGame('Победа!', 'Соперник отключился от игры. Вам автоматически засчитана техническая победа!');
     } else {
       showToast('Соперник отключился.');
     }
+  });
+
+  network.on('error', (err) => {
+    if (window.logger) {
+      window.logger.error('NETWORK', `Сетевая ошибка PeerJS/WebRTC: ${err.type || err.message || err}`, err);
+    }
+    showToast(`⚠️ Ошибка сети: ${err.type || 'Сбой соединения'}. Лог сохранён (кнопка "Логи")`, 5000);
   });
 
   // --- Single Player vs Bot ---
