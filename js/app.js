@@ -113,6 +113,55 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let showcaseTimeout = null;
 
+  function getCardPerspectiveDescription(card, isViewerCaster, targetSquare = null) {
+    if (!card) return '';
+    if (isViewerCaster) return card.description;
+
+    const sq = targetSquare ? targetSquare.toUpperCase() : '';
+    switch (card.id) {
+      case 'curse_knight':
+        return 'Если вы походите своим Конём в течение 2 ходов — ваш конь застынет во льду на 1 ход!';
+      case 'curse_rook':
+        return 'Если вы походите своей Ладьёй в течение 2 ходов — соперник получит +1 бонусную карту!';
+      case 'curse_bishop':
+        return 'Ваши Слоны ослеплены на 2 хода: они могут перемещаться, но не могут брать фигуры соперника!';
+      case 'forbidden_square':
+        return sq
+          ? `Клетка ${sq} заминирована: если ваша фигура наступит на неё, она застынет во льду на 1 ход!`
+          : 'Клетка доски заминирована: если ваша фигура наступит на неё, она застынет во льду на 1 ход!';
+      case 'queen_burden':
+        return 'Ваш Ферзь перегружен на 2 хода: вы можете ходить ферзём максимум на 2 клетки!';
+      case 'tax_castle':
+        return 'Если вы совершите рокировку — ваш Король застынет во льду на 1 ход!';
+      case 'blood_tribute':
+        return 'Если вы срубите фигуру соперника — ваша атаковавшая фигура застынет во льду на 1 ход!';
+      case 'freeze_piece':
+        return sq
+          ? `Ваша фигура на клетке ${sq} заморожена во льду на 1 ход и не может двигаться!`
+          : 'Ваша фигура заморожена во льду на 1 ход и не может двигаться!';
+      case 'divine_storm':
+        return 'Все ваши Кони и Слоны оглушены небесным громом на 1 ход и не могут ходить!';
+      case 'smoke_screen':
+        return 'В указанной области 2х2 клетки на 1 ход запрещены любые взятия фигур!';
+      case 'kings_shield':
+        return 'Король соперника получил ауру стойкости: он неуязвим к шахам от ваших коней и пешек на 2 хода!';
+      case 'time_warp':
+        return 'У вас отнято 15 секунд на таймере, а соперник получил +45 секунд!';
+      case 'reinforcements':
+        return sq
+          ? `Соперник возродил пешку на клетке ${sq}!`
+          : 'Соперник возродил потерянную пешку!';
+      case 'infantry_march':
+        return 'Пешка соперника мгновенно шагнула вперёд на 1 клетку без траты хода!';
+      case 'shadow_swap':
+        return 'Соперник поменял местами своего Коня и свою Пешку на доске!';
+      case 'alchemist_gold':
+        return 'Соперник сбросил карту и получил 2 новые случайные карты в руку!';
+      default:
+        return card.description;
+    }
+  }
+
   function showCardPlayCinematic(card, isMe, targetText = null) {
     if (!cardShowcaseOverlay) return;
 
@@ -129,16 +178,17 @@ document.addEventListener('DOMContentLoaded', () => {
       showcaseBanner.className = 'showcase-banner caster-you';
       showcaseCasterIcon.textContent = '👑';
       showcaseCasterTitle.textContent = 'ВЫ СЫГРАЛИ КАРТУ:';
+      showcaseDesc.textContent = card.description;
     } else {
       showcaseBanner.className = 'showcase-banner caster-enemy';
       showcaseCasterIcon.textContent = '⚔️';
       showcaseCasterTitle.textContent = 'СОПЕРНИК СЫГРАЛ КАРТУ:';
+      showcaseDesc.textContent = getCardPerspectiveDescription(card, false, targetText);
     }
 
     showcaseType.textContent = card.type === 'decree' ? 'УКАЗ / ПРОКЛЯТИЕ' : 'ЗАКЛИНАНИЕ';
     showcaseIcon.textContent = card.icon;
     showcaseName.textContent = card.name;
-    showcaseDesc.textContent = card.description;
 
     if (targetText) {
       showcaseTargetTag.classList.remove('hidden');
@@ -596,22 +646,96 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function getDecreeDetailsForPerspective(d, isEnemy) {
+    switch (d.id) {
+      case 'curse_knight':
+        return {
+          target: isEnemy ? 'Ваши Кони 🐎' : 'Кони соперника 🐎',
+          trigger: isEnemy ? 'Если ВЫ сделаете ход своим Конём' : 'Ход вражеским Конём',
+          penalty: isEnemy ? 'Ваш Конь застынет во льду на 1 ход ❄️' : 'Конь соперника застынет во льду на 1 ход ❄️',
+          shortDesc: isEnemy ? 'Если походите Конём ➔ ваш конь замёрзнет на 1 ход' : 'Ход конём врага ➔ конь замёрзнет на 1 ход',
+          advice: isEnemy 
+            ? 'Внимание! Если вы походите своим конём в течение следующих 2 ходов, он мгновенно застынет во льду и пропустит ход. Ходите пешками, слонами, ладьями или ферзём!' 
+            : 'Этот указ наложен вами на соперника. Если он рискнёт походить конём, его конь замёрзнет!'
+        };
+      case 'curse_rook':
+        return {
+          target: isEnemy ? 'Ваши Ладьи 🏰' : 'Ладьи соперника 🏰',
+          trigger: isEnemy ? 'Если ВЫ сделаете ход своей Ладьёй' : 'Ход вражеской Ладьёй',
+          penalty: isEnemy ? 'Соперник получит +1 бонусную карту из колоды 🎁' : 'Вы берёте +1 бонусную карту из колоды 🎁',
+          shortDesc: isEnemy ? 'Если походите Ладьёй ➔ соперник получит +1 карту' : 'Ход ладьёй врага ➔ вы получаете +1 карту',
+          advice: isEnemy 
+            ? 'Постарайтесь воздержаться от ходов ладьями следующие 2 хода, иначе соперник бесплатно получит новое заклинание!' 
+            : 'Если соперник сдвинет ладью с места, вы мгновенно получите новую случайную карту.'
+        };
+      case 'curse_bishop':
+        return {
+          target: isEnemy ? 'Ваши Слоны ⛪' : 'Слоны соперника ⛪',
+          trigger: isEnemy ? 'Любая попытка взятия фигуры вашим Слоном' : 'Попытка взятия Слоном соперника',
+          penalty: isEnemy ? 'Запрет на взятия: ваши слоны ослеплены и не могут рубить' : 'Слоны соперника ослеплены и не могут рубить ваши фигуры',
+          shortDesc: isEnemy ? 'Ваши Слоны ослеплены ➔ запрещены любые взятия фигур' : 'Слоны врага ослеплены ➔ не могут рубить фигуры',
+          advice: isEnemy 
+            ? 'Ваши слоны временно обезоружены: они могут ходить по диагоналям, но не могут брать фигуры. Для взятий используйте другие фигуры!' 
+            : 'Слоны соперника ослеплены вашим указом и не могут угрожать вашим фигурам взятиями.'
+        };
+      case 'queen_burden':
+        return {
+          target: isEnemy ? 'Ваш Ферзь 👑' : 'Ферзь соперника 👑',
+          trigger: isEnemy ? 'Попытка пойти Ферзём дальше чем на 2 клетки' : 'Ход Ферзём соперника дальше 2 клеток',
+          penalty: isEnemy ? 'Ход блокируется: дальность ферзя урезана до 2 клеток' : 'Дальность ферзя соперника ограничена максимум 2 клетками',
+          shortDesc: isEnemy ? 'Ваш Ферзь перегружен ➔ ходит максимум на 2 клетки' : 'Ферзь врага замедлен ➔ ходит максимум на 2 клетки',
+          advice: isEnemy 
+            ? 'Тяжесть короны сковала вашего ферзя: он не может совершать дальние ходы через всю доску. Планируйте маневры на 1-2 клетки.' 
+            : 'Ферзь противника перегружен и не может совершать резкие дальнобойные выпады.'
+        };
+      case 'tax_castle':
+        return {
+          target: isEnemy ? 'Ваша Рокировка 🛡️' : 'Рокировка соперника 🛡️',
+          trigger: isEnemy ? 'Если ВЫ совершите любую рокировку' : 'Любая рокировка соперника',
+          penalty: isEnemy ? 'Ваш Король застынет во льду на 1 ход ❄️' : 'Король соперника застынет во льду на 1 ход ❄️',
+          shortDesc: isEnemy ? 'Если сделаете рокировку ➔ ваш Король замёрзнет на 1 ход' : 'Если враг рокируется ➔ его Король замёрзнет на 1 ход',
+          advice: isEnemy 
+            ? 'Не делайте рокировку сейчас! Если вы рокируетесь, ваш король мгновенно покроется льдом и станет лёгкой мишенью для атаки соперника.' 
+            : 'Если соперник попытается увести короля в рокировку, он сам запрет его во льду.'
+        };
+      case 'blood_tribute':
+        return {
+          target: isEnemy ? 'Любые ваши взятия фигур ⚔️' : 'Любые взятия ваших фигур ⚔️',
+          trigger: isEnemy ? 'Если ВЫ срубите любую фигуру соперника' : 'Соперник сбивает вашу фигуру',
+          penalty: isEnemy ? 'Ваша атаковавшая фигура застынет во льду на 1 ход ❄️' : 'Атаковавшая фигура соперника застынет во льду на 1 ход ❄️',
+          shortDesc: isEnemy ? 'Если срубите фигуру врага ➔ ваша фигура замёрзнет на 1 ход' : 'Враг рубит вашу фигуру ➔ его фигура замёрзнет на 1 ход',
+          advice: isEnemy 
+            ? 'Осторожно! Если вы возьмёте фигуру соперника, нападавшая фигура покроется льдом. Рубите только в крайнем случае или ради мата!' 
+            : 'Соперник заплатит заморозкой за каждую взятую вашу фигуру. Отличная защита ваших позиций!'
+        };
+      case 'forbidden_square':
+        return {
+          target: isEnemy ? 'Проклятая клетка ☠️' : 'Заминированная клетка ☠️',
+          trigger: isEnemy ? 'Если ваша фигура наступит на проклятую клетку' : 'Вражеская фигура наступает на клетку',
+          penalty: isEnemy ? 'Ваша фигура застынет во льду на 1 ход ❄️' : 'Фигура соперника застынет во льду на 1 ход ❄️',
+          shortDesc: isEnemy ? 'Если наступите на метку ➔ ваша фигура замёрзнет' : 'Враг наступает на метку ➔ замёрзнет на 1 ход',
+          advice: isEnemy ? 'Не ставьте свои фигуры на эту клетку, иначе они замёрзнут!' : 'Клетка заминирована вами. Противник замёрзнет, если рискнёт наступить.'
+        };
+      default:
+        return {
+          target: isEnemy ? 'Ваши фигуры' : 'Фигуры соперника',
+          trigger: isEnemy ? 'Если вы нарушите условие проклятия' : (d.card.trigger || d.card.description),
+          penalty: d.card.penalty || 'Штрафной эффект',
+          shortDesc: isEnemy ? `Штраф за нарушение: ${d.card.penalty || ''}` : `${d.card.trigger || ''} ➔ ${d.card.penalty || ''}`,
+          advice: isEnemy ? 'Внимательно следите за правилами этого проклятия!' : 'Этот указ наложен вами.'
+        };
+    }
+  }
+
   function getAllActiveEffects() {
     if (!deckManager || gameVariant !== 'cards') return [];
     const list = [];
 
-    // 1. Decrees & Curses
+    // 1. Decrees & Curses (Perspective-Tailored)
     if (deckManager.activeDecrees && deckManager.activeDecrees.length > 0) {
       deckManager.activeDecrees.forEach(d => {
         const isEnemy = d.owner !== myColor;
-        let targetText = 'Фигуры соперника';
-        if (d.penaltyTarget) targetText = `Все ${getPieceTypeName(d.penaltyTarget)}`;
-        else if (d.id === 'queen_burden') targetText = 'Вражеский Ферзь 👑';
-        else if (d.id === 'tax_castle') targetText = 'Вражеская Рокировка 🛡️';
-        else if (d.id === 'blood_tribute') targetText = 'Любые взятия фигур ⚔️';
-        else if (d.id === 'curse_rook') targetText = 'Все вражеские Ладьи 🏰';
-        else if (d.id === 'curse_bishop') targetText = 'Все вражеские Слоны ⛪';
-        else if (d.id === 'curse_knight') targetText = 'Все вражеские Кони 🐎';
+        const details = getDecreeDetailsForPerspective(d, isEnemy);
 
         list.push({
           id: 'decree_' + (d.instanceId || d.id),
@@ -621,17 +745,16 @@ document.addEventListener('DOMContentLoaded', () => {
           badgeText: isEnemy ? '⚠️ ВРАЖЕСКОЕ ПРОКЛЯТИЕ' : '🛡️ ВАШ УКАЗ',
           owner: d.owner,
           turns: d.duration,
-          target: targetText,
-          trigger: d.card.trigger || d.card.description,
-          penalty: d.card.penalty || 'Штрафной эффект заклинания',
-          advice: isEnemy
-            ? 'Внимание! Если вы совершите указанное действие, ваша фигура мгновенно получит штраф. Сделайте другой ход или переждите.'
-            : 'Этот указ наложен вами. Если соперник нарушит его условия, он немедленно понесёт наказание.'
+          target: details.target,
+          trigger: details.trigger,
+          penalty: details.penalty,
+          shortDesc: details.shortDesc,
+          advice: details.advice
         });
       });
     }
 
-    // 2. Frozen Pieces
+    // 2. Frozen Pieces (Perspective-Tailored)
     if (deckManager.frozenPieces) {
       for (const sq in deckManager.frozenPieces) {
         const fp = deckManager.frozenPieces[sq];
@@ -648,9 +771,10 @@ document.addEventListener('DOMContentLoaded', () => {
           badgeText: isMyPiece ? '❄️ ВАША ФИГУРА ЗАМОРОЖЕНА' : '❄️ ФИГУРА ВРАГА ЗАМОРОЖЕНА',
           owner: fp.color,
           turns: fp.turns,
-          target: `${pieceColorName} ${pName} на клетке ${sq.toUpperCase()}`,
-          trigger: 'Любая попытка совершить ход этой фигурой',
-          penalty: 'Фигура скована магическим льдом и не может перемещаться или рубить',
+          target: isMyPiece ? `Ваш(а) ${pName} на клетке ${sq.toUpperCase()}` : `Вражеский ${pName} на клетке ${sq.toUpperCase()}`,
+          trigger: isMyPiece ? 'Любая попытка совершить ход этой фигурой' : 'Попытка соперника сделать ход этой фигурой',
+          penalty: isMyPiece ? 'Ваша фигура скована магическим льдом и не может перемещаться или рубить' : 'Фигура соперника скована магическим льдом и не может ходить',
+          shortDesc: isMyPiece ? `Ваша фигура парализована льдом на ${fp.turns} ход(а)` : `Фигура соперника парализована льдом на ${fp.turns} ход(а)`,
           advice: isMyPiece
             ? `Фигура полностью обездвижена ещё ${fp.turns} ход(а). Прикрывайте её соседними фигурами до оттаивания!`
             : `Фигура соперника выведена из строя на ${fp.turns} ход(а). Используйте этот момент для прорыва!`
@@ -672,9 +796,10 @@ document.addEventListener('DOMContentLoaded', () => {
           badgeText: isMyTrap ? '☠️ ВАША ЛОВУШКА' : '⚠️ ВРАЖЕСКАЯ ЛОВУШКА',
           owner: fs.byPlayer,
           turns: fs.turns,
-          target: `Клетка ${sq.toUpperCase()}`,
-          trigger: `Фигура наступает на клетку ${sq.toUpperCase()}`,
-          penalty: 'Наступившая фигура мгновенно застынет во льду на 1 ход',
+          target: isMyTrap ? `Клетка ${sq.toUpperCase()} (заминирована вами)` : `Проклятая клетка ${sq.toUpperCase()} (ловушка соперника)`,
+          trigger: isMyTrap ? `Фигура соперника наступает на клетку ${sq.toUpperCase()}` : `Если ВАША фигура наступит на клетку ${sq.toUpperCase()}`,
+          penalty: isMyTrap ? 'Фигура соперника мгновенно застынет во льду на 1 ход' : 'Ваша наступившая фигура мгновенно застынет во льду на 1 ход ❄️',
+          shortDesc: isMyTrap ? `Если враг наступит на ${sq.toUpperCase()} ➔ он замёрзнет` : `Если вы наступите на ${sq.toUpperCase()} ➔ фигура замёрзнет`,
           advice: isMyTrap
             ? 'Клетка заминирована вами. Если враг ступит на неё, он немедленно покроется льдом!'
             : `Осторожно! Не ставьте свои фигуры на клетку ${sq.toUpperCase()}, иначе они замёрзнут!`
@@ -696,6 +821,7 @@ document.addEventListener('DOMContentLoaded', () => {
         target: `Область клеток: ${sa.squares.map(s => s.toUpperCase()).join(', ')}`,
         trigger: 'Попытка взять фигуру внутри тумана',
         penalty: 'Взятия фигур в этой области заблокированы магической пеленой',
+        shortDesc: 'В области тумана запрещены любые взятия фигур',
         advice: 'В тумане никто не может рубить фигуры. Используйте эту область как надёжное укрытие!'
       });
     }
@@ -714,8 +840,9 @@ document.addEventListener('DOMContentLoaded', () => {
             owner: col,
             turns: deckManager.kingsShield[col],
             target: isMyShield ? 'Ваш Король 👑' : 'Король соперника 👑',
-            trigger: 'Попытка шаха от коней или пешек',
-            penalty: 'Шахи от лёгких фигур полностью игнорируются',
+            trigger: isMyShield ? 'Попытка шаха от коней или пешек соперника' : 'Попытка шаха от ваших коней или пешек',
+            penalty: isMyShield ? 'Шахи от лёгких фигур полностью игнорируются' : 'Шахи лёгкими фигурами заблокированы аурой',
+            shortDesc: isMyShield ? 'Ваш Король защищен от шахов пешек и коней' : 'Король врага защищен от шахов пешек и коней',
             advice: isMyShield
               ? 'Ваш король неуязвим к шахам от пешек и коней. Можете атаковать без опаски!'
               : 'Не пытайтесь шаховать короля соперника конями или пешками — атакуйте тяжёлыми фигурами.'
@@ -885,7 +1012,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <span class="strip-tag">${eff.badgeText}</span>
               </div>
               <strong class="strip-title">${eff.name}</strong>
-              <div class="strip-desc">${eff.trigger} ➔ ${eff.penalty}</div>
+              <div class="strip-desc">${eff.shortDesc || (eff.trigger + ' ➔ ' + eff.penalty)}</div>
             </div>
           </div>
           <div class="strip-right">
@@ -1062,9 +1189,17 @@ document.addEventListener('DOMContentLoaded', () => {
       deckManager.addDecree(card, casterColor);
       if (card.id === 'forbidden_square' && targetSquare) {
         deckManager.forbiddenSquares[targetSquare] = { turns: card.duration || 3, byPlayer: casterColor };
-        showToast(`☠️ «Чёрная Метка» установлена на ${targetSquare}! Любой враг застынет во льду!`);
+        if (casterColor === myColor) {
+          showToast(`☠️ Вы установили «Чёрную Метку» на клетку ${targetSquare.toUpperCase()}! Любой враг застынет во льду.`);
+        } else {
+          showToast(`⚠️ Соперник заминировал клетку ${targetSquare.toUpperCase()}! Не наступайте на неё, иначе фигура замёрзнет!`, 5000);
+        }
       } else {
-        showToast(`📜 Разыгран Указ: «${card.name}»!`);
+        if (casterColor === myColor) {
+          showToast(`📜 Вы издали указ: «${card.name}»! Соперник будет наказан при нарушении.`);
+        } else {
+          showToast(`⚠️ Соперник наложил проклятие: «${card.name}»! Проверьте правила (кнопка "Эффекты")!`, 5000);
+        }
       }
       if (window.sounds) window.sounds.play('curse');
     } else {
@@ -1077,10 +1212,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const wasInCheck = game.in_check();
             deckManager.freezePiece(targetSquare, targetColor, 1);
             if (window.sounds) window.sounds.play('freeze');
-            if (wasInCheck && !game.in_check()) {
-              showToast(`❄️ Шах снят! Атакующая фигура на ${targetSquare} закована во лёд!`, 5000);
+            if (casterColor === myColor) {
+              if (wasInCheck && !game.in_check()) {
+                showToast(`❄️ Шах снят! Фигура соперника на ${targetSquare.toUpperCase()} закована во лёд!`, 5000);
+              } else {
+                showToast(`❄️ Вы заморозили фигуру соперника на ${targetSquare.toUpperCase()} на 1 ход!`);
+              }
             } else {
-              showToast(`❄️ Фигура на ${targetSquare} заморожена!`);
+              showToast(`❄️ Соперник заморозил вашу фигуру на ${targetSquare.toUpperCase()}! Она не может ходить 1 ход!`, 5000);
             }
           }
           break;
@@ -1200,7 +1339,11 @@ document.addEventListener('DOMContentLoaded', () => {
           window.sounds.play('curse_trigger');
           setTimeout(() => window.sounds.play('freeze'), 150);
         }
-        showToast(`⚠️ «Оковы Кентавра»: конь на ${moveResult.to} застыл во льду на 1 ход!`, 4000);
+        if (movedColor === myColor) {
+          showToast(`⚠️ «Оковы Кентавра»: вы походили Конём — ваш конь на ${moveResult.to.toUpperCase()} застыл во льду на 1 ход!`, 4500);
+        } else {
+          showToast(`⚔️ Ваш указ «Оковы Кентавра» сработал: конь соперника на ${moveResult.to.toUpperCase()} застыл во льду!`, 4500);
+        }
       }
 
       // 2. Curse Rook
@@ -1208,10 +1351,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (d.owner === myColor) {
           if (window.sounds) window.sounds.play('card_draw');
           triggerCardDraw();
-          showToast('🎁 Враг походил Ладьёй! Вы получаете бонусную карту!');
+          showToast('🎁 Ваш указ «Осадный Налог» сработал: соперник походил Ладьёй, вы получаете +1 карту!');
         } else if (botDeckManager && d.owner === opponentColor) {
           botDeckManager.drawCard();
-          showToast('🎁 Вражеский Указ сработал: Соперник получил бонусную карту за ход ладьёй!');
+          showToast('⚠️ «Осадный Налог»: вы походили Ладьёй — соперник получил +1 бонусную карту!', 4500);
         }
       }
 
@@ -1222,7 +1365,11 @@ document.addEventListener('DOMContentLoaded', () => {
           window.sounds.play('curse_trigger');
           setTimeout(() => window.sounds.play('freeze'), 150);
         }
-        showToast(`⚠️ «Запрет на Бункер»: Король застыл во льду на 1 ход!`, 4000);
+        if (movedColor === myColor) {
+          showToast('⚠️ «Запрет на Бункер»: вы совершили рокировку — ваш Король застыл во льду на 1 ход!', 4500);
+        } else {
+          showToast('⚔️ Ваш указ «Запрет на Бункер» сработал: Король соперника застыл во льду за рокировку!', 4500);
+        }
       }
 
       // 4. Blood Tribute
@@ -1232,7 +1379,11 @@ document.addEventListener('DOMContentLoaded', () => {
           window.sounds.play('curse_trigger');
           setTimeout(() => window.sounds.play('freeze'), 150);
         }
-        showToast(`🩸 «Возмездие Крови»: фигура на ${moveResult.to} заморожена за взятие!`, 4000);
+        if (movedColor === myColor) {
+          showToast(`🩸 «Возмездие Крови»: вы взяли фигуру соперника — ваша атаковавшая фигура на ${moveResult.to.toUpperCase()} заморожена на 1 ход!`, 4500);
+        } else {
+          showToast(`🩸 Ваше «Возмездие Крови» сработало: фигура соперника на ${moveResult.to.toUpperCase()} заморожена за взятие!`, 4500);
+        }
       }
     });
 
@@ -1241,7 +1392,11 @@ document.addEventListener('DOMContentLoaded', () => {
       deckManager.freezePiece(moveResult.to, movedColor, 1);
       delete deckManager.forbiddenSquares[moveResult.to];
       if (window.sounds) window.sounds.play('freeze');
-      showToast(`☠️ «Чёрная Метка»: фигура наступила на проклятую клетку и заморожена!`, 4000);
+      if (movedColor === myColor) {
+        showToast(`☠️ «Чёрная Метка»: ваша фигура наступила на проклятую клетку ${moveResult.to.toUpperCase()} и заморожена!`, 4500);
+      } else {
+        showToast(`☠️ Ваша ловушка «Чёрная Метка» сработала: фигура соперника на ${moveResult.to.toUpperCase()} заморожена!`, 4500);
+      }
     }
 
     // Check King's Shield retaliation if move delivered check
@@ -2232,6 +2387,14 @@ document.addEventListener('DOMContentLoaded', () => {
           const allEff = getAllActiveEffects();
           if (allEff.length > 0) openEffectDetailsModal(allEff[0], allEff);
         }, 350);
+      }
+    }, 200);
+  } else if (urlParams.get('test_showcase')) {
+    setTimeout(() => {
+      btnPlayBot.click();
+      const curseCard = CARDS_DATABASE.find(c => c.id === 'curse_knight');
+      if (curseCard) {
+        showCardPlayCinematic(curseCard, false);
       }
     }, 200);
   }
