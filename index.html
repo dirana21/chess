@@ -156,6 +156,43 @@
       <div class="game-layout">
         <!-- Chess Board Column -->
         <div class="game-board-section">
+          <!-- Top HUD Toolbar (Menu on left, Cards inventory button next to it) -->
+          <div class="game-hud-bar">
+            <div class="hud-left-group">
+              <!-- Menu Dropdown Trigger -->
+              <div class="hud-menu-wrapper">
+                <button id="btn-game-menu-toggle" class="btn-hud" title="Меню игры">
+                  <span class="hud-icon">☰</span>
+                  <span class="hud-label">Меню</span>
+                  <span class="hud-caret">▾</span>
+                </button>
+                <!-- Dropdown Popover Menu -->
+                <div id="game-menu-dropdown" class="game-menu-dropdown hidden">
+                  <button id="menu-item-draw" class="menu-item">🤝 Предложить ничью</button>
+                  <button id="menu-item-resign" class="menu-item">🏳️ Сдаться</button>
+                  <button id="menu-item-flip" class="menu-item">🔄 Повернуть доску</button>
+                  <div class="menu-divider"></div>
+                  <button id="menu-item-logs" class="menu-item">📋 Сетевые логи</button>
+                  <button id="menu-item-sound" class="menu-item">🔊 Звук: Вкл</button>
+                  <div class="menu-divider"></div>
+                  <button id="menu-item-leave" class="menu-item menu-item-danger">🚪 Выйти в лобби</button>
+                </div>
+              </div>
+
+              <!-- Cards Inventory Button (Active when gameVariant === 'cards') -->
+              <button id="btn-open-cards-inv" class="btn-hud btn-hud-cards" title="Открыть инвентарь карт">
+                <span class="hud-icon">🃏</span>
+                <span class="hud-label">Карты</span>
+                <span id="hud-cards-badge" class="hud-badge">0/4</span>
+                <span id="hud-cards-indicator" class="hud-indicator hidden">●</span>
+              </button>
+            </div>
+
+            <div class="hud-right-group">
+              <span id="hud-next-card-timer" class="hud-timer-hint">Карта через <strong>3</strong> х.</span>
+            </div>
+          </div>
+
           <!-- Targeting Step Banner directly above Board -->
           <div id="targeting-banner" class="targeting-banner hidden">
             <div class="targeting-info">
@@ -193,17 +230,6 @@
               </div>
             </div>
             <div class="player-timer" id="timer-bottom">10:00</div>
-          </div>
-
-          <!-- Hearthstone-style Hand of Cards (Under board) -->
-          <div id="cards-hand-section" class="cards-hand-section">
-            <div class="hand-header">
-              <span class="hand-title">🃏 Ваша рука карт (<span id="hand-count">0</span>/4)</span>
-              <span class="hand-next-draw">Следующая карта через: <strong id="turns-until-card">3</strong> хода</span>
-            </div>
-            <div id="cards-hand-container" class="cards-hand-container">
-              <!-- Cards dynamically inserted here -->
-            </div>
           </div>
         </div>
 
@@ -253,6 +279,34 @@
         </aside>
       </div>
     </main>
+
+    <!-- Semi-Transparent Cards Inventory Overlay (Over Chessboard) -->
+    <div id="cards-inventory-overlay" class="cards-inventory-overlay hidden">
+      <div class="inventory-backdrop" id="inventory-backdrop"></div>
+      <div class="inventory-modal">
+        <div class="inventory-header">
+          <div class="inventory-title-group">
+            <div class="inventory-title">
+              <span class="inventory-icon">🃏</span>
+              <span>Инвентарь заклинаний и указов</span>
+              <span class="inv-count-pill"><span id="inv-cards-count">0</span>/4</span>
+            </div>
+            <div class="inventory-subtitle">
+              Следующая карта через: <strong id="inv-turns-until">3</strong> хода • Выберите карту для розыгрыша
+            </div>
+          </div>
+          <button id="btn-close-inventory" class="btn-close-inv" title="Закрыть инвентарь (Esc)">✕</button>
+        </div>
+
+        <div id="inventory-cards-container" class="inventory-cards-container">
+          <!-- Cards rendered here -->
+        </div>
+
+        <div class="inventory-footer">
+          <span class="inv-tip">💡 Нажмите на карту или кнопку «Разыграть». Шахматная доска остаётся видимой на фоне.</span>
+        </div>
+      </div>
+    </div>
 
     <!-- Card Play Showcase Cinematic (Hearthstone style) -->
     <div id="card-showcase-overlay" class="card-showcase-overlay hidden">

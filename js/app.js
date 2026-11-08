@@ -51,14 +51,31 @@ document.addEventListener('DOMContentLoaded', () => {
   const gameVariantSelect = document.getElementById('game-variant-select');
   const activeDecreesContainer = document.getElementById('active-decrees-container');
   const activeDecreesList = document.getElementById('active-decrees-list');
-  const cardsHandSection = document.getElementById('cards-hand-section');
-  const cardsHandContainer = document.getElementById('cards-hand-container');
-  const handCountEl = document.getElementById('hand-count');
-  const turnsUntilCardEl = document.getElementById('turns-until-card');
   const targetingBanner = document.getElementById('targeting-banner');
   const targetingCardName = document.getElementById('targeting-card-name');
   const btnCancelTarget = document.getElementById('btn-cancel-target');
   const cardDrawAnnouncement = document.getElementById('card-draw-announcement');
+
+  // Top HUD & Game Menu Elements
+  const btnGameMenuToggle = document.getElementById('btn-game-menu-toggle');
+  const gameMenuDropdown = document.getElementById('game-menu-dropdown');
+  const menuItemDraw = document.getElementById('menu-item-draw');
+  const menuItemResign = document.getElementById('menu-item-resign');
+  const menuItemFlip = document.getElementById('menu-item-flip');
+  const menuItemLogs = document.getElementById('menu-item-logs');
+  const menuItemSound = document.getElementById('menu-item-sound');
+  const menuItemLeave = document.getElementById('menu-item-leave');
+
+  // Semi-Transparent Cards Inventory Elements
+  const btnOpenCardsInv = document.getElementById('btn-open-cards-inv');
+  const hudCardsBadge = document.getElementById('hud-cards-badge');
+  const hudNextCardTimer = document.getElementById('hud-next-card-timer');
+  const cardsInventoryOverlay = document.getElementById('cards-inventory-overlay');
+  const inventoryBackdrop = document.getElementById('inventory-backdrop');
+  const btnCloseInventory = document.getElementById('btn-close-inventory');
+  const invCardsCount = document.getElementById('inv-cards-count');
+  const invTurnsUntil = document.getElementById('inv-turns-until');
+  const inventoryCardsContainer = document.getElementById('inventory-cards-container');
 
   // Card Showcase Cinematic Elements
   const cardShowcaseOverlay = document.getElementById('card-showcase-overlay');
@@ -422,12 +439,41 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // --- Card System Engine ---
+  function openCardsInventory() {
+    renderCardsHand();
+    if (cardsInventoryOverlay) cardsInventoryOverlay.classList.remove('hidden');
+    if (btnOpenCardsInv) btnOpenCardsInv.classList.remove('has-new-card');
+  }
+
+  function closeCardsInventory() {
+    if (cardsInventoryOverlay) cardsInventoryOverlay.classList.add('hidden');
+  }
+
+  function toggleCardsInventory() {
+    if (!cardsInventoryOverlay) return;
+    if (cardsInventoryOverlay.classList.contains('hidden')) {
+      openCardsInventory();
+    } else {
+      closeCardsInventory();
+    }
+  }
+
+  function toggleGameMenu(forceClose = false) {
+    if (!gameMenuDropdown) return;
+    if (forceClose || !gameMenuDropdown.classList.contains('hidden')) {
+      gameMenuDropdown.classList.add('hidden');
+    } else {
+      gameMenuDropdown.classList.remove('hidden');
+    }
+  }
+
   function triggerCardDraw() {
     if (gameVariant !== 'cards') return;
     const drawn = deckManager.drawCard();
     if (drawn) {
       if (window.sounds) window.sounds.play('card_draw');
       showCardDrawAnnouncement();
+      if (btnOpenCardsInv) btnOpenCardsInv.classList.add('has-new-card');
       renderCardsHand();
       showToast(`🎴 Получена карта: ${drawn.name}!`);
     }
@@ -443,24 +489,41 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderCardsHand() {
     const boardSec = document.querySelector('.game-board-section');
     if (gameVariant !== 'cards') {
-      cardsHandSection.classList.add('hidden');
-      activeDecreesContainer.classList.add('hidden');
+      if (btnOpenCardsInv) btnOpenCardsInv.classList.add('hidden');
+      if (hudNextCardTimer) hudNextCardTimer.classList.add('hidden');
+      if (activeDecreesContainer) activeDecreesContainer.classList.add('hidden');
       if (boardSec) boardSec.classList.add('classic-mode');
+      closeCardsInventory();
       return;
     }
 
-    cardsHandSection.classList.remove('hidden');
-    activeDecreesContainer.classList.remove('hidden');
+    if (btnOpenCardsInv) btnOpenCardsInv.classList.remove('hidden');
+    if (hudNextCardTimer) hudNextCardTimer.classList.remove('hidden');
+    if (activeDecreesContainer) activeDecreesContainer.classList.remove('hidden');
     if (boardSec) boardSec.classList.remove('classic-mode');
 
-    handCountEl.textContent = deckManager.hand.length;
+    const handLen = deckManager.hand.length;
     const movesTillNext = 3 - (Math.floor(totalMovesCount / 2) % 3);
-    turnsUntilCardEl.textContent = movesTillNext === 0 ? 3 : movesTillNext;
+    const turnsVal = movesTillNext === 0 ? 3 : movesTillNext;
 
-    cardsHandContainer.innerHTML = '';
+    if (hudCardsBadge) hudCardsBadge.textContent = `${handLen}/4`;
+    if (invCardsCount) invCardsCount.textContent = handLen;
+    if (invTurnsUntil) invTurnsUntil.textContent = turnsVal;
+    if (hudNextCardTimer) {
+      hudNextCardTimer.innerHTML = `Карта через: <strong>${turnsVal}</strong> х.`;
+    }
 
-    if (deckManager.hand.length === 0) {
-      cardsHandContainer.innerHTML = `<div class="no-decrees-hint" style="align-self:center;">Рука пуста. Следующая карта через ${turnsUntilCardEl.textContent} хода.</div>`;
+    if (!inventoryCardsContainer) return;
+    inventoryCardsContainer.innerHTML = '';
+
+    if (handLen === 0) {
+      inventoryCardsContainer.innerHTML = `
+        <div class="inventory-empty-hint">
+          <div class="inventory-empty-icon">🎴</div>
+          <strong>Инвентарь заклинаний пуст</strong>
+          <span>Следующая карта будет получена через ${turnsVal} хода.</span>
+        </div>
+      `;
       return;
     }
 
@@ -488,14 +551,16 @@ document.addEventListener('DOMContentLoaded', () => {
       const btnPlay = cardEl.querySelector('.btn-play-card');
       btnPlay.addEventListener('click', (e) => {
         e.stopPropagation();
+        closeCardsInventory();
         initiateCardPlay(card);
       });
 
       cardEl.addEventListener('click', () => {
+        closeCardsInventory();
         initiateCardPlay(card);
       });
 
-      cardsHandContainer.appendChild(cardEl);
+      inventoryCardsContainer.appendChild(cardEl);
     });
   }
 
@@ -536,6 +601,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function initiateCardPlay(card) {
+    closeCardsInventory();
     if (game.game_over()) return;
     // Check if it's player's turn (in online/bot mode)
     if ((mode === 'online' || mode === 'bot') && game.turn() !== myColor) {
@@ -1619,34 +1685,43 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // --- Game Controls ---
-  btnResign.addEventListener('click', () => {
+  // --- Game Controls & Menu Handlers ---
+  function handleResign() {
+    toggleGameMenu(true);
+    if (game.game_over()) return;
     if (confirm('Вы уверены, что хотите сдаться?')) {
       if (mode === 'online') network.sendResign(myColor);
       endGame('Поражение', 'Вы сдались.');
     }
-  });
+  }
 
-  btnOfferDraw.addEventListener('click', () => {
+  function handleOfferDraw() {
+    toggleGameMenu(true);
     if (mode === 'online') {
       network.sendDrawOffer();
       showToast('Предложение ничьей отправлено сопернику...');
     } else {
       endGame('Ничья!', 'По согласию сторон.');
     }
-  });
+  }
 
-  btnFlipBoard.addEventListener('click', () => {
+  function handleFlipBoard() {
+    toggleGameMenu(true);
     if (boardUI) boardUI.flip();
-  });
+  }
 
-  btnToggleMute.addEventListener('click', () => {
+  function handleToggleSound() {
+    toggleGameMenu(true);
     const isMuted = window.sounds.toggleMute();
     btnToggleMute.innerHTML = isMuted ? '🔇' : '🔊';
+    if (menuItemSound) {
+      menuItemSound.innerHTML = isMuted ? '🔇 Звук: Выкл' : '🔊 Звук: Вкл';
+    }
     showToast(isMuted ? 'Звук выключен' : 'Звук включен');
-  });
+  }
 
-  btnLeaveGame.addEventListener('click', () => {
+  function handleLeaveGame() {
+    toggleGameMenu(true);
     if (confirm('Покинуть игру и вернуться в главное меню?')) {
       if (mode === 'online' && !gameEnded && network.isConnected()) {
         network.sendResign(myColor);
@@ -1654,6 +1729,64 @@ document.addEventListener('DOMContentLoaded', () => {
       stopTimer();
       network.cleanup();
       switchScreen(screenLobby);
+    }
+  }
+
+  // Sidebar Controls
+  if (btnResign) btnResign.addEventListener('click', handleResign);
+  if (btnOfferDraw) btnOfferDraw.addEventListener('click', handleOfferDraw);
+  if (btnFlipBoard) btnFlipBoard.addEventListener('click', handleFlipBoard);
+  if (btnLeaveGame) btnLeaveGame.addEventListener('click', handleLeaveGame);
+  if (btnToggleMute) btnToggleMute.addEventListener('click', handleToggleSound);
+
+  // Top HUD Dropdown Menu Items
+  if (btnGameMenuToggle) {
+    btnGameMenuToggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleGameMenu();
+    });
+  }
+  if (menuItemResign) menuItemResign.addEventListener('click', handleResign);
+  if (menuItemDraw) menuItemDraw.addEventListener('click', handleOfferDraw);
+  if (menuItemFlip) menuItemFlip.addEventListener('click', handleFlipBoard);
+  if (menuItemSound) menuItemSound.addEventListener('click', handleToggleSound);
+  if (menuItemLeave) menuItemLeave.addEventListener('click', handleLeaveGame);
+  if (menuItemLogs) {
+    menuItemLogs.addEventListener('click', () => {
+      toggleGameMenu(true);
+      btnOpenLogs.click();
+    });
+  }
+
+  // Cards Inventory Trigger & Modal Controls
+  if (btnOpenCardsInv) {
+    btnOpenCardsInv.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleCardsInventory();
+    });
+  }
+  if (btnCloseInventory) {
+    btnCloseInventory.addEventListener('click', closeCardsInventory);
+  }
+  if (inventoryBackdrop) {
+    inventoryBackdrop.addEventListener('click', closeCardsInventory);
+  }
+
+  // Global document click to close HUD menu
+  document.addEventListener('click', (e) => {
+    if (gameMenuDropdown && !gameMenuDropdown.classList.contains('hidden')) {
+      if (!e.target.closest('.hud-menu-wrapper')) {
+        toggleGameMenu(true);
+      }
+    }
+  });
+
+  // Global Escape key handler
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeCardsInventory();
+      toggleGameMenu(true);
+      if (pendingCard) cancelTargeting();
     }
   });
 
@@ -1729,6 +1862,26 @@ document.addEventListener('DOMContentLoaded', () => {
         deckManager.drawCard();
         renderCardsHand();
       }
+    }, 150);
+  } else if (urlParams.get('test_inv')) {
+    setTimeout(() => {
+      btnPlayBot.click();
+      if (deckManager) {
+        deckManager.drawCard();
+        deckManager.drawCard();
+        deckManager.drawCard();
+        renderCardsHand();
+      }
+      setTimeout(() => {
+        openCardsInventory();
+      }, 300);
+    }, 150);
+  } else if (urlParams.get('test_menu')) {
+    setTimeout(() => {
+      btnPlayBot.click();
+      setTimeout(() => {
+        toggleGameMenu();
+      }, 300);
     }, 150);
   }
 });

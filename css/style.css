@@ -399,7 +399,7 @@ body {
 }
 
 .game-board-section {
-  --board-size: clamp(280px, min(calc(100vh - 460px), 92vw), 430px);
+  --board-size: clamp(320px, min(calc(100vh - 150px), calc(100vw - 380px)), 620px);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -408,7 +408,166 @@ body {
 }
 
 .game-board-section.classic-mode {
-  --board-size: min(540px, calc(100vh - 180px), 92vw);
+  --board-size: clamp(320px, min(calc(100vh - 150px), calc(100vw - 380px)), 640px);
+}
+
+/* Top HUD Bar above Chessboard */
+.game-hud-bar {
+  width: var(--board-size, min(92vw, 400px));
+  max-width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.35rem;
+  box-sizing: border-box;
+}
+
+.hud-left-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.hud-menu-wrapper {
+  position: relative;
+}
+
+.btn-hud {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.75rem;
+  background-color: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 20px;
+  color: var(--text-bright);
+  font-size: 0.84rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+  backdrop-filter: blur(4px);
+}
+
+.btn-hud:hover {
+  background-color: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.btn-hud:active {
+  transform: translateY(1px);
+}
+
+.hud-icon {
+  font-size: 0.95rem;
+}
+
+.hud-caret {
+  font-size: 0.7rem;
+  opacity: 0.7;
+}
+
+/* Cards Inventory Trigger Button */
+.btn-hud-cards {
+  background: linear-gradient(135deg, rgba(88, 28, 135, 0.5), rgba(30, 27, 75, 0.7));
+  border-color: rgba(168, 85, 247, 0.6);
+  color: #f1f5f9;
+}
+
+.btn-hud-cards:hover {
+  background: linear-gradient(135deg, rgba(126, 34, 206, 0.6), rgba(46, 16, 101, 0.8));
+  border-color: #c084fc;
+  box-shadow: 0 0 14px rgba(168, 85, 247, 0.5);
+}
+
+.hud-badge {
+  background-color: #9333ea;
+  color: #fff;
+  padding: 0.08rem 0.45rem;
+  border-radius: 10px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  box-shadow: 0 0 8px rgba(147, 51, 234, 0.6);
+}
+
+/* Shimmer pulse when new card arrives */
+.btn-hud-cards.has-new-card {
+  animation: card-btn-glow 1.5s infinite alternate;
+}
+
+@keyframes card-btn-glow {
+  from { box-shadow: 0 0 8px rgba(250, 204, 21, 0.4); border-color: #facc15; }
+  to { box-shadow: 0 0 20px rgba(250, 204, 21, 0.9), 0 0 10px rgba(168, 85, 247, 0.8); border-color: #fde047; }
+}
+
+.hud-timer-hint {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.hud-timer-hint strong {
+  color: #a3e635;
+}
+
+/* Dropdown Menu Popover */
+.game-menu-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 1200;
+  width: 215px;
+  background: #1c1917;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 10px;
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.9), 0 0 15px rgba(0, 0, 0, 0.5);
+  padding: 0.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  animation: dropdown-pop 0.15s ease forwards;
+}
+
+@keyframes dropdown-pop {
+  from { opacity: 0; transform: translateY(-6px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.menu-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.75rem;
+  border: none;
+  background: transparent;
+  color: var(--text-main);
+  font-size: 0.84rem;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+}
+
+.menu-item:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--text-bright);
+}
+
+.menu-item.menu-item-danger {
+  color: #f87171;
+}
+
+.menu-item.menu-item-danger:hover {
+  background-color: rgba(239, 68, 68, 0.16);
+  color: #ef4444;
+}
+
+.menu-divider {
+  height: 1px;
+  background-color: rgba(255, 255, 255, 0.08);
+  margin: 0.25rem 0;
 }
 
 /* Player Bar (Top / Bottom) */
@@ -1367,91 +1526,184 @@ body {
 }
 
 /* ==========================================================================
-   Hearthstone Hand of Cards (Under Board)
+   Semi-Transparent Cards Inventory Overlay (Over Chessboard)
    ========================================================================== */
 
-.cards-hand-section {
-  width: 100%;
-  max-width: 720px;
-  margin-top: 0.35rem;
-  background: rgba(18, 16, 15, 0.75);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 0.4rem 0.75rem 0.5rem;
-  position: relative;
-  overflow: visible;
-  backdrop-filter: blur(4px);
+.cards-inventory-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
 }
 
-.hand-header {
+.inventory-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 8, 7, 0.74);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: inv-fade-in 0.2s ease;
+}
+
+@keyframes inv-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.inventory-modal {
+  position: relative;
+  z-index: 2501;
+  width: min(94vw, 790px);
+  max-height: 88vh;
+  background: linear-gradient(145deg, #181513, #12100e);
+  border: 2px solid rgba(168, 85, 247, 0.5);
+  border-radius: 16px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.95), 0 0 35px rgba(168, 85, 247, 0.25);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: inv-zoom-in 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes inv-zoom-in {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.inventory-header {
+  padding: 0.9rem 1.25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.inventory-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.inventory-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #facc15;
+}
+
+.inventory-icon {
+  font-size: 1.3rem;
+}
+
+.inv-count-pill {
+  background-color: #9333ea;
+  color: #fff;
+  padding: 0.1rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  box-shadow: 0 0 8px rgba(147, 51, 234, 0.5);
+}
+
+.inventory-subtitle {
   font-size: 0.82rem;
   color: var(--text-muted);
-  margin-bottom: 0.35rem;
-  padding-bottom: 0.25rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.hand-title {
-  font-weight: 700;
-  color: var(--text-bright);
-}
-
-.hand-next-draw strong {
+.inventory-subtitle strong {
   color: #a3e635;
 }
 
-.cards-hand-container {
+.btn-close-inv {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.06);
+  color: #e5e7eb;
+  font-size: 1.15rem;
+  font-weight: 700;
+  cursor: pointer;
   display: flex;
+  align-items: center;
   justify-content: center;
-  align-items: flex-end;
-  gap: 0.65rem;
-  min-height: 255px;
-  perspective: 1000px;
-  padding: 0.4rem 0.2rem 0.2rem;
+  transition: all 0.15s ease;
+}
+
+.btn-close-inv:hover {
+  background-color: rgba(239, 68, 68, 0.2);
+  border-color: #ef4444;
+  color: #ef4444;
+  transform: rotate(90deg);
+}
+
+.inventory-cards-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 1.1rem;
+  padding: 1.5rem 1.25rem;
+  overflow-y: auto;
+  max-height: calc(88vh - 120px);
+}
+
+.inventory-empty-hint {
+  padding: 2.5rem 1rem;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.inventory-empty-icon {
+  font-size: 2.5rem;
+  opacity: 0.6;
+}
+
+.inventory-footer {
+  padding: 0.65rem 1.25rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.3);
+  font-size: 0.8rem;
+  color: #94a3b8;
+  text-align: center;
 }
 
 /* Individual Card (Hearthstone style - enlarged & crisp typography) */
 .hs-card {
-  width: 160px;
-  height: 245px;
-  min-height: 245px;
+  width: 165px;
+  height: 252px;
+  min-height: 252px;
   box-sizing: border-box;
   border-radius: 12px;
   border: 2px solid var(--card-border);
   background: var(--card-bg);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.65), inset 0 0 12px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.7), inset 0 0 12px rgba(0, 0, 0, 0.4);
   display: flex;
   flex-direction: column;
-  padding: 0.45rem 0.5rem;
+  padding: 0.5rem 0.55rem;
   cursor: pointer;
   position: relative;
   user-select: none;
   overflow: hidden;
-  transition: transform 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.22s ease, z-index 0.1s;
-  transform-origin: bottom center;
+  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.2s ease;
 }
-
-/* Card Arc Layout in Hand */
-.hs-card:nth-child(1):nth-last-child(4) { transform: rotate(-3deg) translateY(2px); }
-.hs-card:nth-child(2):nth-last-child(3) { transform: rotate(-1deg) translateY(0); }
-.hs-card:nth-child(3):nth-last-child(2) { transform: rotate(1deg) translateY(0); }
-.hs-card:nth-child(4):nth-last-child(1) { transform: rotate(3deg) translateY(2px); }
-
-.hs-card:nth-child(1):nth-last-child(3) { transform: rotate(-2deg) translateY(1px); }
-.hs-card:nth-child(2):nth-last-child(2) { transform: rotate(0deg) translateY(0); }
-.hs-card:nth-child(3):nth-last-child(1) { transform: rotate(2deg) translateY(1px); }
-
-.hs-card:nth-child(1):nth-last-child(2) { transform: rotate(-1.5deg); }
-.hs-card:nth-child(2):nth-last-child(1) { transform: rotate(1.5deg); }
 
 /* Hover Zoom & Highlight */
 .hs-card:hover {
-  transform: translateY(-18px) scale(1.08) rotate(0deg) !important;
-  z-index: 60 !important;
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.95), 0 0 20px var(--card-border) !important;
+  transform: translateY(-8px) scale(1.04);
+  z-index: 20;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.95), 0 0 25px var(--card-border);
 }
 
 /* Card Elements */
@@ -1647,23 +1899,23 @@ body {
     max-width: 140px;
   }
 
-  .cards-hand-section {
-    width: 100%;
-    max-width: calc(100vw - 12px);
-    padding: 0.35rem 0.4rem;
-    box-sizing: border-box;
-    overflow: hidden;
+  .game-hud-bar {
+    width: var(--board-size, min(94vw, 360px));
   }
 
-  .cards-hand-container {
-    max-width: 100%;
-    box-sizing: border-box;
-    justify-content: flex-start;
-    overflow-x: auto;
-    overflow-y: hidden;
-    padding-bottom: 0.6rem;
-    -webkit-overflow-scrolling: touch;
-    gap: 0.5rem;
+  .btn-hud {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.78rem;
+  }
+
+  .inventory-modal {
+    width: 96vw;
+    max-height: 92vh;
+  }
+
+  .inventory-cards-container {
+    gap: 0.75rem;
+    padding: 1rem 0.6rem;
   }
 
   .hs-card {
@@ -1675,7 +1927,7 @@ body {
   }
 
   .hs-card:hover {
-    transform: translateY(-8px) scale(1.04) !important;
+    transform: translateY(-4px) scale(1.02) !important;
   }
 }
 
