@@ -441,14 +441,17 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function renderCardsHand() {
+    const boardSec = document.querySelector('.game-board-section');
     if (gameVariant !== 'cards') {
       cardsHandSection.classList.add('hidden');
       activeDecreesContainer.classList.add('hidden');
+      if (boardSec) boardSec.classList.add('classic-mode');
       return;
     }
 
     cardsHandSection.classList.remove('hidden');
     activeDecreesContainer.classList.remove('hidden');
+    if (boardSec) boardSec.classList.remove('classic-mode');
 
     handCountEl.textContent = deckManager.hand.length;
     const movesTillNext = 3 - (Math.floor(totalMovesCount / 2) % 3);
@@ -464,7 +467,8 @@ document.addEventListener('DOMContentLoaded', () => {
     deckManager.hand.forEach(card => {
       const rarityData = CARD_RARITIES[card.rarity] || CARD_RARITIES.COMMON;
       const cardEl = document.createElement('div');
-      cardEl.className = 'hs-card';
+      cardEl.className = `hs-card rarity-${card.rarity.toLowerCase()}`;
+      cardEl.title = `${card.name}: ${card.description}`;
       cardEl.style.setProperty('--card-bg', rarityData.bg);
       cardEl.style.setProperty('--card-border', rarityData.border);
 
@@ -1714,5 +1718,17 @@ document.addEventListener('DOMContentLoaded', () => {
   if (initialRoom && initialRoom.length >= 4) {
     inputJoinCode.value = initialRoom;
     joinOnlineRoom(initialRoom);
+  }
+
+  if (urlParams.get('test_bot')) {
+    setTimeout(() => {
+      btnPlayBot.click();
+      if (deckManager) {
+        deckManager.drawCard();
+        deckManager.drawCard();
+        deckManager.drawCard();
+        renderCardsHand();
+      }
+    }, 150);
   }
 });

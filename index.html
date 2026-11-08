@@ -205,19 +205,11 @@
               <!-- Cards dynamically inserted here -->
             </div>
           </div>
-
-          <!-- In-Game Action Bar -->
-          <div class="game-action-bar">
-            <button id="btn-offer-draw" class="btn-action" title="Предложить ничью">🤝 Ничья</button>
-            <button id="btn-resign" class="btn-action" title="Сдаться">🏳️ Сдаться</button>
-            <button id="btn-flip-board" class="btn-action" title="Перевернуть доску">🔄 Повернуть</button>
-            <button id="btn-leave-game" class="btn-action btn-danger" title="Выйти в меню">🚪 Меню</button>
-          </div>
         </div>
 
-        <!-- Sidebar (History, Chat, Emojis) -->
+        <!-- Sidebar (History, Controls, Chat) -->
         <aside class="game-sidebar">
-          <!-- Active Decrees & Curses HUD (integrated in sidebar to avoid pushing board) -->
+          <!-- Active Decrees & Curses HUD -->
           <div class="sidebar-box decrees-box" id="active-decrees-container">
             <div class="sidebar-box-header decrees-header">
               <span>⚡ Активные Проклятия и Указы</span>
@@ -231,6 +223,14 @@
           <div class="sidebar-box history-box">
             <div class="sidebar-box-header">История ходов</div>
             <div class="move-history-list" id="move-history-list"></div>
+          </div>
+
+          <!-- In-Game Quick Action Controls -->
+          <div class="sidebar-action-bar">
+            <button id="btn-offer-draw" class="btn-action" title="Предложить ничью">🤝 Ничья</button>
+            <button id="btn-resign" class="btn-action" title="Сдаться">🏳️ Сдаться</button>
+            <button id="btn-flip-board" class="btn-action" title="Перевернуть доску">🔄 Доска</button>
+            <button id="btn-leave-game" class="btn-action btn-danger" title="Выйти в меню">🚪 Меню</button>
           </div>
 
           <!-- Quick Reactions & Chat -->

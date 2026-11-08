@@ -16,7 +16,7 @@ const CARDS_DATABASE = [
     type: 'decree',
     duration: 2, // rounds
     cost: 'Каждые 3 хода',
-    description: 'Враг проклят: если он походит Конем в течение 2 ходов, этот конь застынет во льду на 1 ход.',
+    description: 'Если враг походит Конём в течение 2 ходов — конь застынет во льду на 1 ход.',
     trigger: 'Ход вражеским Конём',
     penalty: 'Заморозка коня на 1 ход',
     penaltyType: 'freeze',
@@ -30,7 +30,7 @@ const CARDS_DATABASE = [
     rarity: 'RARE',
     type: 'decree',
     duration: 2,
-    description: 'Если враг походит Ладьёй в течение 2 ходов, вы немедленно берёте бонусную карту из колоды.',
+    description: 'Если враг походит Ладьёй в течение 2 ходов — вы берёте +1 бонусную карту.',
     trigger: 'Ход вражеской Ладьёй',
     penalty: 'Вы получаете +1 бонусную карту',
     penaltyType: 'draw_card',
@@ -44,7 +44,7 @@ const CARDS_DATABASE = [
     rarity: 'COMMON',
     type: 'decree',
     duration: 2,
-    description: 'Слоны врага ослеплены: они могут ходить, но не могут совершать взятия фигур 2 хода.',
+    description: 'Слоны врага ослеплены: они могут ходить, но не могут брать фигуры 2 хода.',
     trigger: 'Попытка взятия Слоном',
     penalty: 'Запрет на взятия фигур',
     penaltyType: 'disarm',
@@ -58,7 +58,7 @@ const CARDS_DATABASE = [
     rarity: 'RARE',
     type: 'decree',
     duration: 3,
-    description: 'Выберите пустую клетку. Любая фигура врага, наступившая на неё, замораживается на 1 ход.',
+    description: 'Выберите клетку. Вражеская фигура, наступив на неё, застынет во льду на 1 ход.',
     trigger: 'Враг ступает на эту клетку',
     penalty: 'Заморозка наступившей фигуры на 1 ход',
     penaltyType: 'freeze_square',
@@ -72,7 +72,7 @@ const CARDS_DATABASE = [
     rarity: 'EPIC',
     type: 'decree',
     duration: 2,
-    description: 'Ферзь врага перегружен: он может ходить максимум на 2 клетки в любом направлении следующие 2 хода.',
+    description: 'Ферзь врага перегружен: следующие 2 хода он ходит максимум на 2 клетки.',
     trigger: 'Ход Ферзём дальше 2 клеток',
     penalty: 'Ход блокируется (макс. 2 клетки)',
     penaltyType: 'queen_slow',
@@ -98,7 +98,7 @@ const CARDS_DATABASE = [
     rarity: 'EPIC',
     type: 'decree',
     duration: 2,
-    description: 'Если враг заберёт вашу фигуру, атаковавшая фигура замораживается на 1 ход.',
+    description: 'Если враг возьмёт вашу фигуру — нападавшая фигура застынет во льду на 1 ход.',
     trigger: 'Взятие любой вашей фигуры',
     penalty: 'Заморозка нападавшего на 1 ход',
     penaltyType: 'retaliation',
@@ -112,7 +112,7 @@ const CARDS_DATABASE = [
     icon: '⚔️',
     rarity: 'COMMON',
     type: 'spell',
-    description: 'Выберите вашу пешку. Она совершает стремительный рывок на 1 клетку вперёд (если путь свободен)!',
+    description: 'Выберите вашу пешку: она мгновенно шагает на 1 клетку вперёд без траты хода!',
     requiresTarget: 'my_pawn',
     targetHint: 'Кликните по вашей пешке, перед которой есть свободная клетка'
   },
@@ -122,7 +122,7 @@ const CARDS_DATABASE = [
     icon: '❄️',
     rarity: 'RARE',
     type: 'spell',
-    description: 'Заморозьте любую фигуру врага (кроме короля) на 1 ход. Она не сможет двигаться.',
+    description: 'Заморозьте фигуру врага (кроме короля) на 1 ход: она не сможет двигаться.',
     requiresTarget: 'enemy_piece',
     targetHint: 'Кликните по фигуре врага (кроме короля)'
   },
@@ -132,7 +132,7 @@ const CARDS_DATABASE = [
     icon: '👥',
     rarity: 'RARE',
     type: 'spell',
-    description: 'Выберите своего коня и свою пешку. Они мгновенно меняются местами на доске!',
+    description: 'Выберите своего коня и свою пешку: они мгновенно меняются местами на доске!',
     requiresTarget: 'shadow_swap',
     targetHint: 'Шаг 1 из 2: Выберите вашего Коня 🐎'
   },
@@ -143,7 +143,7 @@ const CARDS_DATABASE = [
     rarity: 'COMMON',
     type: 'spell',
     duration: 1,
-    description: 'Выберите область 2х2 клетки. На 1 ход в этой области полностью запрещены любые взятия фигур.',
+    description: 'Выберите область 2х2 клетки: на 1 ход в ней запрещены любые взятия фигур.',
     requiresTarget: 'square',
     targetHint: 'Кликните по клетке для левого-нижнего угла тумана 2х2'
   },
@@ -191,7 +191,7 @@ const CARDS_DATABASE = [
     icon: '⚡',
     rarity: 'LEGENDARY',
     type: 'spell',
-    description: 'Оглушает всех вражеских коней и слонов на 1 ход (они не могут ходить на следующем ходу).',
+    description: 'Оглушает всех вражеских коней и слонов на 1 ход: они не смогут ходить на своём ходу.',
     requiresTarget: false
   }
 ];
