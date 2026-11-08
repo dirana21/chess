@@ -1642,6 +1642,8 @@ document.addEventListener('DOMContentLoaded', () => {
           boardUI.lastMove = { from: res.from, to: res.to };
           boardUI.render();
           handleLocalMove(res);
+        } else {
+          checkGameOver();
         }
       }, 550);
     }
@@ -1947,8 +1949,8 @@ document.addEventListener('DOMContentLoaded', () => {
       renderActiveDecrees();
     } else {
       botDeckManager = null;
-      cardsHandSection.classList.add('hidden');
-      activeDecreesContainer.classList.add('hidden');
+      renderCardsHand();
+      renderActiveDecrees();
     }
 
     updateTimerDisplay();
@@ -2165,6 +2167,8 @@ document.addEventListener('DOMContentLoaded', () => {
           boardUI.lastMove = { from: res.from, to: res.to };
           boardUI.render();
           handleLocalMove(res);
+        } else {
+          checkGameOver();
         }
       }, 500);
     }
@@ -2422,6 +2426,12 @@ document.addEventListener('DOMContentLoaded', () => {
           if (allEff.length > 0) openEffectDetailsModal(allEff[0], allEff);
         }, 300);
       }
+    }, 150);
+  } else if (urlParams.get('test_classic_black')) {
+    setTimeout(() => {
+      gameVariantSelect.value = 'classic';
+      selectColor.value = 'b';
+      btnPlayBot.click();
     }, 150);
   } else if (urlParams.get('test_showcase')) {
     setTimeout(() => {

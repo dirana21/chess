@@ -126,7 +126,7 @@ class ChessNetwork {
     });
   }
 
-  joinRoom(roomCode) {
+  joinRoom(roomCode, retryCount = 0) {
     return new Promise((resolve, reject) => {
       this.cleanup();
       this.isHost = false;
@@ -134,7 +134,7 @@ class ChessNetwork {
       const hostPeerId = this.peerPrefix + this.roomCode;
 
       if (window.logger) {
-        window.logger.info('PEER', `Подключение к комнате [${this.roomCode}], целевой хост: ${hostPeerId}`);
+        window.logger.info('PEER', `Подключение к комнате [${this.roomCode}] (попытка ${retryCount + 1}), целевой хост: ${hostPeerId}`);
       }
 
       this.peer = new Peer(null, {
@@ -198,6 +198,19 @@ class ChessNetwork {
           window.logger.error('PEER', `Ошибка подключения PeerJS: ${err.type || err.message}`, err);
         }
         console.error('Peer join error:', err);
+
+        // Auto-retry if host is not registered yet on the signaling broker (e.g. host just created room)
+        if (err.type === 'peer-unavailable' && retryCount < 3) {
+          if (window.logger) {
+            window.logger.warn('PEER', `Хост еще регистрируется на брокере. Автоповтор подключения ${retryCount + 1}/3 через 1 сек...`);
+          }
+          setTimeout(() => {
+            try { this.cleanup(); } catch(e){}
+            this.joinRoom(roomCode, retryCount + 1).then(resolve).catch(reject);
+          }, 1000);
+          return;
+        }
+
         this._emit('error', err);
         reject(err);
       });
