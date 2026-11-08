@@ -145,6 +145,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let botDeckManager = null;
   let boardUI = null;
   let gameEnded = false;
+  let pendingOnlineConfig = null;
 
   if (game && typeof game.set_freeze_fn === 'function') {
     game.set_freeze_fn((sq) => (gameVariant === 'cards' && deckManager) ? deckManager.isPieceFrozen(sq) : false);
@@ -486,14 +487,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!isRemote && card) {
       deckManager.removeCard(card.instanceId);
-      if (mode === 'online' && network.connected) {
-        network.send({
-          type: 'card-play',
-          card: card,
-          action: 'shadow_swap',
-          extraData: { knightSq, pawnSq },
-          byPlayer: myColor
-        });
+      if (mode === 'online') {
+        network.sendCardPlay(card, null, myColor, 'shadow_swap', { knightSq, pawnSq }, game.fen());
       }
       showToast(isPawnOnBackRank 
         ? `👥 Обмен теней: Конь переместился на ${pawnSq}, а пешка стала всадником на ${knightSq}!` 
@@ -513,8 +508,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!isRemote) {
       deckManager.removeCard(card.instanceId);
-      if (mode === 'online' && network.connected) {
-        network.sendCardPlay(card, targetSquare, myColor);
+      if (mode === 'online') {
+        network.sendCardPlay(card, targetSquare, myColor, null, null, game.fen());
       }
     }
 
@@ -898,8 +893,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Network transmission
-    if (mode === 'online' && network.connected) {
-      network.sendMove(moveResult.from, moveResult.to, moveResult.promotion, timerWhite, timerBlack);
+    if (mode === 'online') {
+      network.sendMove(moveResult.from, moveResult.to, moveResult.promotion, timerWhite, timerBlack, game.fen(), totalMovesCount);
     }
 
     // Check game over
@@ -928,11 +923,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function handleRemoteMove(data) {
     totalMovesCount++;
-    const res = game.move({
+    let res = game.move({
       from: data.from,
       to: data.to,
       promotion: data.promotion || 'q'
     });
+
+    // If move was rejected locally (desync recovery), recover using authoritative FEN
+    if (!res && data.fen) {
+      console.warn('Remote move failed locally. Recovering state via FEN:', data);
+      const loaded = game.load(data.fen);
+      if (loaded) {
+        res = {
+          from: data.from,
+          to: data.to,
+          captured: false,
+          flags: ''
+        };
+      }
+    } else if (res && data.fen && game.fen() !== data.fen) {
+      game.load(data.fen);
+    }
 
     if (res) {
       boardUI.lastMove = { from: data.from, to: data.to };
@@ -951,7 +962,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (res.captured) {
         window.sounds.play('capture');
-      } else if (res.flags.includes('k') || res.flags.includes('q')) {
+      } else if (res.flags && (res.flags.includes('k') || res.flags.includes('q'))) {
         window.sounds.play('castle');
       } else {
         window.sounds.play('move');
@@ -963,6 +974,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
       updateGameUI(res);
       checkGameOver();
+    } else {
+      console.error('CRITICAL: Remote move completely failed to apply!', data);
     }
   }
 
@@ -1189,6 +1202,7 @@ document.addEventListener('DOMContentLoaded', () => {
       hostSide: hostSide,
       guestSide: guestSide
     };
+    pendingOnlineConfig = config;
 
     displayRoomCode.textContent = roomCode;
     const shareUrl = `${window.location.origin}${window.location.pathname}#${roomCode}`;
@@ -1246,11 +1260,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!info.isHost) {
       // Guest waiting for host init packet
     } else {
-      // Host starts game immediately
-      const chosenSide = selectColor.value === 'random' ? (Math.random() < 0.5 ? 'w' : 'b') : selectColor.value;
-      const guestSide = chosenSide === 'w' ? 'b' : 'w';
-      const timeVal = parseInt(selectTimeControl.value, 10);
-      const chosenVariant = gameVariantSelect.value;
+      // Host starts game using deterministic config
+      const chosenSide = pendingOnlineConfig ? pendingOnlineConfig.hostSide : (selectColor.value === 'random' ? 'w' : selectColor.value);
+      const chosenVariant = pendingOnlineConfig ? pendingOnlineConfig.variant : gameVariantSelect.value;
+      const timeVal = pendingOnlineConfig ? pendingOnlineConfig.time : parseInt(selectTimeControl.value, 10);
 
       const gameConfig = {
         time: timeVal,
@@ -1275,6 +1288,11 @@ document.addEventListener('DOMContentLoaded', () => {
       applyShadowSwap(data.extraData.knightSq, data.extraData.pawnSq, true, data.card);
     } else {
       applyCardEffect(data.card, data.targetSquare, true);
+    }
+    if (data.fen && game.fen() !== data.fen) {
+      console.warn('Syncing board FEN with remote card state:', data.fen);
+      game.load(data.fen);
+      if (boardUI) boardUI.render();
     }
   });
 
@@ -1405,7 +1423,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   btnLeaveGame.addEventListener('click', () => {
     if (confirm('Покинуть игру и вернуться в главное меню?')) {
-      if (mode === 'online' && !gameEnded && network.connected) {
+      if (mode === 'online' && !gameEnded && network.isConnected()) {
         network.sendResign(myColor);
       }
       stopTimer();

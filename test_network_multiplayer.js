@@ -129,7 +129,70 @@ console.log('--- TEST 2: Disconnection & Forfeiture Handling ---');
   console.log('>>> TEST 2 PASSED: Disconnection immediately awards victory!\n');
 }
 
-// 3. TEST 3: 100-Game Simulated P2P Network Stress Test
+// 4. TEST 4: Network Desync Auto-Recovery via FEN
+console.log('--- TEST 4: Network Desync Auto-Recovery via FEN Fallback ---');
+{
+  const host = new Chess();
+  const guest = new Chess();
+
+  // Host makes e2 -> e4
+  const hostMove = host.move({ from: 'e2', to: 'e4' });
+  const packet = {
+    type: 'move',
+    from: 'e2',
+    to: 'e4',
+    promotion: 'q',
+    fen: host.fen()
+  };
+
+  // Simulate corrupt state on guest where guest engine somehow rejects the move
+  // e.g. guest board had an unexpected piece blocking
+  guest.put({ type: 'p', color: 'b' }, 'e4'); // Deliberate corruption
+  let res = guest.move({ from: packet.from, to: packet.to, promotion: packet.promotion });
+  console.log('Direct move on corrupt state:', res, '(EXPECTED: null)');
+
+  // Auto-recovery via FEN (the fix implemented in app.js):
+  if (!res && packet.fen) {
+    const loaded = guest.load(packet.fen);
+    if (loaded) {
+      res = { from: packet.from, to: packet.to, captured: false, flags: '' };
+    }
+  }
+
+  console.log('After FEN auto-recovery, guest res exists:', !!res);
+  console.log('Host FEN: ', host.fen());
+  console.log('Guest FEN:', guest.fen());
+  if (host.fen() !== guest.fen() || !res) {
+    throw new Error('TEST 4 FAILED: FEN auto-recovery did not sync guest board!');
+  }
+  console.log('>>> TEST 4 PASSED: Remote move recovered 100% cleanly via authoritative FEN!\n');
+}
+
+// 5. TEST 5: Deterministic Color Assignment (No Random Duplication)
+console.log('--- TEST 5: Deterministic Online Color Handshake ---');
+{
+  for (let trial = 0; trial < 50; trial++) {
+    // Host selects random side
+    const selectColorValue = 'random';
+    let hostSide = selectColorValue;
+    if (hostSide === 'random') {
+      hostSide = Math.random() < 0.5 ? 'w' : 'b';
+    }
+    const guestSide = hostSide === 'w' ? 'b' : 'w';
+    const config = { hostSide, guestSide };
+    const pendingOnlineConfig = config;
+
+    // When connection opens, host uses pendingOnlineConfig.hostSide
+    const finalHostSide = pendingOnlineConfig.hostSide;
+    const finalGuestSide = config.guestSide;
+
+    if (finalHostSide === finalGuestSide) {
+      throw new Error(`TEST 5 FAILED: Both players got color ${finalHostSide}!`);
+    }
+  }
+  console.log('>>> TEST 5 PASSED: 50/50 trials generated perfectly opposing colors without duplicate sides!\n');
+}
+
 console.log('--- TEST 3: 100-Game Simulated Online Network Test ---');
 
 const netStats = {

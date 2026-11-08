@@ -6,6 +6,9 @@ class ChessNetwork {
     this.isHost = false;
     this.roomCode = null;
     this.connected = false;
+    this.initialConfig = null;
+    this.lastHeartbeat = Date.now();
+    this.heartbeatTimer = null;
     this.peerPrefix = 'dirana-chess-v1-';
 
     // Event listeners
@@ -21,8 +24,22 @@ class ChessNetwork {
       resign: null,
       rematchOffer: null,
       rematchAccept: null,
+      cardPlay: null,
+      cardDraw: null,
       error: null
     };
+
+    // Auto-ping when tab becomes active again to prevent background throttling disconnects
+    if (typeof document !== 'undefined' && document.addEventListener) {
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          this.lastHeartbeat = Date.now();
+          if (this.conn && this.conn.open) {
+            this.send({ type: 'ping' });
+          }
+        }
+      });
+    }
   }
 
   on(event, callback) {
@@ -50,6 +67,7 @@ class ChessNetwork {
     return new Promise((resolve, reject) => {
       this.cleanup();
       this.isHost = true;
+      this.initialConfig = initialConfig;
       this.roomCode = roomCode || this.generateRoomCode();
       const peerId = this.peerPrefix + this.roomCode;
 
@@ -70,11 +88,11 @@ class ChessNetwork {
       this.peer.on('connection', (connection) => {
         if (this.conn) {
           // If already connected, reject extra connections
-          connection.close();
+          try { connection.close(); } catch(e){}
           return;
         }
         this.conn = connection;
-        this._setupConnection(initialConfig);
+        this._setupConnection(this.initialConfig);
       });
 
       this.peer.on('error', (err) => {
@@ -112,13 +130,22 @@ class ChessNetwork {
           reliable: true
         });
 
-        this.conn.on('open', () => {
+        this._setupDataListener();
+
+        const onOpen = () => {
           this.connected = true;
           this._startHeartbeat();
-          this._setupDataListener();
           this._emit('connected', { isHost: false, roomCode: this.roomCode });
+          // Inform host guest is connected and ready
+          this.send({ type: 'guest-ready' });
           resolve({ roomCode: this.roomCode });
-        });
+        };
+
+        if (this.conn.open) {
+          onOpen();
+        } else {
+          this.conn.on('open', onOpen);
+        }
 
         this.conn.on('close', () => {
           this._stopHeartbeat();
@@ -141,20 +168,28 @@ class ChessNetwork {
   }
 
   _setupConnection(initialConfig) {
-    this.conn.on('open', () => {
+    this.initialConfig = initialConfig;
+    this._setupDataListener();
+
+    const onOpen = () => {
       this.connected = true;
       this._startHeartbeat();
-      this._setupDataListener();
       this._emit('connected', { isHost: true, roomCode: this.roomCode });
 
       // Host sends initial game configuration to guest
-      if (initialConfig) {
+      if (this.initialConfig) {
         this.send({
           type: 'init',
-          config: initialConfig
+          config: this.initialConfig
         });
       }
-    });
+    };
+
+    if (this.conn.open) {
+      onOpen();
+    } else {
+      this.conn.on('open', onOpen);
+    }
 
     this.conn.on('close', () => {
       this._stopHeartbeat();
@@ -183,6 +218,14 @@ class ChessNetwork {
       }
 
       switch (data.type) {
+        case 'guest-ready':
+          if (this.isHost && this.initialConfig) {
+            this.send({
+              type: 'init',
+              config: this.initialConfig
+            });
+          }
+          break;
         case 'init':
           this._emit('init', data.config);
           break;
@@ -220,13 +263,23 @@ class ChessNetwork {
     });
   }
 
-  send(data) {
-    if (this.conn && this.conn.open) {
-      this.conn.send(data);
-    }
+  isConnected() {
+    return !!(this.connected || (this.conn && (this.conn.open || (this.conn.dataChannel && this.conn.dataChannel.readyState === 'open'))));
   }
 
-  sendMove(from, to, promotion, timeWhite, timeBlack) {
+  send(data) {
+    try {
+      if (this.conn && (this.conn.open || (this.conn.dataChannel && this.conn.dataChannel.readyState === 'open'))) {
+        this.conn.send(data);
+        return true;
+      }
+    } catch (e) {
+      console.warn('Network send exception:', e, data);
+    }
+    return false;
+  }
+
+  sendMove(from, to, promotion, timeWhite, timeBlack, fen, moveNumber) {
     this.send({
       type: 'move',
       from,
@@ -234,6 +287,8 @@ class ChessNetwork {
       promotion,
       timeWhite,
       timeBlack,
+      fen,
+      moveNumber,
       timestamp: Date.now()
     });
   }
@@ -271,12 +326,15 @@ class ChessNetwork {
     this.send({ type: 'rematch-accept', config: newConfig });
   }
 
-  sendCardPlay(card, targetSquare, byPlayer) {
+  sendCardPlay(card, targetSquare, byPlayer, action = null, extraData = null, fen = null) {
     this.send({
       type: 'card-play',
       card,
       targetSquare,
       byPlayer,
+      action,
+      extraData,
+      fen,
       timestamp: Date.now()
     });
   }
@@ -293,17 +351,17 @@ class ChessNetwork {
     this._stopHeartbeat();
     this.lastHeartbeat = Date.now();
     this.heartbeatTimer = setInterval(() => {
-      if (!this.connected || !this.conn || !this.conn.open) return;
+      if (!this.conn || (!this.conn.open && (!this.conn.dataChannel || this.conn.dataChannel.readyState !== 'open'))) return;
       this.send({ type: 'ping' });
 
-      // If no packet or pong received for 8 seconds:
-      if (Date.now() - this.lastHeartbeat > 8000) {
+      // Disconnect timeout: 35 seconds (resilient to tab switches and network jitter)
+      if (Date.now() - this.lastHeartbeat > 35000) {
         console.warn('Network heartbeat timeout: Peer disconnected.');
         this._stopHeartbeat();
         this.connected = false;
         this._emit('disconnected');
       }
-    }, 2500);
+    }, 5000);
   }
 
   _stopHeartbeat() {
@@ -326,6 +384,7 @@ class ChessNetwork {
     this.connected = false;
     this.isHost = false;
     this.roomCode = null;
+    this.initialConfig = null;
   }
 }
 
