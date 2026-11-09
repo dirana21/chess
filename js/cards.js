@@ -6,9 +6,18 @@ const CARD_RARITIES = {
   LEGENDARY: { name: 'Легендарная', color: '#fbbf24', border: '#d97706', bg: 'linear-gradient(135deg, #78350f, #291003)' }
 };
 
+const CARD_CATEGORIES = {
+  control: { id: 'control', name: 'Контроль и Лёд', icon: '❄️', color: '#38bdf8' },
+  defense: { id: 'defense', name: 'Защита и Щиты', icon: '🛡️', color: '#fbbf24' },
+  attack: { id: 'attack', name: 'Атака и Урон', icon: '⚔️', color: '#ef4444' },
+  secrets: { id: 'secrets', name: 'Секреты и Ловушки', icon: '💣', color: '#a855f7' },
+  magic: { id: 'magic', name: 'Магия и Добор', icon: '📖', color: '#818cf8' },
+  tactics: { id: 'tactics', name: 'Тактика и Перемещение', icon: '🌀', color: '#34d399' }
+};
+
 const CARDS_DATABASE = [
   // =========================================================================
-  // --- 1. УКАЗЫ И СЕКРЕТЫ (Открытая контр-игра и ловушки) ---
+  // --- 1. СЕКРЕТЫ И ЛОВУШКИ (Открытая контр-игра и тайные замыслы) ---
   // =========================================================================
   {
     id: 'curse_knight',
@@ -17,6 +26,7 @@ const CARDS_DATABASE = [
     rarity: 'RARE',
     type: 'decree',
     manaCost: 2,
+    category: 'secrets',
     duration: 2,
     description: 'Если враг походит Конём в течение 2 ходов — конь застынет во льду на 1 ход.',
     trigger: 'Ход вражеским Конём',
@@ -33,6 +43,7 @@ const CARDS_DATABASE = [
     rarity: 'RARE',
     type: 'decree',
     manaCost: 2,
+    category: 'secrets',
     duration: 2,
     description: 'Если враг походит Ладьёй в течение 2 ходов — вы берёте +1 бонусную карту из колоды.',
     trigger: 'Ход вражеской Ладьёй',
@@ -49,6 +60,7 @@ const CARDS_DATABASE = [
     rarity: 'COMMON',
     type: 'decree',
     manaCost: 2,
+    category: 'secrets',
     duration: 2,
     description: 'Слоны врага ослеплены: они могут ходить, но не могут брать фигуры 2 хода.',
     trigger: 'Попытка взятия Слоном',
@@ -65,6 +77,7 @@ const CARDS_DATABASE = [
     rarity: 'RARE',
     type: 'decree',
     manaCost: 2,
+    category: 'secrets',
     duration: 3,
     description: 'Выберите клетку. Вражеская фигура, наступив на неё, застынет во льду на 1 ход.',
     trigger: 'Враг ступает на эту клетку',
@@ -75,27 +88,13 @@ const CARDS_DATABASE = [
     tip: 'Минируйте центральные форпосты (d4, e4, d5, e5), куда враг стремится поставить фигуру.'
   },
   {
-    id: 'queen_burden',
-    name: 'Тяжёлая Корона',
-    icon: '👑',
-    rarity: 'EPIC',
-    type: 'decree',
-    manaCost: 4,
-    duration: 2,
-    description: 'Ферзь врага перегружен: следующие 2 хода он ходит максимум на 2 клетки.',
-    trigger: 'Ход Ферзём дальше 2 клеток',
-    penalty: 'Ход блокируется (макс. 2 клетки)',
-    penaltyType: 'queen_slow',
-    requiresTarget: false,
-    tip: 'Связывает руки ферзю соперника, не давая ему свободно летать через всю доску.'
-  },
-  {
     id: 'tax_castle',
     name: 'Запрет на Бункер',
     icon: '🛡️',
     rarity: 'COMMON',
     type: 'decree',
     manaCost: 2,
+    category: 'secrets',
     duration: 3,
     description: 'Если враг сделает рокировку, его Король застынет во льду на 1 ход.',
     trigger: 'Любая рокировка врага',
@@ -111,6 +110,7 @@ const CARDS_DATABASE = [
     rarity: 'EPIC',
     type: 'decree',
     manaCost: 3,
+    category: 'secrets',
     duration: 2,
     description: 'Если враг возьмёт вашу фигуру — нападавшая фигура застынет во льду на 1 ход.',
     trigger: 'Взятие любой вашей фигуры',
@@ -126,6 +126,7 @@ const CARDS_DATABASE = [
     rarity: 'RARE',
     type: 'decree',
     manaCost: 2,
+    category: 'secrets',
     duration: 3,
     description: 'Секрет: если враг шагнет на вашу половину доски — нападавшая фигура застынет во льду на 1 ход!',
     trigger: 'Ход врага на вашу половину доски',
@@ -141,6 +142,7 @@ const CARDS_DATABASE = [
     rarity: 'RARE',
     type: 'decree',
     manaCost: 3,
+    category: 'secrets',
     duration: 2,
     description: 'Если враг походит в центр (d4, d5, e4, e5) — его фигура застынет во льду на 1 ход!',
     trigger: 'Ход врага на центральные клетки',
@@ -156,6 +158,7 @@ const CARDS_DATABASE = [
     rarity: 'COMMON',
     type: 'decree',
     manaCost: 2,
+    category: 'secrets',
     duration: 3,
     description: 'Если враг возьмет вашу пешку — он потеряет 1 случайную карту из руки, а вы возьмете +1 карту!',
     trigger: 'Взятие врагом вашей пешки',
@@ -171,6 +174,7 @@ const CARDS_DATABASE = [
     rarity: 'EPIC',
     type: 'decree',
     manaCost: 3,
+    category: 'secrets',
     duration: 3,
     description: 'Секрет: следующее заклинание соперника полностью нейтрализуется и развеивается в пыль!',
     trigger: 'Розыгрыш заклинания соперником',
@@ -179,22 +183,42 @@ const CARDS_DATABASE = [
     requiresTarget: false,
     tip: 'Разрушьте коварный замысел противника до того, как он его осуществит.'
   },
+  {
+    id: 'spell_reflect',
+    name: 'Отражающий Щит',
+    icon: '🪞',
+    rarity: 'LEGENDARY',
+    type: 'decree',
+    manaCost: 3,
+    category: 'secrets',
+    duration: 3,
+    description: 'Легендарный секрет: следующее направленное заклинание врага нейтрализуется, а вы берете +2 карты!',
+    trigger: 'Враг разыгрывает заклинание',
+    penalty: 'Нейтрализация и +2 карты вам',
+    penaltyType: 'spell_reflect',
+    requiresTarget: false,
+    tip: 'Вершина контрмагии! Обращает агрессию заклинателя в мощный приток ресурсов.'
+  },
+  {
+    id: 'doomsday',
+    name: 'Судный День',
+    icon: '⏳',
+    rarity: 'LEGENDARY',
+    type: 'decree',
+    manaCost: 4,
+    category: 'secrets',
+    duration: 3,
+    description: 'Часы Судного Дня: если за 3 хода враг не возьмёт вашу фигуру — одна его пешка испаряется с доски!',
+    trigger: 'Пассивность соперника 3 хода',
+    penalty: 'Уничтожение пешки соперника',
+    penaltyType: 'doomsday',
+    requiresTarget: false,
+    tip: 'Принуждает врага атаковать на невыгодных условиях или терпеть неминуемые потери.'
+  },
 
   // =========================================================================
-  // --- 2. ТАКТИЧЕСКИЕ ЗАКЛИНАНИЯ (Моментальные и целевые) ---
+  // --- 2. КОНТРОЛЬ И ЛЁД (Оглушение, замедление и превращения) ---
   // =========================================================================
-  {
-    id: 'infantry_march',
-    name: 'Марш Пехоты',
-    icon: '⚔️',
-    rarity: 'COMMON',
-    type: 'spell',
-    manaCost: 1,
-    description: 'Выберите вашу пешку: она мгновенно шагает на 1 клетку вперёд без траты хода!',
-    requiresTarget: 'my_pawn',
-    targetHint: 'Кликните по вашей пешке, перед которой есть свободная клетка',
-    tip: 'Бесплатный темп! Продвиньте пешку вперёд без траты хода — отлично для захвата центра.'
-  },
   {
     id: 'freeze_piece',
     name: 'Ледяная Стрела',
@@ -202,128 +226,40 @@ const CARDS_DATABASE = [
     rarity: 'RARE',
     type: 'spell',
     manaCost: 2,
+    category: 'control',
     description: 'Заморозьте фигуру врага (кроме короля) на 1 ход: она не сможет двигаться и рубить.',
     requiresTarget: 'enemy_piece',
     targetHint: 'Кликните по фигуре врага (кроме короля)',
     tip: 'Если вам объявили шах или ферзь навис над королём — заморозьте угрозу и спаситесь!'
   },
   {
-    id: 'shadow_swap',
-    name: 'Обмен Теней',
-    icon: '👥',
+    id: 'confusion_step',
+    name: 'Астральное Оглушение',
+    icon: '💫',
     rarity: 'RARE',
     type: 'spell',
-    manaCost: 3,
-    description: 'Выберите своего коня и свою пешку: они мгновенно меняются местами на доске!',
-    requiresTarget: 'shadow_swap',
-    targetHint: 'Шаг 1 из 2: Выберите вашего Коня 🐎',
-    tip: 'Мгновенно перебросьте коня вглубь лагеря врага на место передовой пешки.'
-  },
-  {
-    id: 'smoke_screen',
-    name: 'Густой Туман',
-    icon: '🌫️',
-    rarity: 'COMMON',
-    type: 'spell',
     manaCost: 2,
-    duration: 2,
-    description: 'Выберите область 2х2 клетки: на 2 хода в ней запрещены любые взятия фигур.',
-    requiresTarget: 'square',
-    targetHint: 'Кликните по клетке для левого-нижнего угла тумана 2х2',
-    tip: 'В тумане запрещены взятия — спасайте атакованных офицеров в центре доски.'
+    category: 'control',
+    description: 'Оглушает выбранную вражескую фигуру: она застывает во льду на 1 ход.',
+    requiresTarget: 'enemy_piece',
+    targetHint: 'Выберите вражескую фигуру (кроме короля) для оглушения',
+    tip: 'Точечный контроль опасных фигур соперника перед решающим ударом.'
   },
   {
-    id: 'reinforcements',
-    name: 'Зов Резерва',
-    icon: '🎺',
+    id: 'queen_burden',
+    name: 'Тяжёлая Корона',
+    icon: '👑',
     rarity: 'EPIC',
-    type: 'spell',
-    manaCost: 3,
-    description: 'Возрождает новую пешку на любую свободную клетку вашего 1-го или 2-го ряда.',
-    requiresTarget: 'spawn_square',
-    targetHint: 'Кликните по свободной клетке на вашем 1-м или 2-м ряду',
-    tip: 'Призывает пешку на свободную клетку. Закрывайте открытые линии и укрепляйте фланги.'
-  },
-  {
-    id: 'kings_shield',
-    name: 'Аура Стойкости',
-    icon: '✨',
-    rarity: 'COMMON',
-    type: 'spell',
-    manaCost: 2,
-    duration: 2,
-    description: 'Ваш Король получает иммунитет к шахам от пешек и коней на 2 хода.',
-    requiresTarget: false,
-    tip: 'Активируйте при вскрытии позиций, чтобы обезопасить монарха от шахов конями.'
-  },
-  {
-    id: 'alchemist_gold',
-    name: 'Трансмутация',
-    icon: '🔮',
-    rarity: 'COMMON',
-    type: 'spell',
-    manaCost: 1,
-    description: 'Сбросьте эту карту и мгновенно получите 2 случайные новые карты в руку.',
-    requiresTarget: false,
-    tip: 'Сбросьте эту карту и получите 2 случайные новые карты для обновления стратегии.'
-  },
-  {
-    id: 'time_warp',
-    name: 'Власть Времени',
-    icon: '⏳',
-    rarity: 'RARE',
-    type: 'spell',
-    manaCost: 2,
-    description: 'Добавляет вам +45 секунд на таймере и отнимает 15 секунд у соперника.',
-    requiresTarget: false,
-    tip: 'Добавляет время вам и отнимает у врага. Решает исход партий в цейтноте!'
-  },
-  {
-    id: 'divine_storm',
-    name: 'Небесный Гром',
-    icon: '⚡',
-    rarity: 'LEGENDARY',
-    type: 'spell',
-    manaCost: 5,
-    description: 'Оглушает всех вражеских коней и слонов на 1 ход: они не смогут ходить на своём ходу.',
-    requiresTarget: false,
-    tip: 'Массовое оглушение! Все вражеские кони и слоны застывают во льду на 1 ход.'
-  },
-  {
-    id: 'divine_shield',
-    name: 'Божественный Щит',
-    icon: '🛡️',
-    rarity: 'RARE',
-    type: 'spell',
-    manaCost: 2,
-    duration: 2,
-    description: 'Выбранная ваша фигура получает золотой щит на 2 хода: соперник не может её срубить!',
-    requiresTarget: 'my_piece',
-    targetHint: 'Выберите вашу фигуру (кроме короля) для защиты щитом',
-    tip: 'Защитите ценного ферзя или атакованную ладью от неминуемого взятия!'
-  },
-  {
-    id: 'void_teleport',
-    name: 'Портал Бездны',
-    icon: '🌀',
-    rarity: 'EPIC',
-    type: 'spell',
+    type: 'decree',
     manaCost: 4,
-    description: 'Мгновенно телепортирует выбранную вашу фигуру на любую свободную клетку вашей половины доски.',
-    requiresTarget: 'void_teleport',
-    targetHint: 'Шаг 1 из 2: Выберите вашу фигуру (кроме короля) для телепортации',
-    tip: 'Спасает попавшую в окружение фигуру или перебрасывает ладью на нужную вертикаль.'
-  },
-  {
-    id: 'mirror_image',
-    name: 'Зеркальные Копии',
-    icon: '🪞',
-    rarity: 'COMMON',
-    type: 'spell',
-    manaCost: 2,
-    description: 'Призывает до 2 призрачных пешек на свободные клетки вашего 2-го ряда.',
+    category: 'control',
+    duration: 2,
+    description: 'Ферзь врага перегружен: следующие 2 хода он ходит максимум на 2 клетки.',
+    trigger: 'Ход Ферзём дальше 2 клеток',
+    penalty: 'Ход блокируется (макс. 2 клетки)',
+    penaltyType: 'queen_slow',
     requiresTarget: false,
-    tip: 'Создает непроходимую стену перед королем и восстанавливает пешечную структуру.'
+    tip: 'Связывает руки ферзю соперника, не давая ему свободно летать через всю доску.'
   },
   {
     id: 'polymorph',
@@ -332,6 +268,7 @@ const CARDS_DATABASE = [
     rarity: 'EPIC',
     type: 'spell',
     manaCost: 4,
+    category: 'control',
     duration: 2,
     description: 'Обращает вражеского офицера (ферзя, ладью, слона, коня) в беззащитную пешку на 2 хода!',
     requiresTarget: 'enemy_officer',
@@ -339,12 +276,192 @@ const CARDS_DATABASE = [
     tip: 'Превратите вражеского ферзя в пешку и сокрушите оборону противника!'
   },
   {
+    id: 'divine_storm',
+    name: 'Небесный Гром',
+    icon: '⚡',
+    rarity: 'LEGENDARY',
+    type: 'spell',
+    manaCost: 5,
+    category: 'control',
+    description: 'Оглушает всех вражеских коней и слонов на 1 ход: они не смогут ходить на своём ходу.',
+    requiresTarget: false,
+    tip: 'Массовое оглушение! Все вражеские кони и слоны застывают во льду на 1 ход.'
+  },
+  {
+    id: 'chain_lightning',
+    name: 'Цепная Молния',
+    icon: '⚡',
+    rarity: 'EPIC',
+    type: 'spell',
+    manaCost: 4,
+    category: 'control',
+    description: 'Молния поражает выбранную фигуру врага льдом на 1 ход и перекидывается на ещё одну соседнюю фигуру!',
+    requiresTarget: 'enemy_piece',
+    targetHint: 'Выберите вражескую фигуру для удара молнией',
+    tip: 'Выводит из строя сразу двух защитников в скоплении вражеских сил.'
+  },
+  {
+    id: 'frostmourne',
+    name: 'Ледяная Скорбь',
+    icon: '🗡️',
+    rarity: 'EPIC',
+    type: 'spell',
+    manaCost: 3,
+    category: 'control',
+    duration: 2,
+    description: 'Зачаровывает вашу фигуру: следующие 2 хода любая взятая ею вражеская фигура замораживает соседей!',
+    requiresTarget: 'my_piece',
+    targetHint: 'Выберите вашу легкую фигуру или ладью',
+    tip: 'Превращает атакующего в источник заморозки для всего окружения.'
+  },
+  {
+    id: 'blizzard',
+    name: 'Снежная Буря',
+    icon: '🌨️',
+    rarity: 'LEGENDARY',
+    type: 'spell',
+    manaCost: 6,
+    category: 'control',
+    description: 'Леденящий буран накрывает вражескую армию: ВСЕ пешки соперника замерзают во льду на 1 ход!',
+    requiresTarget: false,
+    tip: 'Парализует всю пешечную структуру противника и выигрывает решающий темп.'
+  },
+
+  // =========================================================================
+  // --- 3. ЗАЩИТА И ЩИТЫ (Неуязвимость, очищение и броня) ---
+  // =========================================================================
+  {
+    id: 'divine_shield',
+    name: 'Божественный Щит',
+    icon: '🛡️',
+    rarity: 'RARE',
+    type: 'spell',
+    manaCost: 2,
+    category: 'defense',
+    duration: 2,
+    description: 'Выбранная ваша фигура получает золотой щит на 2 хода: соперник не может её срубить!',
+    requiresTarget: 'my_piece',
+    targetHint: 'Выберите вашу фигуру (кроме короля) для защиты щитом',
+    tip: 'Защитите ценного ферзя или атакованную ладью от неминуемого взятия!'
+  },
+  {
+    id: 'iron_guard',
+    name: 'Железный Панцирь',
+    icon: '⚙️',
+    rarity: 'COMMON',
+    type: 'spell',
+    manaCost: 1,
+    category: 'defense',
+    duration: 2,
+    description: 'Снимает заморозку с вашей фигуры и делает её неуязвимой ко льду и оглушению на 2 хода.',
+    requiresTarget: 'my_piece',
+    targetHint: 'Выберите вашу фигуру для наделения железной броней',
+    tip: 'Быстро размораживайте своих атакующих ферзя и коней.'
+  },
+  {
+    id: 'kings_shield',
+    name: 'Аура Стойкости',
+    icon: '✨',
+    rarity: 'COMMON',
+    type: 'spell',
+    manaCost: 2,
+    category: 'defense',
+    duration: 2,
+    description: 'Ваш Король получает иммунитет к шахам от пешек и коней на 2 хода.',
+    requiresTarget: false,
+    tip: 'Активируйте при вскрытии позиций, чтобы обезопасить монарха от шахов конями.'
+  },
+  {
+    id: 'smoke_screen',
+    name: 'Густой Туман',
+    icon: '🌫️',
+    rarity: 'COMMON',
+    type: 'spell',
+    manaCost: 2,
+    category: 'defense',
+    duration: 2,
+    description: 'Выберите область 2х2 клетки: на 2 хода в ней запрещены любые взятия фигур.',
+    requiresTarget: 'square',
+    targetHint: 'Кликните по клетке для левого-нижнего угла тумана 2х2',
+    tip: 'В тумане запрещены взятия — спасайте атакованных офицеров в центре доски.'
+  },
+  {
+    id: 'holy_well',
+    name: 'Священный Источник',
+    icon: '💧',
+    rarity: 'COMMON',
+    type: 'spell',
+    manaCost: 1,
+    category: 'defense',
+    description: 'Священная вода снимает заморозку и очищает ВСЕ ваши фигуры на доске!',
+    requiresTarget: false,
+    tip: 'Идеальный ответ на Небесный Гром и массовые заморозки соперника.'
+  },
+  {
+    id: 'healing_prayer',
+    name: 'Слово Очищения',
+    icon: '🕊️',
+    rarity: 'COMMON',
+    type: 'spell',
+    manaCost: 1,
+    category: 'defense',
+    description: 'Мгновенно развеивает ВСЕ вражеские указы и проклятия, наложенные соперником на вас!',
+    requiresTarget: false,
+    tip: 'Снимает оковы кентавра, осадные налоги и любые дебафы врага одним нажатием.'
+  },
+  {
+    id: 'mirror_image',
+    name: 'Зеркальные Копии',
+    icon: '🪞',
+    rarity: 'COMMON',
+    type: 'spell',
+    manaCost: 2,
+    category: 'defense',
+    description: 'Призывает до 2 призрачных пешек на свободные клетки вашего 2-го ряда.',
+    requiresTarget: false,
+    tip: 'Создает непроходимую стену перед королем и восстанавливает пешечную структуру.'
+  },
+  {
+    id: 'shield_wall',
+    name: 'Стена Щитов',
+    icon: '🛡️',
+    rarity: 'COMMON',
+    type: 'spell',
+    manaCost: 2,
+    category: 'defense',
+    duration: 2,
+    description: 'Все ваши пешки встают в сомкнутый строй на 2 хода: их нельзя заморозить или оглушить!',
+    requiresTarget: false,
+    tip: 'Укрепляет пешечный центр и защищает от вражеских стрел и буранов.'
+  },
+  {
+    id: 'ice_barrier',
+    name: 'Ледяная Преграда',
+    icon: '🧊',
+    rarity: 'RARE',
+    type: 'decree',
+    manaCost: 2,
+    category: 'defense',
+    duration: 3,
+    description: 'Секрет: при объявлении шаха вашему Королю атакующая фигура застывает во льду на 1 ход, а шах снимается!',
+    trigger: 'Объявление шаха вашему Королю',
+    penalty: 'Заморозка агрессора и спасение монарха',
+    penaltyType: 'ice_barrier',
+    requiresTarget: false,
+    tip: 'Спасает от неожиданного мата или двойного шаха в критический момент.'
+  },
+
+  // =========================================================================
+  // --- 4. АТАКА И УРОН (Уничтожение, яды, обстрелы и прорывы) ---
+  // =========================================================================
+  {
     id: 'deadly_poison',
     name: 'Смертельный Яд',
     icon: '🧪',
     rarity: 'RARE',
     type: 'spell',
     manaCost: 2,
+    category: 'attack',
     duration: 2,
     description: 'Покрывает выбранную пешку ядом на 2 хода. Если враг возьмет её — нападавший погибает!',
     requiresTarget: 'my_pawn',
@@ -352,28 +469,73 @@ const CARDS_DATABASE = [
     tip: 'Поставьте ядовитую пешку под бой чужого ферзя — враг не сможет её срубить без гибели.'
   },
   {
-    id: 'whirlwind',
-    name: 'Вихрь Ветров',
-    icon: '🌪️',
+    id: 'meteor_strike',
+    name: 'Метеоритный Удар',
+    icon: '☄️',
+    rarity: 'LEGENDARY',
+    type: 'spell',
+    manaCost: 5,
+    category: 'attack',
+    description: 'Падающий метеорит мгновенно уничтожает выбранную вражескую пешку, коня или слона!',
+    requiresTarget: 'enemy_light_piece',
+    targetHint: 'Выберите вражескую пешку, коня или слона',
+    tip: 'Ликвидируйте надоедливого коня-блокера или слона одним кликом!'
+  },
+  {
+    id: 'shadow_bolt',
+    name: 'Теневой Разряд',
+    icon: '🌑',
+    rarity: 'RARE',
+    type: 'spell',
+    manaCost: 3,
+    category: 'attack',
+    description: 'Теневая волна отбрасывает выбранную вражескую фигуру назад на 1 клетку к её тылу!',
+    requiresTarget: 'enemy_piece',
+    targetHint: 'Выберите фигуру врага (кроме короля), позади которой свободно',
+    tip: 'Сбрасывает вражеских коней и ферзей с выгодных атакующих позиций.'
+  },
+  {
+    id: 'arrow_volley',
+    name: 'Шквал Стрел',
+    icon: '🏹',
     rarity: 'COMMON',
     type: 'spell',
     manaCost: 2,
-    description: 'Порыв шторма сдвигает всех коней на доске на 1 клетку вправо (если клетка свободна).',
-    requiresTarget: false,
-    tip: 'Срывает планы вражеских коней и открывает новые неожиданные линии атаки.'
+    category: 'attack',
+    description: 'Град стрел накрывает выбранную 4-ю или 5-ю горизонталь: все пешки врага на ней застывают на 1 ход.',
+    requiresTarget: 'square',
+    targetHint: 'Кликните по любой клетке на 4-й или 5-й горизонтали',
+    tip: 'Останавливает пешечную лавину соперника прямо на передовой линии.'
   },
   {
-    id: 'iron_guard',
-    name: 'Железный Панцирь',
-    icon: '🛡️',
+    id: 'fire_trail',
+    name: 'Огненный След',
+    icon: '🔥',
+    rarity: 'EPIC',
+    type: 'spell',
+    manaCost: 3,
+    category: 'attack',
+    duration: 2,
+    description: 'Поджигает выбранную клетку на 2 хода: вражеская фигура, наступив на огонь, мгновенно сгорает!',
+    requiresTarget: 'empty_square',
+    targetHint: 'Выберите пустую клетку для создания огненной ловушки',
+    tip: 'Смертельная огненная брешь на пути главного маршрута вражеских офицеров.'
+  },
+
+  // =========================================================================
+  // --- 5. МАГИЯ И ДОБОР (Ресурсы, карты, копирование и манипуляции временем) ---
+  // =========================================================================
+  {
+    id: 'alchemist_gold',
+    name: 'Трансмутация',
+    icon: '🔮',
     rarity: 'COMMON',
     type: 'spell',
     manaCost: 1,
-    duration: 2,
-    description: 'Снимает заморозку с вашей фигуры и делает её неуязвимой ко льду и оглушению на 2 хода.',
-    requiresTarget: 'my_piece',
-    targetHint: 'Выберите вашу фигуру для наделения железной броней',
-    tip: 'Быстро размораживайте своих атакующих ферзя и коней.'
+    category: 'magic',
+    description: 'Сбросьте эту карту и мгновенно получите 2 случайные новые карты в руку.',
+    requiresTarget: false,
+    tip: 'Сбросьте эту карту и получите 2 случайные новые карты для обновления стратегии.'
   },
   {
     id: 'arcane_intellect',
@@ -382,6 +544,7 @@ const CARDS_DATABASE = [
     rarity: 'COMMON',
     type: 'spell',
     manaCost: 3,
+    category: 'magic',
     description: 'Вы мгновенно берёте 2 новые карты из колоды в руку.',
     requiresTarget: false,
     tip: 'Классический добор! Наполняет руку новыми тактическими возможностями.'
@@ -393,33 +556,114 @@ const CARDS_DATABASE = [
     rarity: 'RARE',
     type: 'spell',
     manaCost: 1,
+    category: 'magic',
     description: 'Создает в вашей руке точную копию случайной карты из руки соперника!',
     requiresTarget: false,
     tip: 'Узнайте, что задумал оппонент, и обратите его же магию против него.'
   },
   {
-    id: 'confusion_step',
-    name: 'Астральное Оглушение',
-    icon: '💫',
+    id: 'time_warp',
+    name: 'Власть Времени',
+    icon: '⏳',
     rarity: 'RARE',
     type: 'spell',
     manaCost: 2,
-    description: 'Оглушает выбранную вражескую фигуру: она застывает во льду на 1 ход.',
-    requiresTarget: 'enemy_piece',
-    targetHint: 'Выберите вражескую фигуру (кроме короля) для оглушения',
-    tip: 'Точечный контроль опасных фигур соперника.'
+    category: 'magic',
+    description: 'Добавляет вам +45 секунд на таймере и отнимает 15 секунд у соперника.',
+    requiresTarget: false,
+    tip: 'Добавляет время вам и отнимает у врага. Решает исход партий в цейтноте!'
   },
   {
-    id: 'meteor_strike',
-    name: 'Метеоритный Удар',
-    icon: '☄️',
-    rarity: 'LEGENDARY',
+    id: 'blood_pact',
+    name: 'Кровавый Пакт',
+    icon: '🩸',
+    rarity: 'COMMON',
     type: 'spell',
-    manaCost: 5,
-    description: 'Падающий метеорит мгновенно уничтожает выбранную вражескую пешку, коня или слона!',
-    requiresTarget: 'enemy_light_piece',
-    targetHint: 'Выберите вражескую пешку, коня или слона',
-    tip: 'Ликвидируйте надоедливого коня-блокера или слона одним кликом!'
+    manaCost: 1,
+    category: 'magic',
+    description: 'Вы жертвуете 20 секунд своего времени и мгновенно берёте 2 карты из колоды!',
+    requiresTarget: false,
+    tip: 'Быстрый обмен времени на решающее преимущество по картам в руке.'
+  },
+  {
+    id: 'spell_theft',
+    name: 'Похищение Магии',
+    icon: '🗝️',
+    rarity: 'RARE',
+    type: 'spell',
+    manaCost: 2,
+    category: 'magic',
+    description: 'Проникает в библиотеку оппонента и вытягивает случайное заклинание прямо в вашу руку!',
+    requiresTarget: false,
+    tip: 'Оставляет соперника без ценного козыря и пополняет ваш арсенал.'
+  },
+
+  // =========================================================================
+  // --- 6. ТАКТИКА И ПЕРЕМЕЩЕНИЕ (Маневры, призывы, возвышение и рокировки) ---
+  // =========================================================================
+  {
+    id: 'infantry_march',
+    name: 'Марш Пехоты',
+    icon: '⚔️',
+    rarity: 'COMMON',
+    type: 'spell',
+    manaCost: 1,
+    category: 'tactics',
+    description: 'Выберите вашу пешку: она мгновенно шагает на 1 клетку вперёд без траты хода!',
+    requiresTarget: 'my_pawn',
+    targetHint: 'Кликните по вашей пешке, перед которой есть свободная клетка',
+    tip: 'Бесплатный темп! Продвиньте пешку вперёд без траты хода — отлично для захвата центра.'
+  },
+  {
+    id: 'shadow_swap',
+    name: 'Обмен Теней',
+    icon: '👥',
+    rarity: 'RARE',
+    type: 'spell',
+    manaCost: 3,
+    category: 'tactics',
+    description: 'Выберите своего коня и свою пешку: они мгновенно меняются местами на доске!',
+    requiresTarget: 'shadow_swap',
+    targetHint: 'Шаг 1 из 2: Выберите вашего Коня 🐎',
+    tip: 'Мгновенно перебросьте коня вглубь лагеря врага на место передовой пешки.'
+  },
+  {
+    id: 'void_teleport',
+    name: 'Портал Бездны',
+    icon: '🌀',
+    rarity: 'EPIC',
+    type: 'spell',
+    manaCost: 4,
+    category: 'tactics',
+    description: 'Мгновенно телепортирует выбранную вашу фигуру на любую свободную клетку вашей половины доски.',
+    requiresTarget: 'void_teleport',
+    targetHint: 'Шаг 1 из 2: Выберите вашу фигуру (кроме короля) для телепортации',
+    tip: 'Спасает попавшую в окружение фигуру или перебрасывает ладью на нужную вертикаль.'
+  },
+  {
+    id: 'reinforcements',
+    name: 'Зов Резерва',
+    icon: '🎺',
+    rarity: 'EPIC',
+    type: 'spell',
+    manaCost: 3,
+    category: 'tactics',
+    description: 'Возрождает новую пешку на любую свободную клетку вашего 1-го или 2-го ряда.',
+    requiresTarget: 'spawn_square',
+    targetHint: 'Кликните по свободной клетке на вашем 1-м или 2-м ряду',
+    tip: 'Призывает пешку на свободную клетку. Закрывайте открытые линии и укрепляйте фланги.'
+  },
+  {
+    id: 'whirlwind',
+    name: 'Вихрь Ветров',
+    icon: '🌪️',
+    rarity: 'COMMON',
+    type: 'spell',
+    manaCost: 2,
+    category: 'tactics',
+    description: 'Порыв шторма сдвигает всех коней на доске на 1 клетку вправо (если клетка свободна).',
+    requiresTarget: false,
+    tip: 'Срывает планы вражеских коней и открывает новые неожиданные линии атаки.'
   },
   {
     id: 'blessing_kings',
@@ -428,21 +672,11 @@ const CARDS_DATABASE = [
     rarity: 'EPIC',
     type: 'spell',
     manaCost: 3,
+    category: 'tactics',
     description: 'Пешка мгновенно возвышается и превращается в благородного Коня (🐎)!',
     requiresTarget: 'my_pawn',
     targetHint: 'Выберите вашу пешку для возвышения в Коня',
     tip: 'Превратите скромную пешку в мощную атакующую силу прямо в середине партии.'
-  },
-  {
-    id: 'holy_well',
-    name: 'Священный Источник',
-    icon: '💧',
-    rarity: 'COMMON',
-    type: 'spell',
-    manaCost: 1,
-    description: 'Священная вода снимает заморозку и очищает ВСЕ ваши фигуры на доске!',
-    requiresTarget: false,
-    tip: 'Идеальный ответ на Небесный Гром и массовые заморозки соперника.'
   },
   {
     id: 'resurrection',
@@ -451,10 +685,49 @@ const CARDS_DATABASE = [
     rarity: 'LEGENDARY',
     type: 'spell',
     manaCost: 4,
+    category: 'tactics',
     description: 'Возрождает могучего Коня на выбранной свободной клетке вашей базовой линии.',
     requiresTarget: 'spawn_square',
     targetHint: 'Кликните по свободной клетке вашего 1-го ряда',
     tip: 'Верните в строй боевую единицу при переходе в эндшпиль.'
+  },
+  {
+    id: 'kings_gambit',
+    name: 'Королевский Гамбит',
+    icon: '👑',
+    rarity: 'EPIC',
+    type: 'spell',
+    manaCost: 4,
+    category: 'tactics',
+    description: 'Мгновенная рокировка: Король меняется местами с выбранной ладьёй в обход любых препятствий!',
+    requiresTarget: 'my_rook',
+    targetHint: 'Выберите вашу Ладью для мгновенной рокировки',
+    tip: 'Экстренная эвакуация короля из-под атаки в безопасный угол доски.'
+  },
+  {
+    id: 'earthquake',
+    name: 'Землетрясение',
+    icon: '🌋',
+    rarity: 'RARE',
+    type: 'spell',
+    manaCost: 3,
+    category: 'tactics',
+    description: 'Земля дрожит: все заблокированные пешки на доске сдвигаются на 1 шаг влево, взламывая центр!',
+    requiresTarget: false,
+    tip: 'Ломает статичные пешечные цепи и открывает оперативный простор для ладей.'
+  },
+  {
+    id: 'coronation',
+    name: 'Коронация',
+    icon: '👑',
+    rarity: 'LEGENDARY',
+    type: 'spell',
+    manaCost: 5,
+    category: 'tactics',
+    description: 'Великий триумф: выбранная союзная Ладья или Слон возвышается до могучего Ферзя (👑)!',
+    requiresTarget: 'my_officer',
+    targetHint: 'Выберите вашу Ладью или Слона для возвышения',
+    tip: 'Создайте второго Ферзя на доске и обрушьте сокрушительную мощь на противника!'
   }
 ];
 
@@ -555,6 +828,7 @@ class CardDeckManager {
     this.ironGuards = {}; // { [square]: { color, turns, createdPly, state } }
     this.deadlyPoisons = {}; // { [square]: { color, turns, createdPly, state } }
     this.polymorphedPieces = {}; // { [square]: { originalType, color, turns, createdPly, state } }
+    this.fireTrails = {}; // { [square]: { color, turns, createdPly, state } }
     this.infantryMarchActive = false;
   }
 
@@ -575,6 +849,7 @@ class CardDeckManager {
     this.ironGuards = {};
     this.deadlyPoisons = {};
     this.polymorphedPieces = {};
+    this.fireTrails = {};
     this.infantryMarchActive = false;
   }
 
@@ -713,7 +988,6 @@ class CardDeckManager {
 
   addIronGuard(square, color, turns = 2, currentPly = null) {
     const ply = (currentPly !== null && currentPly !== undefined) ? currentPly : this.currentPly;
-    // Clear freeze immediately upon receiving Iron Guard
     if (this.frozenPieces[square]) delete this.frozenPieces[square];
     this.ironGuards[square] = {
       square: square,
@@ -757,6 +1031,23 @@ class CardDeckManager {
       createdPly: ply,
       state: EFFECT_STATE.APPLIED
     };
+  }
+
+  addFireTrail(square, color, turns = 2, currentPly = null) {
+    const ply = (currentPly !== null && currentPly !== undefined) ? currentPly : this.currentPly;
+    this.fireTrails[square] = {
+      square: square,
+      color: color,
+      turns: turns,
+      createdPly: ply,
+      state: EFFECT_STATE.APPLIED
+    };
+  }
+
+  hasFireTrail(square) {
+    const ft = this.fireTrails[square];
+    if (!ft) return false;
+    return ft.turns > 0 && ft.state !== EFFECT_STATE.EXPIRED;
   }
 
   // Clear frozen piece artifacts if piece was captured, swapped or removed
@@ -936,7 +1227,22 @@ class CardDeckManager {
       }
     }
 
-    // 9. Decrement Polymorphs & Restore Original Piece
+    // 9. Decrement Fire Trails
+    for (const sq in this.fireTrails) {
+      const ft = this.fireTrails[sq];
+      if (ft.color === justMovedColor) {
+        if (ft.createdPly === ply) {
+          ft.state = EFFECT_STATE.ACTIVE;
+        } else {
+          ft.turns--;
+          if (ft.turns <= 0) {
+            delete this.fireTrails[sq];
+          }
+        }
+      }
+    }
+
+    // 10. Decrement Polymorphs & Restore Original Piece
     for (const sq in this.polymorphedPieces) {
       const pm = this.polymorphedPieces[sq];
       if (pm.color === justMovedColor) {
@@ -959,7 +1265,7 @@ class CardDeckManager {
       }
     }
 
-    // 10. Board synchronization
+    // 11. Board synchronization
     if (chessGame) {
       this.syncWithBoard(chessGame);
     }
@@ -974,6 +1280,7 @@ if (typeof window !== 'undefined') {
   window.TURN_STATE = TURN_STATE;
   window.TurnStateMachine = TurnStateMachine;
   window.CARD_RARITIES = CARD_RARITIES;
+  window.CARD_CATEGORIES = CARD_CATEGORIES;
   window.CARDS_DATABASE = CARDS_DATABASE;
   window.CardDeckManager = CardDeckManager;
 }
@@ -984,6 +1291,7 @@ if (typeof module !== 'undefined' && module.exports) {
     TURN_STATE,
     TurnStateMachine,
     CARD_RARITIES,
+    CARD_CATEGORIES,
     CARDS_DATABASE,
     CardDeckManager
   };

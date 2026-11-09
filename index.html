@@ -3,8 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <title>Онлайн Шахматы — Играй с друзьями</title>
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.css?v=2.6.0">
   <link rel="icon" href="assets/pieces/wK.svg" type="image/svg+xml">
 </head>
 <body>
@@ -481,7 +484,7 @@
 
         <div class="rules-nav-tabs">
           <button class="rules-tab-btn active" data-tab="cards-guide">🃏 Карты и Магия</button>
-          <button class="rules-tab-btn" data-tab="spellbook">✨ Книга заклинаний (34)</button>
+          <button class="rules-tab-btn" data-tab="spellbook">✨ Книга заклинаний (50)</button>
           <button class="rules-tab-btn" data-tab="classic-guide">♟️ Шахматы и таймеры</button>
           <button class="rules-tab-btn" data-tab="online-guide">🌐 Игра по сети</button>
         </div>
@@ -518,15 +521,44 @@
 
         <div class="rules-tab-content hidden" id="tab-spellbook">
           <div class="spellbook-controls">
-            <input type="text" id="spellbook-search-input" class="spellbook-search-input" placeholder="🔍 Поиск заклинания или указа (по названию или описанию)...">
-            <div class="spellbook-filters" id="spellbook-filter-chips">
-              <button class="sbc-filter-chip active" data-filter="all">Все (34)</button>
-              <button class="sbc-filter-chip" data-filter="spell">Заклинания (23)</button>
-              <button class="sbc-filter-chip" data-filter="decree">Указы и Секреты (11)</button>
-              <button class="sbc-filter-chip" data-filter="COMMON">Обычные</button>
-              <button class="sbc-filter-chip" data-filter="RARE">Редкие</button>
-              <button class="sbc-filter-chip" data-filter="EPIC">Эпические</button>
-              <button class="sbc-filter-chip" data-filter="LEGENDARY">Легендарные</button>
+            <input type="text" id="spellbook-search-input" class="spellbook-search-input" placeholder="🔍 Поиск карты: название, эффект, совет (например: «заморозка», «щит», «конь»)...">
+            
+            <div class="spellbook-filter-group">
+              <span class="sbc-group-label">Школа магии / Эффект:</span>
+              <div class="spellbook-filters" id="spellbook-category-chips">
+                <button class="sbc-filter-chip active" data-cat="all">Все школы (50)</button>
+                <button class="sbc-filter-chip" data-cat="control">❄️ Контроль и Лёд (8)</button>
+                <button class="sbc-filter-chip" data-cat="defense">🛡️ Защита и Щиты (9)</button>
+                <button class="sbc-filter-chip" data-cat="attack">⚔️ Атака и Урон (5)</button>
+                <button class="sbc-filter-chip" data-cat="secrets">💣 Секреты и Ловушки (12)</button>
+                <button class="sbc-filter-chip" data-cat="magic">📖 Магия и Добор (6)</button>
+                <button class="sbc-filter-chip" data-cat="tactics">🌀 Тактика (10)</button>
+              </div>
+            </div>
+
+            <div class="spellbook-filter-row-double">
+              <div class="spellbook-filter-group">
+                <span class="sbc-group-label">Стоимость (Мана):</span>
+                <div class="spellbook-filters" id="spellbook-mana-chips">
+                  <button class="sbc-filter-chip active" data-mana="all">Все</button>
+                  <button class="sbc-filter-chip" data-mana="1">💎 1</button>
+                  <button class="sbc-filter-chip" data-mana="2">💎 2</button>
+                  <button class="sbc-filter-chip" data-mana="3">💎 3</button>
+                  <button class="sbc-filter-chip" data-mana="4">💎 4</button>
+                  <button class="sbc-filter-chip" data-mana="5+">💎 5+</button>
+                </div>
+              </div>
+
+              <div class="spellbook-filter-group">
+                <span class="sbc-group-label">Редкость:</span>
+                <div class="spellbook-filters" id="spellbook-rarity-chips">
+                  <button class="sbc-filter-chip active" data-rarity="all">Все</button>
+                  <button class="sbc-filter-chip" data-rarity="COMMON">Обычные</button>
+                  <button class="sbc-filter-chip" data-rarity="RARE">Редкие</button>
+                  <button class="sbc-filter-chip" data-rarity="EPIC">Эпические</button>
+                  <button class="sbc-filter-chip" data-rarity="LEGENDARY">Легендарные</button>
+                </div>
+              </div>
             </div>
           </div>
           <div class="spellbook-list" id="spellbook-dynamic-list">
@@ -600,16 +632,16 @@
     <div id="toast-container" class="toast-container"></div>
   </div>
 
-  <!-- Dependencies -->
-  <script src="js/logger.js"></script>
-  <script src="js/chess.js"></script>
-  <script src="js/peerjs.min.js"></script>
-  <script src="js/pieces.js"></script>
-  <script src="js/sounds.js"></script>
-  <script src="js/cards.js"></script>
-  <script src="js/bot.js"></script>
-  <script src="js/network.js"></script>
-  <script src="js/board.js"></script>
-  <script src="js/app.js"></script>
+  <!-- Dependencies with version cache-busting -->
+  <script src="js/logger.js?v=2.6.0"></script>
+  <script src="js/chess.js?v=2.6.0"></script>
+  <script src="js/peerjs.min.js?v=2.6.0"></script>
+  <script src="js/pieces.js?v=2.6.0"></script>
+  <script src="js/sounds.js?v=2.6.0"></script>
+  <script src="js/cards.js?v=2.6.0"></script>
+  <script src="js/bot.js?v=2.6.0"></script>
+  <script src="js/network.js?v=2.6.0"></script>
+  <script src="js/board.js?v=2.6.0"></script>
+  <script src="js/app.js?v=2.6.0"></script>
 </body>
 </html>

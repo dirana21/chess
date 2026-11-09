@@ -160,6 +160,15 @@ class ChessBoardUI {
             sqEl.appendChild(ironOverlay);
           }
 
+          // Fire Trail
+          if (this.deckManager.hasFireTrail && this.deckManager.hasFireTrail(square)) {
+            sqEl.classList.add('fire-trail-square');
+            const fireOverlay = document.createElement('div');
+            fireOverlay.className = 'fire-trail-overlay';
+            fireOverlay.innerHTML = '🔥';
+            sqEl.appendChild(fireOverlay);
+          }
+
           // Deadly Poison
           if (this.deckManager.hasDeadlyPoison && this.deckManager.hasDeadlyPoison(square)) {
             sqEl.classList.add('poison-square');
@@ -213,7 +222,8 @@ class ChessBoardUI {
             sqEl.classList.add('targetable-square');
             if (this.targetingMode === 'my_knight') sqEl.classList.add('targetable-knight');
             else if (this.targetingMode === 'my_pawn') sqEl.classList.add('targetable-pawn');
-            else if (this.targetingMode === 'enemy_piece') sqEl.classList.add('targetable-enemy');
+            else if (this.targetingMode === 'my_rook' || this.targetingMode === 'my_officer' || this.targetingMode === 'my_piece') sqEl.classList.add('targetable-knight');
+            else if (this.targetingMode === 'enemy_piece' || this.targetingMode === 'enemy_pawn' || this.targetingMode === 'enemy_officer' || this.targetingMode === 'enemy_light_piece') sqEl.classList.add('targetable-enemy');
             else if (this.targetingMode === 'empty_square') sqEl.classList.add('targetable-empty');
           }
         }
@@ -248,6 +258,10 @@ class ChessBoardUI {
     switch (this.targetingMode) {
       case 'my_knight':
         return piece !== null && piece.color === turn && piece.type === 'n';
+      case 'my_rook':
+        return piece !== null && piece.color === turn && piece.type === 'r';
+      case 'my_officer':
+        return piece !== null && piece.color === turn && (piece.type === 'r' || piece.type === 'b' || piece.type === 'n');
       case 'my_piece':
         return piece !== null && piece.color === turn && piece.type !== 'k';
       case 'my_pawn': {
@@ -260,6 +274,8 @@ class ChessBoardUI {
         return piece === null;
       case 'enemy_piece':
         return piece !== null && piece.color === opponent && piece.type !== 'k';
+      case 'enemy_pawn':
+        return piece !== null && piece.color === opponent && piece.type === 'p';
       case 'enemy_officer':
         return piece !== null && piece.color === opponent && ['q', 'r', 'b', 'n'].includes(piece.type);
       case 'enemy_light_piece':
