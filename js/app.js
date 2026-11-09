@@ -153,7 +153,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const hsTrayDeckTitle = document.getElementById('hs-tray-deck-title');
   const hsActiveBadge = document.getElementById('hs-active-badge');
   const presetsTabsContainer = document.getElementById('presets-tabs-container');
+  const btnHsDeckSelect = document.getElementById('btn-hs-deck-select');
+  const hsDeckDropdownMenu = document.getElementById('hs-deck-dropdown-menu');
+  const hsSelectDeckIcon = document.getElementById('hs-select-deck-icon');
+  const hsSelectDeckName = document.getElementById('hs-select-deck-name');
+  const hsSelectDeckCount = document.getElementById('hs-select-deck-count');
   const btnCreateNewDeck = document.getElementById('btn-create-new-deck');
+  const btnRenameDeck = document.getElementById('btn-rename-deck');
   const deckNameInput = document.getElementById('deck-name-input');
   const btnSaveDeckName = document.getElementById('btn-save-deck-name');
   const btnSetActiveDeck = document.getElementById('btn-set-active-deck');
@@ -170,6 +176,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const dbManaCurveBars = document.getElementById('db-mana-curve-bars');
   const dbSchoolsSummary = document.getElementById('db-schools-summary');
   const dbCurrentDeckCards = document.getElementById('db-current-deck-cards');
+  const hsFloatingPreview = document.getElementById('hs-floating-preview');
   const btnAutofillDeck = document.getElementById('btn-autofill-deck');
   const btnClearDeck = document.getElementById('btn-clear-deck');
   const modalCardInspector = document.getElementById('modal-card-inspector');
@@ -259,33 +266,88 @@ document.addEventListener('DOMContentLoaded', () => {
     const deck = getCurrentEditingDeck();
     if (!deck) return;
 
-    renderPresetTabs();
     renderDeckToolbar(deck);
     renderCatalogCards(deck);
     renderCurrentDeckRoster(deck);
   }
 
-  function renderPresetTabs() {
-    if (!presetsTabsContainer || typeof window.DeckStorage === 'undefined') return;
-    presetsTabsContainer.innerHTML = '';
+  function populateDeckDropdown() {
+    if (!hsDeckDropdownMenu || typeof window.DeckStorage === 'undefined') return;
+    hsDeckDropdownMenu.innerHTML = '';
+
     const all = window.DeckStorage.getAllDecks();
     const activeCombatId = window.DeckStorage.getActiveDeckId();
 
-    all.forEach(d => {
-      const pill = document.createElement('button');
-      pill.className = `preset-tab-pill ${d.id === currentEditingDeckId ? 'active' : ''} ${d.id === activeCombatId ? 'active-combat' : ''}`;
-      const displayName = (d.icon && d.name.startsWith(d.icon)) ? d.name.substring(d.icon.length).trim() : d.name;
-      pill.innerHTML = `<span>${d.icon || '🎴'}</span> <span>${displayName}</span>`;
-      pill.title = `${d.name}: ${d.description || ''}${d.id === activeCombatId ? ' (Боевая колода)' : ''}`;
-      pill.addEventListener('click', () => {
+    const presets = all.filter(d => d.isDefault);
+    const custom = all.filter(d => !d.isDefault);
+
+    // 1. Presets Header
+    const presetHead = document.createElement('div');
+    presetHead.className = 'hs-dd-header';
+    presetHead.textContent = 'Готовые пресеты';
+    hsDeckDropdownMenu.appendChild(presetHead);
+
+    presets.forEach(d => {
+      const item = document.createElement('button');
+      const isEditing = d.id === currentEditingDeckId;
+      const isCombat = d.id === activeCombatId;
+      item.className = `hs-dd-item ${isEditing ? 'active' : ''} ${isCombat ? 'is-combat' : ''}`;
+      const count = (d.cards && d.cards.length) || 0;
+      item.innerHTML = `
+        <span class="hs-dd-left">${d.icon || '⚖️'} ${d.name}</span>
+        <span class="hs-dd-badge">${count}/30 ${isCombat ? '⭐' : ''}</span>
+      `;
+      item.addEventListener('click', (e) => {
+        e.stopPropagation();
         currentEditingDeckId = d.id;
+        hsDeckDropdownMenu.classList.add('hidden');
         renderDeckBuilder();
       });
-      presetsTabsContainer.appendChild(pill);
+      hsDeckDropdownMenu.appendChild(item);
     });
+
+    // 2. Custom Decks Header
+    const customHead = document.createElement('div');
+    customHead.className = 'hs-dd-header';
+    customHead.textContent = 'Мои колоды';
+    hsDeckDropdownMenu.appendChild(customHead);
+
+    if (custom.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'hs-dd-empty';
+      empty.textContent = 'Нет созданных колод. Нажмите «➕ Новая», чтобы создать.';
+      hsDeckDropdownMenu.appendChild(empty);
+    } else {
+      custom.forEach(d => {
+        const item = document.createElement('button');
+        const isEditing = d.id === currentEditingDeckId;
+        const isCombat = d.id === activeCombatId;
+        item.className = `hs-dd-item ${isEditing ? 'active' : ''} ${isCombat ? 'is-combat' : ''}`;
+        const count = (d.cards && d.cards.length) || 0;
+        item.innerHTML = `
+          <span class="hs-dd-left">${d.icon || '🎴'} ${d.name}</span>
+          <span class="hs-dd-badge">${count}/30 ${isCombat ? '⭐' : ''}</span>
+        `;
+        item.addEventListener('click', (e) => {
+          e.stopPropagation();
+          currentEditingDeckId = d.id;
+          hsDeckDropdownMenu.classList.add('hidden');
+          renderDeckBuilder();
+        });
+        hsDeckDropdownMenu.appendChild(item);
+      });
+    }
   }
 
   function renderDeckToolbar(deck) {
+    if (hsSelectDeckIcon) hsSelectDeckIcon.textContent = deck.icon || '🎴';
+    if (hsSelectDeckName) hsSelectDeckName.textContent = deck.name;
+    if (hsSelectDeckCount) {
+      const count = (deck.cards && deck.cards.length) || 0;
+      hsSelectDeckCount.textContent = `(${count}/30)`;
+      hsSelectDeckCount.style.color = count === 30 ? '#4ade80' : (count > 30 ? '#f87171' : '#fbbf24');
+    }
+
     if (deckNameInput) {
       deckNameInput.value = deck.name;
       deckNameInput.disabled = !!deck.isDefault;
@@ -298,7 +360,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const activeId = window.DeckStorage.getActiveDeckId();
       const isCombat = deck.id === activeId;
       btnSetActiveDeck.classList.toggle('is-active', isCombat);
-      btnSetActiveDeck.innerHTML = isCombat ? '⭐ Боевая колода' : '⭐ Выбрать для боя';
+      btnSetActiveDeck.innerHTML = isCombat ? '⭐ Боевая' : '⭐ Сделать боевой';
+    }
+
+    if (btnRenameDeck) {
+      btnRenameDeck.style.display = deck.isDefault ? 'none' : 'inline-flex';
     }
 
     if (btnDeleteDeck) {
@@ -346,6 +412,50 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function showFloatingPreview(card, targetEl) {
+    if (!hsFloatingPreview || window.innerWidth <= 800) return;
+    const catData = (typeof CARD_CATEGORIES !== 'undefined' && CARD_CATEGORIES[card.category]) || { name: 'Магия', icon: '✨', color: '#818cf8' };
+    const rarityData = (typeof CARD_RARITIES !== 'undefined' && CARD_RARITIES[card.rarity]) || { name: card.rarity, color: '#38bdf8' };
+
+    hsFloatingPreview.innerHTML = `
+      <div class="hs-preview-inner">
+        <div class="hs-preview-header">
+          <span class="hs-preview-mana">💎 ${card.manaCost || 1} Мана</span>
+          <span class="hs-preview-rarity" style="color: ${rarityData.color};">${rarityData.name}</span>
+        </div>
+        <div class="hs-preview-hero">
+          <span class="hs-preview-icon">${card.icon}</span>
+          <div>
+            <div class="hs-preview-title">${card.name}</div>
+            <div style="font-size: 0.68rem; color: ${catData.color};">${catData.icon} ${catData.name}</div>
+          </div>
+        </div>
+        <div class="hs-preview-desc">${card.description}</div>
+        ${card.duration ? `<div style="font-size: 0.7rem; color: #fde047; font-weight: 700;">⏳ Длительность: ${card.duration} хода</div>` : ''}
+        ${card.tip ? `<div class="hs-preview-tip">💡 <strong>Совет:</strong> ${card.tip}</div>` : ''}
+      </div>
+    `;
+
+    const rect = targetEl.getBoundingClientRect();
+    const previewWidth = 240;
+    const left = Math.max(10, rect.left - previewWidth - 12);
+    let top = rect.top - 20;
+    if (top + 280 > window.innerHeight) {
+      top = Math.max(10, window.innerHeight - 290);
+    }
+    if (top < 10) top = 10;
+
+    hsFloatingPreview.style.left = `${left}px`;
+    hsFloatingPreview.style.top = `${top}px`;
+    hsFloatingPreview.classList.remove('hidden');
+  }
+
+  function hideFloatingPreview() {
+    if (hsFloatingPreview) {
+      hsFloatingPreview.classList.add('hidden');
+    }
+  }
+
   function renderCatalogCards(deck) {
     if (!dbCardsGrid) return;
     dbCardsGrid.innerHTML = '';
@@ -370,7 +480,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Update pagination controls
     if (hsPageIndicator) {
-      hsPageIndicator.textContent = `Страница ${currentDeckBuilderPage} из ${totalPages} (${filtered.length} карт)`;
+      hsPageIndicator.textContent = `${currentDeckBuilderPage} / ${totalPages}`;
     }
     const isFirstPage = currentDeckBuilderPage <= 1;
     const isLastPage = currentDeckBuilderPage >= totalPages;
@@ -402,74 +512,65 @@ document.addEventListener('DOMContentLoaded', () => {
       const catData = (typeof CARD_CATEGORIES !== 'undefined' && CARD_CATEGORIES[card.category]) || { name: 'Магия', icon: '✨', color: '#818cf8' };
 
       const tile = document.createElement('div');
-      tile.className = `db-card-tile school-${card.category} rarity-${card.rarity.toLowerCase()} ${isMax ? 'in-deck-max' : ''}`;
+      tile.className = `hs-card school-${card.category} rarity-${card.rarity.toLowerCase()} ${isMax ? 'is-ghosted' : ''}`;
+      tile.setAttribute('data-card-id', card.id);
+      tile.setAttribute('title', `${card.name}: ${card.description}\n(Клик — положить в колоду • Правый клик — осмотр)`);
 
-      const durationHtml = card.duration ? `<span class="db-duration-badge" title="Длительность действия">⏳ ${card.duration}х</span>` : '';
+      const durationHtml = card.duration ? `<span class="hs-card-duration-chip">⏳ ${card.duration}х</span>` : '';
+      const legendaryDragon = card.rarity === 'LEGENDARY' ? `<span class="hs-card-legendary-dragon" title="Легендарная карта">🐉</span>` : '';
       const tipHtml = card.tip ? `<div class="hs-card-tip-text">💡 ${card.tip}</div>` : '';
+      const inDeckBadge = isMax 
+        ? `<div class="hs-card-in-deck-badge">${count} / ${maxCopies}</div>` 
+        : (count > 0 ? `<div class="hs-card-copy-corner">${count}</div>` : '');
 
       tile.innerHTML = `
-        <div class="hs-card-top-bar">
-          <span class="hs-tile-mana">💎 ${card.manaCost || 1}</span>
-          <span class="hs-tile-school" style="color: ${catData.color};">
-            ${catData.icon} ${catData.name.split(' ')[0]}
-          </span>
-          <span class="hs-tile-type ${card.type}">
-            ${card.type === 'decree' ? 'УКАЗ' : 'СПЕЛЛ'}
-          </span>
-          <button class="hs-btn-inspect" title="Осмотреть подробно (👁️)">👁️</button>
+        <div class="hs-card-mana-gem">${card.manaCost || 1}</div>
+        <div class="hs-card-school-badge" title="${catData.name}">${catData.icon}</div>
+        <div class="hs-card-art-frame">
+          ${legendaryDragon}
+          <div class="hs-card-art-icon">${card.icon}</div>
+          ${durationHtml}
+          <div class="hs-card-rarity-gem" style="background: ${rarityData.color || '#38bdf8'};"></div>
         </div>
-
-        <div class="hs-card-hero" title="Кликните, чтобы положить карту в колоду">
-          <div class="hs-card-icon">${card.icon}</div>
-          <div class="hs-card-title-group">
-            <div class="hs-card-name">${card.name}</div>
-            <div class="hs-card-rarity-row">
-              <span style="color: ${rarityData.color};">${rarityData.name}</span>
-              ${durationHtml}
-            </div>
-          </div>
+        <div class="hs-card-name-banner">
+          <span class="hs-card-name-text">${card.name}</span>
         </div>
-
-        <div class="hs-card-desc-box" title="Кликните, чтобы положить карту в колоду">
+        <div class="hs-card-textbox">
           <p class="hs-card-desc-text">${card.description}</p>
           ${tipHtml}
         </div>
-
-        <div class="hs-card-actions">
-          <button class="hs-btn-qty btn-minus" ${count === 0 ? 'disabled' : ''} title="Убрать 1 копию">➖</button>
-          <span class="hs-card-qty-badge ${count > 0 ? (isMax ? 'is-max' : 'has-copies') : ''}">${count} / ${maxCopies}</span>
-          <button class="hs-btn-qty btn-plus" ${isMax ? 'disabled' : ''} title="Добавить 1 копию">➕</button>
-        </div>
+        ${inDeckBadge}
       `;
 
-      // Event listeners
-      const btnMinus = tile.querySelector('.btn-minus');
-      const btnPlus = tile.querySelector('.btn-plus');
-      const btnInspect = tile.querySelector('.hs-btn-inspect');
-      const heroArea = tile.querySelector('.hs-card-hero');
-      const descBox = tile.querySelector('.hs-card-desc-box');
-
-      btnMinus.addEventListener('click', (e) => {
-        e.stopPropagation();
-        removeCardFromCurrentDeck(card.id);
-      });
-
-      btnPlus.addEventListener('click', (e) => {
-        e.stopPropagation();
+      // Pure click-to-add (Hearthstone style)
+      tile.addEventListener('click', () => {
+        const currentDeck = getCurrentEditingDeck();
+        if (!currentDeck) return;
+        const copies = (currentDeck.cards || []).filter(id => id === card.id).length;
+        const max = card.rarity === 'LEGENDARY' ? 1 : 2;
+        if (copies >= max) {
+          tile.classList.remove('hs-card-shake');
+          void tile.offsetWidth;
+          tile.classList.add('hs-card-shake');
+          showToast(card.rarity === 'LEGENDARY'
+            ? `Легендарную карту «${card.name}» можно положить только 1 раз!`
+            : `Карту «${card.name}» уже добавлено максимум (2/2)!`);
+          return;
+        }
+        if (currentDeck.cards.length >= 30) {
+          tile.classList.remove('hs-card-shake');
+          void tile.offsetWidth;
+          tile.classList.add('hs-card-shake');
+          showToast('В колоде уже 30 карт! Кликните по полоске справа, чтобы убрать ненужную.');
+          return;
+        }
         addCardToCurrentDeck(card.id);
       });
 
-      btnInspect.addEventListener('click', (e) => {
-        e.stopPropagation();
+      // Right-click to inspect
+      tile.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
         openCardInspector(card.id);
-      });
-
-      heroArea.addEventListener('click', () => {
-        addCardToCurrentDeck(card.id);
-      });
-
-      descBox.addEventListener('click', () => {
-        addCardToCurrentDeck(card.id);
       });
 
       dbCardsGrid.appendChild(tile);
@@ -542,19 +643,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
-    // Schools Summary
-    if (dbSchoolsSummary) {
-      dbSchoolsSummary.innerHTML = `
-        <span title="Контроль и Лёд">❄️ ${stats.countsByCategory.control}</span>
-        <span title="Защита и Щиты">🛡️ ${stats.countsByCategory.defense}</span>
-        <span title="Атака и Урон">⚔️ ${stats.countsByCategory.attack}</span>
-        <span title="Секреты и Ловушки">💣 ${stats.countsByCategory.secrets}</span>
-        <span title="Магия и Добор">📖 ${stats.countsByCategory.magic}</span>
-        <span title="Тактика">🌀 ${stats.countsByCategory.tactics}</span>
-      `;
-    }
-
-    // Scrollable cards list
+    // Scrollable cards list (Authentic Hearthstone deck strips)
     dbCurrentDeckCards.innerHTML = '';
     if (deck.cards.length === 0) {
       dbCurrentDeckCards.innerHTML = `
@@ -577,56 +666,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
     sorted.forEach(({ card, count }) => {
       const rarityData = (typeof CARD_RARITIES !== 'undefined' && CARD_RARITIES[card.rarity]) || { border: '#38bdf8' };
-      const maxCopies = card.rarity === 'LEGENDARY' ? 1 : 2;
-      const isMax = count >= maxCopies;
+      const qtyBadge = (card.rarity === 'LEGENDARY') ? '★' : `${count}`;
       const row = document.createElement('div');
       row.className = 'hs-deck-strip';
       row.style.borderLeftColor = rarityData.border;
-      row.title = `${card.name}: ${card.description} (Кликните, чтобы убрать)`;
-
-      const snippet = card.description.length > 28 ? (card.description.slice(0, 28) + '...') : card.description;
-      const qtyBadge = (card.rarity === 'LEGENDARY') ? '★' : `${count}`;
+      row.setAttribute('data-card-id', card.id);
+      row.setAttribute('title', `${card.name}: ${card.description} (Кликните, чтобы убрать)`);
 
       row.innerHTML = `
-        <div class="hs-strip-left">
-          <span class="hs-strip-mana">💎 ${card.manaCost || 1}</span>
-          <span class="hs-strip-icon">${card.icon}</span>
-          <div class="hs-strip-title-box">
-            <span class="hs-strip-name">${card.name}</span>
-            <span class="hs-strip-sub">${snippet}</span>
-          </div>
-        </div>
-        <div class="hs-strip-right">
-          <button class="hs-strip-btn hs-strip-inspect" title="Осмотреть">👁️</button>
-          <button class="hs-strip-btn hs-strip-minus" title="Убрать 1 шт.">➖</button>
-          <span class="hs-strip-qty">${qtyBadge}</span>
-          <button class="hs-strip-btn hs-strip-plus" ${isMax ? 'disabled' : ''} title="Добавить 1 шт.">➕</button>
-        </div>
+        <div class="hs-strip-mana-gem">${card.manaCost || 1}</div>
+        <span class="hs-strip-icon">${card.icon}</span>
+        <span class="hs-strip-name">${card.name}</span>
+        <span class="hs-strip-qty-badge">${qtyBadge}</span>
+        <span class="hs-strip-cross">✕</span>
       `;
 
-      const btnMinus = row.querySelector('.hs-strip-minus');
-      const btnPlus = row.querySelector('.hs-strip-plus');
-      const btnInspect = row.querySelector('.hs-strip-inspect');
-      const leftPart = row.querySelector('.hs-strip-left');
-
-      btnMinus.addEventListener('click', (e) => {
-        e.stopPropagation();
+      // Clicking strip removes 1 copy immediately
+      row.addEventListener('click', () => {
         removeCardFromCurrentDeck(card.id);
+        hideFloatingPreview();
       });
 
-      btnPlus.addEventListener('click', (e) => {
-        e.stopPropagation();
-        addCardToCurrentDeck(card.id);
+      // Desktop hover floating preview
+      row.addEventListener('mouseenter', () => {
+        showFloatingPreview(card, row);
       });
 
-      btnInspect.addEventListener('click', (e) => {
-        e.stopPropagation();
-        openCardInspector(card.id);
-      });
-
-      // Clicking strip directly removes 1 copy (classic Hearthstone UX)
-      leftPart.addEventListener('click', () => {
-        removeCardFromCurrentDeck(card.id);
+      row.addEventListener('mouseleave', () => {
+        hideFloatingPreview();
       });
 
       dbCurrentDeckCards.appendChild(row);
@@ -4270,7 +4337,14 @@ document.addEventListener('DOMContentLoaded', () => {
     btnCloseDeckBuilder.addEventListener('click', closeDeckBuilderModal);
   }
   if (btnApplyAndCloseDeck) {
-    btnApplyAndCloseDeck.addEventListener('click', closeDeckBuilderModal);
+    btnApplyAndCloseDeck.addEventListener('click', () => {
+      const deck = getCurrentEditingDeck();
+      if (deck && typeof window.DeckStorage !== 'undefined') {
+        window.DeckStorage.setActiveDeckId(deck.id);
+        showToast(`⚔️ Выбрана боевая колода «${deck.name}»!`);
+      }
+      closeDeckBuilderModal();
+    });
   }
   if (modalDeckBuilder) {
     modalDeckBuilder.addEventListener('click', (e) => {
@@ -4286,6 +4360,28 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Hearthstone Deck Selector Dropdown
+  if (btnHsDeckSelect && hsDeckDropdownMenu) {
+    btnHsDeckSelect.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isHidden = hsDeckDropdownMenu.classList.contains('hidden');
+      if (isHidden) {
+        populateDeckDropdown();
+        hsDeckDropdownMenu.classList.remove('hidden');
+      } else {
+        hsDeckDropdownMenu.classList.add('hidden');
+      }
+    });
+
+    document.addEventListener('click', (e) => {
+      if (hsDeckDropdownMenu && !hsDeckDropdownMenu.classList.contains('hidden')) {
+        if (!hsDeckDropdownMenu.contains(e.target) && e.target !== btnHsDeckSelect && !btnHsDeckSelect.contains(e.target)) {
+          hsDeckDropdownMenu.classList.add('hidden');
+        }
+      }
+    });
+  }
+
   // Create new custom deck
   if (btnCreateNewDeck) {
     btnCreateNewDeck.addEventListener('click', () => {
@@ -4293,7 +4389,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const count = window.DeckStorage.getAllDecks().filter(d => !d.isDefault).length + 1;
       const name = prompt('Введите название для новой колоды:', `Моя колода #${count}`);
       if (name === null) return;
-      const newDeck = window.DeckStorage.createDeck(name, currentEditingDeckId);
+      const cleanName = name.trim() || `Моя колода #${count}`;
+      const newDeck = window.DeckStorage.createDeck(cleanName, currentEditingDeckId);
       currentEditingDeckId = newDeck.id;
       showToast(`✨ Создана новая колода «${newDeck.name}»!`);
       renderDeckBuilder();
@@ -4301,17 +4398,21 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Save deck name
-  if (btnSaveDeckName) {
-    btnSaveDeckName.addEventListener('click', () => {
+  // Rename deck
+  if (btnRenameDeck) {
+    btnRenameDeck.addEventListener('click', () => {
       const deck = getCurrentEditingDeck();
-      if (!deck || deck.isDefault || !deckNameInput) return;
-      const newName = deckNameInput.value.trim();
-      if (newName) {
-        deck.name = newName;
+      if (!deck) return;
+      if (deck.isDefault) {
+        showToast('⚠️ Стандартные пресеты нельзя переименовать. Создайте свою копию кнопкой «➕ Новая»!');
+        return;
+      }
+      const newName = prompt('Введите новое название колоды:', deck.name);
+      if (newName && newName.trim()) {
+        deck.name = newName.trim();
         window.DeckStorage.saveDeck(deck);
-        showToast(`💾 Название обновлено: «${deck.name}»`);
-        renderPresetTabs();
+        showToast(`✏️ Колода переименована в «${deck.name}»!`);
+        renderDeckBuilder();
         updateLobbyDeckBanner();
       }
     });
@@ -4324,19 +4425,6 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!deck || typeof window.DeckStorage === 'undefined') return;
       window.DeckStorage.setActiveDeckId(deck.id);
       showToast(`⭐ Колода «${deck.name}» выбрана для боя!`);
-      renderDeckBuilder();
-      updateLobbyDeckBanner();
-    });
-  }
-
-  // Duplicate deck
-  if (btnDuplicateDeck) {
-    btnDuplicateDeck.addEventListener('click', () => {
-      const deck = getCurrentEditingDeck();
-      if (!deck || typeof window.DeckStorage === 'undefined') return;
-      const newDeck = window.DeckStorage.createDeck(`${deck.name} (Копия)`, deck.id);
-      currentEditingDeckId = newDeck.id;
-      showToast(`📋 Создана копия: «${newDeck.name}»!`);
       renderDeckBuilder();
       updateLobbyDeckBanner();
     });
@@ -4717,5 +4805,9 @@ document.addEventListener('DOMContentLoaded', () => {
     openDeckBuilderModal();
     const btnMobRoster = document.getElementById('btn-mob-roster');
     if (btnMobRoster) btnMobRoster.click();
+  } else if (urlParams.get('test_deck_dropdown')) {
+    openDeckBuilderModal();
+    const btnDeckSelect = document.getElementById('btn-hs-deck-select');
+    if (btnDeckSelect) btnDeckSelect.click();
   }
 });

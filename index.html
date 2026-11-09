@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>Онлайн Шахматы — Играй с друзьями</title>
-  <link rel="stylesheet" href="css/style.css?v=2.8.0">
+  <link rel="stylesheet" href="css/style.css?v=2.9.0">
   <link rel="icon" href="assets/pieces/wK.svg" type="image/svg+xml">
 </head>
 <body>
@@ -650,46 +650,44 @@
 
     <!-- 4. Hearthstone-style Collection & Deck Builder Scene (Fullscreen) -->
     <main id="screen-deck-builder" class="screen-deck-builder-scene hidden">
-      <!-- Top Navigation Header -->
+      <!-- Top Navigation Header (Minimalist & Uncluttered) -->
       <header class="hs-top-bar">
         <div class="hs-top-left">
           <button id="btn-hs-back-lobby" class="btn-hs-back" title="Вернуться в меню">
             <span class="hs-back-arrow">◀</span> В меню
           </button>
-          <div class="hs-brand-wrap">
-            <span class="hs-brand-icon">📚</span>
-            <div>
-              <h2 class="hs-brand-title">Коллекция и Сборка колоды</h2>
-              <span class="hs-brand-sub">Выберите пресет или соберите колоду из 30 карт</span>
+        </div>
+
+        <!-- Center: Elegant Deck Switcher Dropdown & Actions -->
+        <div class="hs-deck-selector-bar">
+          <div class="hs-deck-dropdown-wrap">
+            <button id="btn-hs-deck-select" class="btn-hs-deck-select" title="Выбрать колоду">
+              <span id="hs-select-deck-icon">⚖️</span>
+              <span id="hs-select-deck-name">Сбалансированная</span>
+              <span id="hs-select-deck-count" class="hs-select-count">(30/30)</span>
+              <span class="hs-select-caret">▼</span>
+            </button>
+            <div id="hs-deck-dropdown-menu" class="hs-deck-dropdown-menu hidden">
+              <!-- Dynamically populated presets & custom decks -->
             </div>
           </div>
-        </div>
 
-        <!-- Presets Selection Bar -->
-        <div class="hs-presets-bar">
-          <div class="hs-presets-scroll" id="presets-tabs-container">
-            <!-- Dynamically populated presets pills -->
-          </div>
-          <button id="btn-create-new-deck" class="btn-hs-new-deck" title="Создать новую пользовательскую колоду">
-            ➕ Новая
-          </button>
-        </div>
-
-        <!-- Deck Management Toolbar -->
-        <div class="hs-deck-top-actions">
-          <div class="hs-name-editor">
-            <input type="text" id="deck-name-input" class="hs-name-input" placeholder="Название колоды...">
-            <button id="btn-save-deck-name" class="btn-hs-icon-tool" title="Сохранить название">💾</button>
-          </div>
           <button id="btn-set-active-deck" class="btn-hs-tool btn-set-active" title="Сделать этой колодой боевую">
             ⭐ Боевая
           </button>
-          <button id="btn-duplicate-deck" class="btn-hs-tool" title="Создать копию этой колоды">
-            📋 Копия
+          <button id="btn-create-new-deck" class="btn-hs-tool" title="Создать новую колоду">
+            ➕ Новая
+          </button>
+          <button id="btn-rename-deck" class="btn-hs-tool" title="Переименовать колоду">
+            ✏️
           </button>
           <button id="btn-delete-deck" class="btn-hs-tool danger" title="Удалить пользовательскую колоду">
             🗑️
           </button>
+        </div>
+
+        <div class="hs-top-right-hint">
+          <span>💡 Клик по карте — положить в колоду • Клик по полоске — убрать</span>
         </div>
       </header>
 
@@ -705,61 +703,56 @@
         <!-- Left: Collection Spellbook (2 Rows of Large Cards) -->
         <section class="hs-collection-pane db-catalog-section">
           
-          <!-- Filters Bar -->
-          <div class="hs-filters-panel">
-            <div class="hs-search-box">
-              <input type="text" id="db-search-input" class="hs-search-input" placeholder="🔍 Поиск: название, эффект, совет...">
-              <button id="btn-clear-search" class="hs-clear-search-btn hidden" title="Очистить">✕</button>
-            </div>
-
-            <!-- School Tabs -->
-            <div class="hs-school-tabs" id="db-category-chips">
-              <button class="db-chip active" data-cat="all">Все (50)</button>
-              <button class="db-chip" data-cat="control">❄️ Контроль</button>
-              <button class="db-chip" data-cat="defense">🛡️ Защита</button>
-              <button class="db-chip" data-cat="attack">⚔️ Атака</button>
-              <button class="db-chip" data-cat="secrets">💣 Секреты</button>
-              <button class="db-chip" data-cat="magic">📖 Магия</button>
-              <button class="db-chip" data-cat="tactics">🌀 Тактика</button>
-            </div>
-
-            <!-- Mana Crystals Tray -->
-            <div class="hs-mana-tray" id="db-mana-chips">
-              <span class="hs-mana-tray-title">Мана:</span>
-              <button class="db-chip active" data-mana="all">Все</button>
-              <button class="db-chip hs-mana-gem" data-mana="1">💎 1</button>
-              <button class="db-chip hs-mana-gem" data-mana="2">💎 2</button>
-              <button class="db-chip hs-mana-gem" data-mana="3">💎 3</button>
-              <button class="db-chip hs-mana-gem" data-mana="4">💎 4</button>
-              <button class="db-chip hs-mana-gem" data-mana="5+">💎 5+</button>
-            </div>
+          <!-- Top of Book: School / Category Bookmark Tabs -->
+          <div class="hs-school-tabs" id="db-category-chips">
+            <button class="db-chip active" data-cat="all">Все (50)</button>
+            <button class="db-chip" data-cat="control">❄️ Контроль</button>
+            <button class="db-chip" data-cat="defense">🛡️ Защита</button>
+            <button class="db-chip" data-cat="attack">⚔️ Атака</button>
+            <button class="db-chip" data-cat="secrets">💣 Секреты</button>
+            <button class="db-chip" data-cat="magic">📖 Магия</button>
+            <button class="db-chip" data-cat="tactics">🌀 Тактика</button>
           </div>
 
           <!-- Hearthstone 2-Row Spellbook Viewport with Side Arrows -->
           <div class="hs-book-viewport">
-            <button id="btn-hs-prev-page" class="hs-book-arrow hs-arrow-left" title="Предыдущая страница (◀ или Стрелка влево)">
+            <button id="btn-hs-prev-page" class="hs-book-arrow hs-arrow-left" title="Предыдущая страница">
               ◀
             </button>
 
-            <!-- Cards Container: STRICTLY 2 ROWS, MAXIMAL SIZE -->
+            <!-- Cards Container: STRICTLY 2 ROWS, NO EXTRA BUTTONS -->
             <div class="hs-cards-2rows-grid db-cards-grid" id="db-cards-grid">
               <!-- Dynamically populated cards for the current page -->
             </div>
 
-            <button id="btn-hs-next-page" class="hs-book-arrow hs-arrow-right" title="Следующая страница (▶ или Стрелка вправо)">
+            <button id="btn-hs-next-page" class="hs-book-arrow hs-arrow-right" title="Следующая страница">
               ▶
             </button>
           </div>
 
-          <!-- Bottom Pagination Controls -->
-          <div class="hs-pagination-footer">
+          <!-- Bottom: Hearthstone Book Footer (Mana Gems, Page Flip, Search) -->
+          <div class="hs-book-footer">
+            <!-- Mana Crystals Row -->
+            <div class="hs-mana-crystals-row" id="db-mana-chips">
+              <button class="db-chip hs-mana-gem-btn active" data-mana="all" title="Все стоимости">Все</button>
+              <button class="db-chip hs-mana-gem-btn" data-mana="1" title="1 мана">💎 1</button>
+              <button class="db-chip hs-mana-gem-btn" data-mana="2" title="2 маны">💎 2</button>
+              <button class="db-chip hs-mana-gem-btn" data-mana="3" title="3 маны">💎 3</button>
+              <button class="db-chip hs-mana-gem-btn" data-mana="4" title="4 маны">💎 4</button>
+              <button class="db-chip hs-mana-gem-btn" data-mana="5+" title="5+ маны">💎 5+</button>
+            </div>
+
+            <!-- Page Flip Controls -->
             <div class="hs-page-controls">
               <button id="btn-hs-prev-footer" class="hs-page-nav-btn" title="Предыдущая страница">◀</button>
-              <span id="hs-page-indicator" class="hs-page-indicator">Страница 1 из 7 (50 карт)</span>
+              <span id="hs-page-indicator" class="hs-page-indicator">1 / 7</span>
               <button id="btn-hs-next-footer" class="hs-page-nav-btn" title="Следующая страница">▶</button>
             </div>
-            <div class="hs-page-tip">
-              💡 Клик по карте — положить в колоду. 👁️ — осмотр. Листайте стрелками ◀ и ▶ или колесиком мыши.
+
+            <!-- Search Field -->
+            <div class="hs-search-box">
+              <input type="text" id="db-search-input" class="hs-search-input" placeholder="🔍 Поиск...">
+              <button id="btn-clear-search" class="hs-clear-search-btn hidden" title="Очистить">✕</button>
             </div>
           </div>
         </section>
@@ -782,11 +775,10 @@
               <div class="hs-tray-progress-track">
                 <div class="hs-tray-progress-fill" id="db-deck-progress-fill" style="width: 100%;"></div>
               </div>
-              <div class="hs-tray-status-text" id="db-deck-status-text">✅ Колода готова к игре</div>
             </div>
           </div>
 
-          <!-- Mana Curve Histogram -->
+          <!-- Mana Curve Histogram Mini -->
           <div class="hs-tray-mana-curve">
             <div class="hs-curve-header">
               <span>Кривая маны</span>
@@ -795,29 +787,27 @@
             <div class="hs-mana-bars" id="db-mana-curve-bars">
               <!-- Bars 1, 2, 3, 4, 5+ -->
             </div>
-            <div class="hs-schools-badges" id="db-schools-summary"></div>
           </div>
 
-          <!-- Scrollable Card Strips -->
+          <!-- Scrollable Card Strips (Pure Hearthstone Ribbons, Click to Remove) -->
           <div class="hs-deck-strips-list db-deck-list" id="db-current-deck-cards">
             <!-- Hearthstone-style card strips -->
           </div>
 
-          <!-- Bottom Utility Tools -->
-          <div class="hs-tray-tools">
-            <button id="btn-autofill-deck" class="btn-hs-subtle" title="Дополнить колоду до 30 карт">
-              🪄 Авто-добор
-            </button>
-            <button id="btn-clear-deck" class="btn-hs-subtle danger" title="Очистить все карты">
-              🧹 Очистить
-            </button>
-          </div>
+          <!-- Floating Card Preview on Hover -->
+          <div id="hs-floating-preview" class="hs-floating-preview hidden"></div>
 
-          <!-- Hearthstone Iconic "DONE" Button -->
-          <button id="btn-apply-and-close-deck" class="btn-hs-done" title="Сохранить и вернуться в лобби">
-            <span class="btn-hs-done-title">ГОТОВО</span>
-            <span class="btn-hs-done-sub">⚔️ Играть этой колодой</span>
-          </button>
+          <!-- Bottom: Done button & subtle utility links -->
+          <div class="hs-tray-footer-wrap">
+            <button id="btn-apply-and-close-deck" class="btn-hs-done" title="Сохранить и вернуться в лобби">
+              <span class="btn-hs-done-title">ГОТОВО</span>
+            </button>
+            <div class="hs-tray-links">
+              <button id="btn-autofill-deck" class="hs-link-btn" title="Дополнить колоду до 30 карт">🪄 Авто-добор</button>
+              <span class="hs-link-sep">•</span>
+              <button id="btn-clear-deck" class="hs-link-btn danger" title="Очистить все карты">🧹 Очистить</button>
+            </div>
+          </div>
         </aside>
 
       </div>
@@ -838,16 +828,16 @@
   </div>
 
   <!-- Dependencies with version cache-busting -->
-  <script src="js/logger.js?v=2.8.0"></script>
-  <script src="js/chess.js?v=2.8.0"></script>
-  <script src="js/peerjs.min.js?v=2.8.0"></script>
-  <script src="js/pieces.js?v=2.8.0"></script>
-  <script src="js/sounds.js?v=2.8.0"></script>
-  <script src="js/cards.js?v=2.8.0"></script>
-  <script src="js/decks.js?v=2.8.0"></script>
-  <script src="js/bot.js?v=2.8.0"></script>
-  <script src="js/network.js?v=2.8.0"></script>
-  <script src="js/board.js?v=2.8.0"></script>
-  <script src="js/app.js?v=2.8.0"></script>
+  <script src="js/logger.js?v=2.9.0"></script>
+  <script src="js/chess.js?v=2.9.0"></script>
+  <script src="js/peerjs.min.js?v=2.9.0"></script>
+  <script src="js/pieces.js?v=2.9.0"></script>
+  <script src="js/sounds.js?v=2.9.0"></script>
+  <script src="js/cards.js?v=2.9.0"></script>
+  <script src="js/decks.js?v=2.9.0"></script>
+  <script src="js/bot.js?v=2.9.0"></script>
+  <script src="js/network.js?v=2.9.0"></script>
+  <script src="js/board.js?v=2.9.0"></script>
+  <script src="js/app.js?v=2.9.0"></script>
 </body>
 </html>
