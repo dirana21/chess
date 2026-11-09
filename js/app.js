@@ -139,9 +139,19 @@ document.addEventListener('DOMContentLoaded', () => {
   const lobbyDeckBanner = document.getElementById('lobby-deck-banner');
   const lobbyActiveDeckName = document.getElementById('lobby-active-deck-name');
   const lobbyActiveDeckBadge = document.getElementById('lobby-active-deck-badge');
-  const modalDeckBuilder = document.getElementById('modal-deck-builder');
+  const screenDeckBuilder = document.getElementById('screen-deck-builder');
+  const modalDeckBuilder = screenDeckBuilder; // backward compatibility
   const btnCloseDeckBuilder = document.getElementById('btn-close-deckbuilder');
   const btnApplyAndCloseDeck = document.getElementById('btn-apply-and-close-deck');
+  const btnHsBackLobby = document.getElementById('btn-hs-back-lobby');
+  const btnHsPrevPage = document.getElementById('btn-hs-prev-page');
+  const btnHsNextPage = document.getElementById('btn-hs-next-page');
+  const btnHsPrevFooter = document.getElementById('btn-hs-prev-footer');
+  const btnHsNextFooter = document.getElementById('btn-hs-next-footer');
+  const hsPageIndicator = document.getElementById('hs-page-indicator');
+  const btnClearSearch = document.getElementById('btn-clear-search');
+  const hsTrayDeckTitle = document.getElementById('hs-tray-deck-title');
+  const hsActiveBadge = document.getElementById('hs-active-badge');
   const presetsTabsContainer = document.getElementById('presets-tabs-container');
   const btnCreateNewDeck = document.getElementById('btn-create-new-deck');
   const deckNameInput = document.getElementById('deck-name-input');
@@ -150,8 +160,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnDuplicateDeck = document.getElementById('btn-duplicate-deck');
   const btnDeleteDeck = document.getElementById('btn-delete-deck');
   const dbSearchInput = document.getElementById('db-search-input');
-  const dbCategoryChips = document.querySelectorAll('#modal-deck-builder .db-chip[data-cat]');
-  const dbManaChips = document.querySelectorAll('#modal-deck-builder .db-chip[data-mana]');
+  const dbCategoryChips = document.querySelectorAll('#screen-deck-builder .db-chip[data-cat], #db-category-chips .db-chip[data-cat]');
+  const dbManaChips = document.querySelectorAll('#screen-deck-builder .db-chip[data-mana], #db-mana-chips .db-chip[data-mana]');
   const dbCardsGrid = document.getElementById('db-cards-grid');
   const dbDeckCardCounter = document.getElementById('db-deck-card-counter');
   const dbDeckProgressFill = document.getElementById('db-deck-progress-fill');
@@ -170,6 +180,8 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentCatalogCategory = 'all';
   let currentCatalogMana = 'all';
   let currentCatalogSearch = '';
+  let currentDeckBuilderPage = 1;
+  let previousScreenBeforeDeckBuilder = null;
 
   function updateLobbyDeckBanner() {
     if (!lobbyDeckBanner) return;
@@ -190,12 +202,21 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function openDeckBuilderModal(presetId = null) {
-    if (!modalDeckBuilder || typeof window.DeckStorage === 'undefined') return;
+    if (typeof window.DeckStorage === 'undefined' || !screenDeckBuilder) return;
+
+    if (screenGame && !screenGame.classList.contains('hidden')) {
+      previousScreenBeforeDeckBuilder = screenGame;
+    } else {
+      previousScreenBeforeDeckBuilder = screenLobby;
+    }
+
     const all = window.DeckStorage.getAllDecks();
     const activeId = window.DeckStorage.getActiveDeckId();
     const targetId = presetId || currentEditingDeckId || activeId;
     const found = all.find(d => d.id === targetId);
     currentEditingDeckId = found ? found.id : all[0].id;
+
+    currentDeckBuilderPage = 1;
 
     // Reset mobile switcher to catalog
     const btnMobCat = document.getElementById('btn-mob-catalog');
@@ -214,14 +235,13 @@ document.addEventListener('DOMContentLoaded', () => {
       sideSec.classList.remove('mobile-hidden');
     }
 
-    modalDeckBuilder.classList.remove('hidden');
+    switchScreen(screenDeckBuilder);
     renderDeckBuilder();
   }
 
   function closeDeckBuilderModal() {
-    if (!modalDeckBuilder) return;
-    modalDeckBuilder.classList.add('hidden');
     updateLobbyDeckBanner();
+    switchScreen(previousScreenBeforeDeckBuilder || screenLobby);
   }
 
   function getCurrentEditingDeck() {
@@ -286,18 +306,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function renderCatalogCards(deck) {
-    if (!dbCardsGrid) return;
-    dbCardsGrid.innerHTML = '';
+  function getCardsPerPage() {
+    if (window.innerWidth <= 800) return 4;
+    if (window.innerWidth <= 1150) return 6;
+    return 8;
+  }
 
+  function getFilteredCatalogCards() {
     const cards = (typeof CARDS_DATABASE !== 'undefined') ? CARDS_DATABASE : [];
-    const deckCardIds = deck.cards || [];
-    const copyCounts = {};
-    deckCardIds.forEach(id => {
-      copyCounts[id] = (copyCounts[id] || 0) + 1;
-    });
-
-    const filtered = cards.filter(card => {
+    return cards.filter(card => {
       if (currentCatalogCategory !== 'all' && card.category !== currentCatalogCategory) return false;
       if (currentCatalogMana !== 'all') {
         const cost = card.manaCost || 1;
@@ -314,18 +331,70 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       return true;
     });
+  }
+
+  function turnDeckBuilderPage(delta) {
+    const deck = getCurrentEditingDeck();
+    if (!deck) return;
+    const filtered = getFilteredCatalogCards();
+    const cardsPerPage = getCardsPerPage();
+    const totalPages = Math.max(1, Math.ceil(filtered.length / cardsPerPage));
+    const targetPage = currentDeckBuilderPage + delta;
+    if (targetPage >= 1 && targetPage <= totalPages && targetPage !== currentDeckBuilderPage) {
+      currentDeckBuilderPage = targetPage;
+      renderCatalogCards(deck);
+    }
+  }
+
+  function renderCatalogCards(deck) {
+    if (!dbCardsGrid) return;
+    dbCardsGrid.innerHTML = '';
+
+    const deckCardIds = (deck && deck.cards) ? deck.cards : [];
+    const copyCounts = {};
+    deckCardIds.forEach(id => {
+      copyCounts[id] = (copyCounts[id] || 0) + 1;
+    });
+
+    const filtered = getFilteredCatalogCards();
+
+    // Toggle clear search button visibility
+    if (btnClearSearch) {
+      btnClearSearch.classList.toggle('hidden', !currentCatalogSearch);
+    }
+
+    const cardsPerPage = getCardsPerPage();
+    const totalPages = Math.max(1, Math.ceil(filtered.length / cardsPerPage));
+    if (currentDeckBuilderPage > totalPages) currentDeckBuilderPage = totalPages;
+    if (currentDeckBuilderPage < 1) currentDeckBuilderPage = 1;
+
+    // Update pagination controls
+    if (hsPageIndicator) {
+      hsPageIndicator.textContent = `Страница ${currentDeckBuilderPage} из ${totalPages} (${filtered.length} карт)`;
+    }
+    const isFirstPage = currentDeckBuilderPage <= 1;
+    const isLastPage = currentDeckBuilderPage >= totalPages;
+
+    if (btnHsPrevPage) btnHsPrevPage.disabled = isFirstPage;
+    if (btnHsNextPage) btnHsNextPage.disabled = isLastPage;
+    if (btnHsPrevFooter) btnHsPrevFooter.disabled = isFirstPage;
+    if (btnHsNextFooter) btnHsNextFooter.disabled = isLastPage;
 
     if (filtered.length === 0) {
       dbCardsGrid.innerHTML = `
-        <div style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: #94a3b8;">
-          <div style="font-size: 1.8rem; margin-bottom: 0.4rem;">🔍</div>
-          Карты по запросу не найдены.
+        <div style="grid-column: 1 / -1; grid-row: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 2.5rem; color: #94a3b8;">
+          <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🔍</div>
+          <div style="font-size: 1.15rem; font-weight: 800; color: #fff;">Карты по запросу не найдены</div>
+          <div style="font-size: 0.8rem; margin-top: 0.35rem; color: #94a3b8;">Попробуйте выбрать другую категорию или очистить фильтр</div>
         </div>
       `;
       return;
     }
 
-    filtered.forEach(card => {
+    const startIndex = (currentDeckBuilderPage - 1) * cardsPerPage;
+    const pageCards = filtered.slice(startIndex, startIndex + cardsPerPage);
+
+    pageCards.forEach(card => {
       const count = copyCounts[card.id] || 0;
       const maxCopies = card.rarity === 'LEGENDARY' ? 1 : 2;
       const isMax = count >= maxCopies;
@@ -336,49 +405,49 @@ document.addEventListener('DOMContentLoaded', () => {
       tile.className = `db-card-tile school-${card.category} rarity-${card.rarity.toLowerCase()} ${isMax ? 'in-deck-max' : ''}`;
 
       const durationHtml = card.duration ? `<span class="db-duration-badge" title="Длительность действия">⏳ ${card.duration}х</span>` : '';
-      const tipHtml = card.tip ? `<div class="db-tile-tip">💡 ${card.tip}</div>` : '';
+      const tipHtml = card.tip ? `<div class="hs-card-tip-text">💡 ${card.tip}</div>` : '';
 
       tile.innerHTML = `
-        <div class="db-card-top-bar">
-          <span class="db-tile-mana">💎 ${card.manaCost || 1}</span>
-          <span class="db-tile-school" style="color: ${catData.color};">
+        <div class="hs-card-top-bar">
+          <span class="hs-tile-mana">💎 ${card.manaCost || 1}</span>
+          <span class="hs-tile-school" style="color: ${catData.color};">
             ${catData.icon} ${catData.name.split(' ')[0]}
           </span>
-          <span class="db-tile-type-pill ${card.type}">
+          <span class="hs-tile-type ${card.type}">
             ${card.type === 'decree' ? 'УКАЗ' : 'СПЕЛЛ'}
           </span>
-          <button class="btn-inspect-card" title="Осмотреть подробно (👁️)">👁️</button>
+          <button class="hs-btn-inspect" title="Осмотреть подробно (👁️)">👁️</button>
         </div>
 
-        <div class="db-card-header-main" title="Нажмите, чтобы открыть подробное описание">
-          <div class="db-tile-icon">${card.icon}</div>
-          <div class="db-tile-title-group">
-            <div class="db-tile-name">${card.name}</div>
-            <div class="db-tile-rarity-row">
+        <div class="hs-card-hero" title="Кликните, чтобы положить карту в колоду">
+          <div class="hs-card-icon">${card.icon}</div>
+          <div class="hs-card-title-group">
+            <div class="hs-card-name">${card.name}</div>
+            <div class="hs-card-rarity-row">
               <span style="color: ${rarityData.color};">${rarityData.name}</span>
               ${durationHtml}
             </div>
           </div>
         </div>
 
-        <div class="db-tile-desc-box" title="Нажмите, чтобы открыть подробное описание">
-          <div class="db-tile-desc">${card.description}</div>
+        <div class="hs-card-desc-box" title="Кликните, чтобы положить карту в колоду">
+          <p class="hs-card-desc-text">${card.description}</p>
           ${tipHtml}
         </div>
 
-        <div class="db-tile-actions-bar">
-          <button class="db-btn-qty db-btn-minus" ${count === 0 ? 'disabled' : ''} title="Убрать 1 копию из колоды">➖</button>
-          <span class="db-qty-indicator ${count > 0 ? (isMax ? 'is-max' : 'has-copies') : ''}">${count} / ${maxCopies}</span>
-          <button class="db-btn-qty db-btn-plus" ${isMax ? 'disabled' : ''} title="Добавить 1 копию в колоду">➕</button>
+        <div class="hs-card-actions">
+          <button class="hs-btn-qty btn-minus" ${count === 0 ? 'disabled' : ''} title="Убрать 1 копию">➖</button>
+          <span class="hs-card-qty-badge ${count > 0 ? (isMax ? 'is-max' : 'has-copies') : ''}">${count} / ${maxCopies}</span>
+          <button class="hs-btn-qty btn-plus" ${isMax ? 'disabled' : ''} title="Добавить 1 копию">➕</button>
         </div>
       `;
 
       // Event listeners
-      const btnMinus = tile.querySelector('.db-btn-minus');
-      const btnPlus = tile.querySelector('.db-btn-plus');
-      const btnInspect = tile.querySelector('.btn-inspect-card');
-      const headerMain = tile.querySelector('.db-card-header-main');
-      const descBox = tile.querySelector('.db-tile-desc-box');
+      const btnMinus = tile.querySelector('.btn-minus');
+      const btnPlus = tile.querySelector('.btn-plus');
+      const btnInspect = tile.querySelector('.hs-btn-inspect');
+      const heroArea = tile.querySelector('.hs-card-hero');
+      const descBox = tile.querySelector('.hs-card-desc-box');
 
       btnMinus.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -395,12 +464,12 @@ document.addEventListener('DOMContentLoaded', () => {
         openCardInspector(card.id);
       });
 
-      headerMain.addEventListener('click', () => {
-        openCardInspector(card.id);
+      heroArea.addEventListener('click', () => {
+        addCardToCurrentDeck(card.id);
       });
 
       descBox.addEventListener('click', () => {
-        openCardInspector(card.id);
+        addCardToCurrentDeck(card.id);
       });
 
       dbCardsGrid.appendChild(tile);
@@ -411,10 +480,19 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!dbCurrentDeckCards || typeof window.DeckStorage === 'undefined') return;
     const stats = window.DeckStorage.getDeckStats(deck.cards, CARDS_DATABASE);
 
+    // Update Tray title & active badge
+    if (hsTrayDeckTitle) {
+      hsTrayDeckTitle.textContent = deck.name;
+    }
+    const activeDeckId = window.DeckStorage.getActiveDeckId();
+    if (hsActiveBadge) {
+      hsActiveBadge.style.display = (deck.id === activeDeckId) ? 'inline-block' : 'none';
+    }
+
     // Counter & Progress
     if (dbDeckCardCounter) {
       dbDeckCardCounter.textContent = `${stats.totalCards} / 30`;
-      dbDeckCardCounter.className = `db-counter-value ${stats.totalCards === 30 ? 'complete' : ''}`;
+      dbDeckCardCounter.className = `hs-tray-counter-val ${stats.totalCards === 30 ? 'complete' : ''}`;
     }
     const dbMobCounter = document.getElementById('db-mob-counter');
     if (dbMobCounter) {
@@ -423,7 +501,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (dbDeckProgressFill) {
       const pct = Math.min(100, (stats.totalCards / 30) * 100);
       dbDeckProgressFill.style.width = `${pct}%`;
-      dbDeckProgressFill.className = `db-progress-fill ${stats.totalCards === 30 ? 'complete' : ''}`;
+      dbDeckProgressFill.className = `hs-tray-progress-fill ${stats.totalCards === 30 ? 'complete' : ''}`;
     }
     if (dbDeckStatusText) {
       if (stats.totalCards === 30) {
@@ -480,8 +558,8 @@ document.addEventListener('DOMContentLoaded', () => {
     dbCurrentDeckCards.innerHTML = '';
     if (deck.cards.length === 0) {
       dbCurrentDeckCards.innerHTML = `
-        <div style="text-align: center; padding: 2rem 0.5rem; color: #94a3b8; font-size: 0.78rem;">
-          Колода пуста.<br>Кликните по картам слева, чтобы наполнить её!
+        <div style="text-align: center; padding: 2.5rem 0.5rem; color: #94a3b8; font-size: 0.8rem;">
+          Колода пуста.<br>Кликните по картам в книге слева, чтобы наполнить её!
         </div>
       `;
       return;
@@ -502,33 +580,34 @@ document.addEventListener('DOMContentLoaded', () => {
       const maxCopies = card.rarity === 'LEGENDARY' ? 1 : 2;
       const isMax = count >= maxCopies;
       const row = document.createElement('div');
-      row.className = 'db-deck-card-row';
+      row.className = 'hs-deck-strip';
       row.style.borderLeftColor = rarityData.border;
-      row.title = `${card.name}: ${card.description}`;
+      row.title = `${card.name}: ${card.description} (Кликните, чтобы убрать)`;
 
-      const snippet = card.description.length > 34 ? (card.description.slice(0, 34) + '...') : card.description;
+      const snippet = card.description.length > 28 ? (card.description.slice(0, 28) + '...') : card.description;
+      const qtyBadge = (card.rarity === 'LEGENDARY') ? '★' : `${count}`;
 
       row.innerHTML = `
-        <div class="db-dcr-left">
-          <span class="db-dcr-mana">💎 ${card.manaCost || 1}</span>
-          <span class="db-dcr-icon">${card.icon}</span>
-          <div class="db-dcr-title-box">
-            <span class="db-dcr-name">${card.name}</span>
-            <span class="db-dcr-sub">${snippet}</span>
+        <div class="hs-strip-left">
+          <span class="hs-strip-mana">💎 ${card.manaCost || 1}</span>
+          <span class="hs-strip-icon">${card.icon}</span>
+          <div class="hs-strip-title-box">
+            <span class="hs-strip-name">${card.name}</span>
+            <span class="hs-strip-sub">${snippet}</span>
           </div>
         </div>
-        <div class="db-dcr-right">
-          <button class="db-dcr-inspect-btn" title="Осмотреть">👁️</button>
-          <button class="db-dcr-btn db-dcr-minus" title="Убрать 1 копию">➖</button>
-          <span class="db-dcr-qty">x${count}</span>
-          <button class="db-dcr-btn db-dcr-plus" ${isMax ? 'disabled' : ''} title="Добавить 1 копию">➕</button>
+        <div class="hs-strip-right">
+          <button class="hs-strip-btn hs-strip-inspect" title="Осмотреть">👁️</button>
+          <button class="hs-strip-btn hs-strip-minus" title="Убрать 1 шт.">➖</button>
+          <span class="hs-strip-qty">${qtyBadge}</span>
+          <button class="hs-strip-btn hs-strip-plus" ${isMax ? 'disabled' : ''} title="Добавить 1 шт.">➕</button>
         </div>
       `;
 
-      const btnMinus = row.querySelector('.db-dcr-minus');
-      const btnPlus = row.querySelector('.db-dcr-plus');
-      const btnInspect = row.querySelector('.db-dcr-inspect-btn');
-      const leftPart = row.querySelector('.db-dcr-left');
+      const btnMinus = row.querySelector('.hs-strip-minus');
+      const btnPlus = row.querySelector('.hs-strip-plus');
+      const btnInspect = row.querySelector('.hs-strip-inspect');
+      const leftPart = row.querySelector('.hs-strip-left');
 
       btnMinus.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -545,8 +624,9 @@ document.addEventListener('DOMContentLoaded', () => {
         openCardInspector(card.id);
       });
 
+      // Clicking strip directly removes 1 copy (classic Hearthstone UX)
       leftPart.addEventListener('click', () => {
-        openCardInspector(card.id);
+        removeCardFromCurrentDeck(card.id);
       });
 
       dbCurrentDeckCards.appendChild(row);
@@ -1244,6 +1324,7 @@ document.addEventListener('DOMContentLoaded', () => {
     screenLobby.classList.add('hidden');
     screenWaiting.classList.add('hidden');
     screenGame.classList.add('hidden');
+    if (screenDeckBuilder) screenDeckBuilder.classList.add('hidden');
     screen.classList.remove('hidden');
   }
 
@@ -4322,10 +4403,64 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Hearthstone Top Back Button
+  if (btnHsBackLobby) {
+    btnHsBackLobby.addEventListener('click', closeDeckBuilderModal);
+  }
+
+  // Hearthstone Pagination (Page Flip) Buttons
+  if (btnHsPrevPage) {
+    btnHsPrevPage.addEventListener('click', () => turnDeckBuilderPage(-1));
+  }
+  if (btnHsNextPage) {
+    btnHsNextPage.addEventListener('click', () => turnDeckBuilderPage(1));
+  }
+  if (btnHsPrevFooter) {
+    btnHsPrevFooter.addEventListener('click', () => turnDeckBuilderPage(-1));
+  }
+  if (btnHsNextFooter) {
+    btnHsNextFooter.addEventListener('click', () => turnDeckBuilderPage(1));
+  }
+
+  // Clear search button in Hearthstone filters bar
+  if (btnClearSearch) {
+    btnClearSearch.addEventListener('click', () => {
+      if (dbSearchInput) dbSearchInput.value = '';
+      currentCatalogSearch = '';
+      currentDeckBuilderPage = 1;
+      const deck = getCurrentEditingDeck();
+      if (deck) renderCatalogCards(deck);
+    });
+  }
+
+  // Mouse wheel pagination on spellbook viewport
+  const hsBookViewport = document.querySelector('.hs-book-viewport');
+  if (hsBookViewport) {
+    hsBookViewport.addEventListener('wheel', (e) => {
+      if (Math.abs(e.deltaY) > 15) {
+        e.preventDefault();
+        turnDeckBuilderPage(e.deltaY > 0 ? 1 : -1);
+      }
+    }, { passive: false });
+  }
+
+  // Window resize to adapt 2-row columns (4 cols desktop, 3 cols tablet, 2 cols mobile)
+  let lastDeckBuilderResizeWidth = window.innerWidth;
+  window.addEventListener('resize', () => {
+    if (Math.abs(window.innerWidth - lastDeckBuilderResizeWidth) > 40) {
+      lastDeckBuilderResizeWidth = window.innerWidth;
+      if (screenDeckBuilder && !screenDeckBuilder.classList.contains('hidden')) {
+        const deck = getCurrentEditingDeck();
+        if (deck) renderCatalogCards(deck);
+      }
+    }
+  });
+
   // Search input in Deck Builder
   if (dbSearchInput) {
     dbSearchInput.addEventListener('input', (e) => {
       currentCatalogSearch = e.target.value.toLowerCase().trim();
+      currentDeckBuilderPage = 1;
       const deck = getCurrentEditingDeck();
       if (deck) renderCatalogCards(deck);
     });
@@ -4338,6 +4473,7 @@ document.addEventListener('DOMContentLoaded', () => {
         dbCategoryChips.forEach(c => c.classList.remove('active'));
         chip.classList.add('active');
         currentCatalogCategory = chip.getAttribute('data-cat') || 'all';
+        currentDeckBuilderPage = 1;
         const deck = getCurrentEditingDeck();
         if (deck) renderCatalogCards(deck);
       });
@@ -4351,6 +4487,7 @@ document.addEventListener('DOMContentLoaded', () => {
         dbManaChips.forEach(c => c.classList.remove('active'));
         chip.classList.add('active');
         currentCatalogMana = chip.getAttribute('data-mana') || 'all';
+        currentDeckBuilderPage = 1;
         const deck = getCurrentEditingDeck();
         if (deck) renderCatalogCards(deck);
       });
@@ -4414,6 +4551,17 @@ document.addEventListener('DOMContentLoaded', () => {
     // Hotkey C or I to toggle cards inventory
     if ((e.key === 'c' || e.key === 'C' || e.key === 'i' || e.key === 'I') && mode && screenGame && !screenGame.classList.contains('hidden') && !e.target.matches('input, textarea')) {
       toggleCardsInventory();
+    }
+
+    // Arrow Left / Right to flip pages in Deck Builder
+    if (screenDeckBuilder && !screenDeckBuilder.classList.contains('hidden') && !e.target.matches('input, textarea')) {
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        turnDeckBuilderPage(-1);
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        turnDeckBuilderPage(1);
+      }
     }
   });
 
