@@ -808,8 +808,14 @@ class TurnStateMachine {
 }
 
 class CardDeckManager {
-  constructor() {
-    this.deck = [...CARDS_DATABASE];
+  constructor(customCardIds = null) {
+    this.deckCardIds = (customCardIds && Array.isArray(customCardIds) && customCardIds.length > 0)
+      ? [...customCardIds]
+      : null;
+
+    this.masterDeck = this._buildMasterDeck(this.deckCardIds);
+    this.deck = [...this.masterDeck];
+    this.drawPile = this._shuffle([...this.masterDeck]);
     this.hand = [];
     this.maxHandSize = 4;
     this.currentPly = 0;
@@ -832,7 +838,31 @@ class CardDeckManager {
     this.infantryMarchActive = false;
   }
 
-  reset() {
+  _buildMasterDeck(cardIds) {
+    if (!cardIds || !Array.isArray(cardIds) || cardIds.length === 0) {
+      return [...CARDS_DATABASE];
+    }
+    const dbMap = new Map(CARDS_DATABASE.map(c => [c.id, c]));
+    const list = cardIds.map(id => dbMap.get(id)).filter(Boolean);
+    return list.length > 0 ? list : [...CARDS_DATABASE];
+  }
+
+  _shuffle(array) {
+    const arr = [...array];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  reset(newCustomCardIds = null) {
+    if (newCustomCardIds) {
+      this.deckCardIds = [...newCustomCardIds];
+      this.masterDeck = this._buildMasterDeck(this.deckCardIds);
+      this.deck = [...this.masterDeck];
+    }
+    this.drawPile = this._shuffle([...this.masterDeck]);
     this.hand = [];
     this.currentPly = 0;
     this.turnState.reset();
@@ -857,15 +887,12 @@ class CardDeckManager {
     if (this.hand.length >= this.maxHandSize) {
       return null; // Hand full
     }
-    // Weighted random by rarity: Common 50%, Rare 35%, Epic 12%, Legendary 3%
-    const rand = Math.random() * 100;
-    let targetRarity = 'COMMON';
-    if (rand > 97) targetRarity = 'LEGENDARY';
-    else if (rand > 85) targetRarity = 'EPIC';
-    else if (rand > 50) targetRarity = 'RARE';
+    // If draw pile is empty, reshuffle masterDeck so players never run out
+    if (this.drawPile.length === 0) {
+      this.drawPile = this._shuffle([...this.masterDeck]);
+    }
 
-    const pool = this.deck.filter(c => c.rarity === targetRarity);
-    const chosen = pool[Math.floor(Math.random() * pool.length)] || this.deck[Math.floor(Math.random() * this.deck.length)];
+    const chosen = this.drawPile.pop() || this.deck[Math.floor(Math.random() * this.deck.length)];
 
     const cardInstance = {
       instanceId: 'c_' + Math.random().toString(36).substr(2, 9),

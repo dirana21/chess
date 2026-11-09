@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>Онлайн Шахматы — Играй с друзьями</title>
-  <link rel="stylesheet" href="css/style.css?v=2.6.0">
+  <link rel="stylesheet" href="css/style.css?v=2.7.0">
   <link rel="icon" href="assets/pieces/wK.svg" type="image/svg+xml">
 </head>
 <body>
@@ -19,6 +19,9 @@
         <span class="logo-title">Шахматы Онлайн</span>
       </div>
       <div class="header-actions">
+        <button id="btn-open-deckbuilder-header" class="btn-action-logs btn-action-deck" title="Конструктор и пресеты колод">
+          🃏 Колоды
+        </button>
         <button id="btn-open-rules-header" class="btn-action-logs" title="Правила игры и книга заклинаний">
           📖 Правила
         </button>
@@ -65,6 +68,23 @@
               <option value="random">Случайно 🎲</option>
             </select>
           </div>
+        </div>
+
+        <!-- Active Deck Banner for Nova Mode -->
+        <div class="deck-preset-banner" id="lobby-deck-banner">
+          <div class="deck-banner-left">
+            <span class="deck-banner-icon">🎴</span>
+            <div class="deck-banner-meta">
+              <span class="deck-banner-label">ВАША БОЕВАЯ КОЛОДА:</span>
+              <div class="deck-banner-title-row">
+                <span class="deck-banner-title" id="lobby-active-deck-name">⚖️ Сбалансированная</span>
+                <span class="deck-banner-pill" id="lobby-active-deck-badge">30 / 30 карт</span>
+              </div>
+            </div>
+          </div>
+          <button id="btn-open-deckbuilder-lobby" class="btn-deck-edit" title="Выбрать пресет или собрать свою колоду">
+            ⚙️ Собрать / Пресеты
+          </button>
         </div>
 
         <!-- Mode Buttons -->
@@ -628,20 +648,153 @@
       </div>
     </div>
 
+    <!-- 6. Deck Builder & Presets Modal -->
+    <div id="modal-deck-builder" class="modal-backdrop hidden">
+      <div class="modal-card deck-builder-card">
+        <div class="deck-builder-header">
+          <div class="deck-builder-title-group">
+            <span class="db-title-icon">🃏</span>
+            <div>
+              <h3 class="db-main-title">Конструктор и Пресеты Колод</h3>
+              <span class="db-subtitle">Соберите колоду из 30 карт или выберите готовый пресет</span>
+            </div>
+          </div>
+          <button id="btn-close-deckbuilder" class="btn-icon" title="Закрыть (Esc)">✕</button>
+        </div>
+
+        <!-- Presets Selection Bar -->
+        <div class="deck-presets-bar">
+          <div class="presets-scroll-wrap" id="presets-tabs-container">
+            <!-- Dynamically populated presets pills -->
+          </div>
+          <button id="btn-create-new-deck" class="btn-new-deck" title="Создать новую пользовательскую колоду">
+            ➕ Новая
+          </button>
+        </div>
+
+        <!-- Current Deck Toolbar -->
+        <div class="deck-current-toolbar">
+          <div class="deck-name-wrap">
+            <input type="text" id="deck-name-input" class="deck-name-input" placeholder="Название колоды...">
+            <button id="btn-save-deck-name" class="btn-save-name" title="Сохранить название">💾</button>
+          </div>
+          <div class="deck-toolbar-actions">
+            <button id="btn-set-active-deck" class="btn-deck-tool btn-set-active" title="Сделать этой колодой боевую">
+              ⭐ Выбрать для боя
+            </button>
+            <button id="btn-duplicate-deck" class="btn-deck-tool" title="Создать копию этой колоды">
+              📋 Копировать
+            </button>
+            <button id="btn-delete-deck" class="btn-deck-tool danger" title="Удалить пользовательскую колоду">
+              🗑️ Удалить
+            </button>
+          </div>
+        </div>
+
+        <!-- Deck Builder Body (Grid Layout) -->
+        <div class="deck-builder-workspace">
+          <!-- Left: Catalog of all 50 Cards -->
+          <div class="db-catalog-section">
+            <div class="db-catalog-controls">
+              <input type="text" id="db-search-input" class="db-search-input" placeholder="🔍 Поиск карты: название, эффект, совет...">
+              
+              <div class="db-filter-row">
+                <span class="db-filter-label">Школа:</span>
+                <div class="db-filter-chips" id="db-category-chips">
+                  <button class="db-chip active" data-cat="all">Все (50)</button>
+                  <button class="db-chip" data-cat="control">❄️ Контроль</button>
+                  <button class="db-chip" data-cat="defense">🛡️ Защита</button>
+                  <button class="db-chip" data-cat="attack">⚔️ Атака</button>
+                  <button class="db-chip" data-cat="secrets">💣 Секреты</button>
+                  <button class="db-chip" data-cat="magic">📖 Магия</button>
+                  <button class="db-chip" data-cat="tactics">🌀 Тактика</button>
+                </div>
+              </div>
+
+              <div class="db-filter-row">
+                <span class="db-filter-label">Мана:</span>
+                <div class="db-filter-chips mana-chips" id="db-mana-chips">
+                  <button class="db-chip active" data-mana="all">Все</button>
+                  <button class="db-chip" data-mana="1">💎 1</button>
+                  <button class="db-chip" data-mana="2">💎 2</button>
+                  <button class="db-chip" data-mana="3">💎 3</button>
+                  <button class="db-chip" data-mana="4">💎 4</button>
+                  <button class="db-chip" data-mana="5+">💎 5+</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="db-cards-grid" id="db-cards-grid">
+              <!-- Dynamically populated 50 cards -->
+            </div>
+          </div>
+
+          <!-- Right: Active Deck Roster & Statistics -->
+          <div class="db-deck-sidebar">
+            <div class="db-deck-header-box">
+              <div class="db-counter-row">
+                <span class="db-counter-label">Карт в колоде:</span>
+                <span class="db-counter-value" id="db-deck-card-counter">30 / 30</span>
+              </div>
+              <div class="db-progress-track">
+                <div class="db-progress-fill" id="db-deck-progress-fill" style="width: 100%;"></div>
+              </div>
+              <div class="db-deck-status-text" id="db-deck-status-text">✅ Колода готова к игре</div>
+            </div>
+
+            <!-- Mana Histogram -->
+            <div class="db-mana-curve-box">
+              <div class="db-box-label">Кривая маны (Ср. <span id="db-avg-mana">2.3</span>):</div>
+              <div class="db-mana-bars" id="db-mana-curve-bars">
+                <!-- Bars 1, 2, 3, 4, 5+ -->
+              </div>
+            </div>
+
+            <!-- Schools distribution -->
+            <div class="db-schools-row" id="db-schools-summary"></div>
+
+            <!-- Cards List in Deck -->
+            <div class="db-deck-list" id="db-current-deck-cards">
+              <!-- Rows of cards with quantity and minus button -->
+            </div>
+
+            <div class="db-deck-bottom-actions">
+              <button id="btn-autofill-deck" class="btn-subtle" title="Дополнить колоду до 30 карт">
+                🪄 Авто-добор (до 30)
+              </button>
+              <button id="btn-clear-deck" class="btn-subtle danger" title="Очистить все карты">
+                🧹 Очистить
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="deck-builder-footer">
+          <div class="db-footer-left">
+            <span class="db-footer-hint">💡 Клик по карте в каталоге — добавить (+). Клик по карте в списке справа — убрать (-).</span>
+          </div>
+          <button id="btn-apply-and-close-deck" class="btn-primary btn-save-deck-close">
+            Готово и играть! ⚔️
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Toast Notifications Container -->
     <div id="toast-container" class="toast-container"></div>
   </div>
 
   <!-- Dependencies with version cache-busting -->
-  <script src="js/logger.js?v=2.6.0"></script>
-  <script src="js/chess.js?v=2.6.0"></script>
-  <script src="js/peerjs.min.js?v=2.6.0"></script>
-  <script src="js/pieces.js?v=2.6.0"></script>
-  <script src="js/sounds.js?v=2.6.0"></script>
-  <script src="js/cards.js?v=2.6.0"></script>
-  <script src="js/bot.js?v=2.6.0"></script>
-  <script src="js/network.js?v=2.6.0"></script>
-  <script src="js/board.js?v=2.6.0"></script>
-  <script src="js/app.js?v=2.6.0"></script>
+  <script src="js/logger.js?v=2.7.0"></script>
+  <script src="js/chess.js?v=2.7.0"></script>
+  <script src="js/peerjs.min.js?v=2.7.0"></script>
+  <script src="js/pieces.js?v=2.7.0"></script>
+  <script src="js/sounds.js?v=2.7.0"></script>
+  <script src="js/cards.js?v=2.7.0"></script>
+  <script src="js/decks.js?v=2.7.0"></script>
+  <script src="js/bot.js?v=2.7.0"></script>
+  <script src="js/network.js?v=2.7.0"></script>
+  <script src="js/board.js?v=2.7.0"></script>
+  <script src="js/app.js?v=2.7.0"></script>
 </body>
 </html>

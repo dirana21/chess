@@ -133,6 +133,383 @@ document.addEventListener('DOMContentLoaded', () => {
     modalRules.classList.add('hidden');
   }
 
+  // --- Deck Builder & Presets System ---
+  const btnOpenDeckBuilderHeader = document.getElementById('btn-open-deckbuilder-header');
+  const btnOpenDeckBuilderLobby = document.getElementById('btn-open-deckbuilder-lobby');
+  const lobbyDeckBanner = document.getElementById('lobby-deck-banner');
+  const lobbyActiveDeckName = document.getElementById('lobby-active-deck-name');
+  const lobbyActiveDeckBadge = document.getElementById('lobby-active-deck-badge');
+  const modalDeckBuilder = document.getElementById('modal-deck-builder');
+  const btnCloseDeckBuilder = document.getElementById('btn-close-deckbuilder');
+  const btnApplyAndCloseDeck = document.getElementById('btn-apply-and-close-deck');
+  const presetsTabsContainer = document.getElementById('presets-tabs-container');
+  const btnCreateNewDeck = document.getElementById('btn-create-new-deck');
+  const deckNameInput = document.getElementById('deck-name-input');
+  const btnSaveDeckName = document.getElementById('btn-save-deck-name');
+  const btnSetActiveDeck = document.getElementById('btn-set-active-deck');
+  const btnDuplicateDeck = document.getElementById('btn-duplicate-deck');
+  const btnDeleteDeck = document.getElementById('btn-delete-deck');
+  const dbSearchInput = document.getElementById('db-search-input');
+  const dbCategoryChips = document.querySelectorAll('#modal-deck-builder .db-chip[data-cat]');
+  const dbManaChips = document.querySelectorAll('#modal-deck-builder .db-chip[data-mana]');
+  const dbCardsGrid = document.getElementById('db-cards-grid');
+  const dbDeckCardCounter = document.getElementById('db-deck-card-counter');
+  const dbDeckProgressFill = document.getElementById('db-deck-progress-fill');
+  const dbDeckStatusText = document.getElementById('db-deck-status-text');
+  const dbAvgMana = document.getElementById('db-avg-mana');
+  const dbManaCurveBars = document.getElementById('db-mana-curve-bars');
+  const dbSchoolsSummary = document.getElementById('db-schools-summary');
+  const dbCurrentDeckCards = document.getElementById('db-current-deck-cards');
+  const btnAutofillDeck = document.getElementById('btn-autofill-deck');
+  const btnClearDeck = document.getElementById('btn-clear-deck');
+
+  let currentEditingDeckId = null;
+  let currentCatalogCategory = 'all';
+  let currentCatalogMana = 'all';
+  let currentCatalogSearch = '';
+
+  function updateLobbyDeckBanner() {
+    if (!lobbyDeckBanner) return;
+    if (gameVariantSelect && gameVariantSelect.value === 'classic') {
+      lobbyDeckBanner.classList.add('hidden');
+      return;
+    }
+    lobbyDeckBanner.classList.remove('hidden');
+    if (typeof window.DeckStorage !== 'undefined') {
+      const activeDeck = window.DeckStorage.getActiveDeck();
+      if (lobbyActiveDeckName) lobbyActiveDeckName.textContent = activeDeck.name;
+      if (lobbyActiveDeckBadge) {
+        const count = (activeDeck.cards && activeDeck.cards.length) || 0;
+        lobbyActiveDeckBadge.textContent = `${count} / 30 карт`;
+        lobbyActiveDeckBadge.style.color = count === 30 ? '#4ade80' : '#fbbf24';
+      }
+    }
+  }
+
+  function openDeckBuilderModal(presetId = null) {
+    if (!modalDeckBuilder || typeof window.DeckStorage === 'undefined') return;
+    const all = window.DeckStorage.getAllDecks();
+    const activeId = window.DeckStorage.getActiveDeckId();
+    const targetId = presetId || currentEditingDeckId || activeId;
+    const found = all.find(d => d.id === targetId);
+    currentEditingDeckId = found ? found.id : all[0].id;
+
+    modalDeckBuilder.classList.remove('hidden');
+    renderDeckBuilder();
+  }
+
+  function closeDeckBuilderModal() {
+    if (!modalDeckBuilder) return;
+    modalDeckBuilder.classList.add('hidden');
+    updateLobbyDeckBanner();
+  }
+
+  function getCurrentEditingDeck() {
+    if (typeof window.DeckStorage === 'undefined') return null;
+    const all = window.DeckStorage.getAllDecks();
+    let deck = all.find(d => d.id === currentEditingDeckId);
+    if (!deck) {
+      deck = all[0];
+      currentEditingDeckId = deck.id;
+    }
+    return deck;
+  }
+
+  function renderDeckBuilder() {
+    const deck = getCurrentEditingDeck();
+    if (!deck) return;
+
+    renderPresetTabs();
+    renderDeckToolbar(deck);
+    renderCatalogCards(deck);
+    renderCurrentDeckRoster(deck);
+  }
+
+  function renderPresetTabs() {
+    if (!presetsTabsContainer || typeof window.DeckStorage === 'undefined') return;
+    presetsTabsContainer.innerHTML = '';
+    const all = window.DeckStorage.getAllDecks();
+    const activeCombatId = window.DeckStorage.getActiveDeckId();
+
+    all.forEach(d => {
+      const pill = document.createElement('button');
+      pill.className = `preset-tab-pill ${d.id === currentEditingDeckId ? 'active' : ''} ${d.id === activeCombatId ? 'active-combat' : ''}`;
+      pill.innerHTML = `<span>${d.icon || '🎴'}</span> <span>${d.name}</span>`;
+      pill.title = `${d.name}: ${d.description || ''}${d.id === activeCombatId ? ' (Боевая колода)' : ''}`;
+      pill.addEventListener('click', () => {
+        currentEditingDeckId = d.id;
+        renderDeckBuilder();
+      });
+      presetsTabsContainer.appendChild(pill);
+    });
+  }
+
+  function renderDeckToolbar(deck) {
+    if (deckNameInput) {
+      deckNameInput.value = deck.name;
+      deckNameInput.disabled = !!deck.isDefault;
+    }
+    if (btnSaveDeckName) {
+      btnSaveDeckName.style.display = deck.isDefault ? 'none' : 'inline-flex';
+    }
+
+    if (btnSetActiveDeck && typeof window.DeckStorage !== 'undefined') {
+      const activeId = window.DeckStorage.getActiveDeckId();
+      const isCombat = deck.id === activeId;
+      btnSetActiveDeck.classList.toggle('is-active', isCombat);
+      btnSetActiveDeck.innerHTML = isCombat ? '⭐ Боевая колода' : '⭐ Выбрать для боя';
+    }
+
+    if (btnDeleteDeck) {
+      btnDeleteDeck.style.display = deck.isDefault ? 'none' : 'inline-flex';
+    }
+  }
+
+  function renderCatalogCards(deck) {
+    if (!dbCardsGrid) return;
+    dbCardsGrid.innerHTML = '';
+
+    const cards = (typeof CARDS_DATABASE !== 'undefined') ? CARDS_DATABASE : [];
+    const deckCardIds = deck.cards || [];
+    const copyCounts = {};
+    deckCardIds.forEach(id => {
+      copyCounts[id] = (copyCounts[id] || 0) + 1;
+    });
+
+    const filtered = cards.filter(card => {
+      if (currentCatalogCategory !== 'all' && card.category !== currentCatalogCategory) return false;
+      if (currentCatalogMana !== 'all') {
+        const cost = card.manaCost || 1;
+        if (currentCatalogMana === '5+') {
+          if (cost < 5) return false;
+        } else if (cost !== parseInt(currentCatalogMana, 10)) {
+          return false;
+        }
+      }
+      if (currentCatalogSearch) {
+        const catData = (typeof CARD_CATEGORIES !== 'undefined' && CARD_CATEGORIES[card.category]) || { name: '' };
+        const text = `${card.name} ${card.description} ${card.tip || ''} ${card.type} ${catData.name}`.toLowerCase();
+        if (!text.includes(currentCatalogSearch)) return false;
+      }
+      return true;
+    });
+
+    if (filtered.length === 0) {
+      dbCardsGrid.innerHTML = `
+        <div style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: #94a3b8;">
+          <div style="font-size: 1.8rem; margin-bottom: 0.4rem;">🔍</div>
+          Карты по запросу не найдены.
+        </div>
+      `;
+      return;
+    }
+
+    filtered.forEach(card => {
+      const count = copyCounts[card.id] || 0;
+      const maxCopies = card.rarity === 'LEGENDARY' ? 1 : 2;
+      const isMax = count >= maxCopies;
+      const rarityData = (typeof CARD_RARITIES !== 'undefined' && CARD_RARITIES[card.rarity]) || { name: card.rarity, color: '#60a5fa' };
+      const catData = (typeof CARD_CATEGORIES !== 'undefined' && CARD_CATEGORIES[card.category]) || { name: 'Магия', icon: '✨', color: '#818cf8' };
+
+      const tile = document.createElement('div');
+      tile.className = `db-card-tile rarity-${card.rarity.toLowerCase()} ${isMax ? 'in-deck-max' : ''}`;
+      tile.title = `${card.name} (💎 ${card.manaCost} маны)\n${card.description}\n\nКлик: добавить в колоду`;
+
+      tile.innerHTML = `
+        <div class="db-tile-top">
+          <span class="db-tile-mana">💎 ${card.manaCost || 1}</span>
+          <span class="db-tile-count-badge ${count > 0 ? (isMax ? 'is-max' : 'has-copies') : ''}">${count} / ${maxCopies}</span>
+        </div>
+        <div class="db-tile-center">
+          <span>${card.icon}</span>
+        </div>
+        <div class="db-tile-name">${card.name}</div>
+        <div class="db-tile-type-row">
+          <span style="color: ${catData.color};">${catData.icon} ${catData.name.split(' ')[0]}</span>
+          <span style="color: ${rarityData.color};">${card.type === 'decree' ? 'УКАЗ' : 'СПЕЛЛ'}</span>
+        </div>
+      `;
+
+      tile.addEventListener('click', () => {
+        addCardToCurrentDeck(card.id);
+      });
+
+      dbCardsGrid.appendChild(tile);
+    });
+  }
+
+  function renderCurrentDeckRoster(deck) {
+    if (!dbCurrentDeckCards || typeof window.DeckStorage === 'undefined') return;
+    const stats = window.DeckStorage.getDeckStats(deck.cards, CARDS_DATABASE);
+
+    // Counter & Progress
+    if (dbDeckCardCounter) {
+      dbDeckCardCounter.textContent = `${stats.totalCards} / 30`;
+      dbDeckCardCounter.className = `db-counter-value ${stats.totalCards === 30 ? 'complete' : ''}`;
+    }
+    if (dbDeckProgressFill) {
+      const pct = Math.min(100, (stats.totalCards / 30) * 100);
+      dbDeckProgressFill.style.width = `${pct}%`;
+      dbDeckProgressFill.className = `db-progress-fill ${stats.totalCards === 30 ? 'complete' : ''}`;
+    }
+    if (dbDeckStatusText) {
+      if (stats.totalCards === 30) {
+        dbDeckStatusText.textContent = '✅ Колода готова к игре';
+        dbDeckStatusText.style.color = '#4ade80';
+      } else if (stats.totalCards < 30) {
+        dbDeckStatusText.textContent = `⚠️ Добавьте ещё ${30 - stats.totalCards} карт(ы)`;
+        dbDeckStatusText.style.color = '#fbbf24';
+      } else {
+        dbDeckStatusText.textContent = `⚠️ Лимит превышен! Удалите ${stats.totalCards - 30} карт(ы)`;
+        dbDeckStatusText.style.color = '#f87171';
+      }
+    }
+
+    if (dbAvgMana) dbAvgMana.textContent = stats.avgMana;
+
+    // Mana Histogram Bars
+    if (dbManaCurveBars) {
+      dbManaCurveBars.innerHTML = '';
+      const keys = ['1', '2', '3', '4', '5+'];
+      let maxVal = 1;
+      keys.forEach(k => {
+        if (stats.countsByMana[k] > maxVal) maxVal = stats.countsByMana[k];
+      });
+
+      keys.forEach(k => {
+        const val = stats.countsByMana[k] || 0;
+        const heightPct = Math.max(10, Math.round((val / maxVal) * 100));
+
+        const col = document.createElement('div');
+        col.className = 'db-mana-bar-col';
+        col.innerHTML = `
+          <span class="db-mana-bar-val">${val}</span>
+          <div class="db-mana-bar-fill" style="height: ${heightPct}%;"></div>
+          <span class="db-mana-bar-label">${k}</span>
+        `;
+        dbManaCurveBars.appendChild(col);
+      });
+    }
+
+    // Schools Summary
+    if (dbSchoolsSummary) {
+      dbSchoolsSummary.innerHTML = `
+        <span title="Контроль и Лёд">❄️ ${stats.countsByCategory.control}</span>
+        <span title="Защита и Щиты">🛡️ ${stats.countsByCategory.defense}</span>
+        <span title="Атака и Урон">⚔️ ${stats.countsByCategory.attack}</span>
+        <span title="Секреты и Ловушки">💣 ${stats.countsByCategory.secrets}</span>
+        <span title="Магия и Добор">📖 ${stats.countsByCategory.magic}</span>
+        <span title="Тактика">🌀 ${stats.countsByCategory.tactics}</span>
+      `;
+    }
+
+    // Scrollable cards list
+    dbCurrentDeckCards.innerHTML = '';
+    if (deck.cards.length === 0) {
+      dbCurrentDeckCards.innerHTML = `
+        <div style="text-align: center; padding: 2rem 0.5rem; color: #94a3b8; font-size: 0.78rem;">
+          Колода пуста.<br>Кликните по картам слева, чтобы наполнить её!
+        </div>
+      `;
+      return;
+    }
+
+    // Aggregate cards
+    const dbMap = new Map(CARDS_DATABASE.map(c => [c.id, c]));
+    const uniqueIds = Array.from(new Set(deck.cards));
+    const sorted = uniqueIds.map(id => ({
+      card: dbMap.get(id),
+      count: stats.cardCopies[id] || 0
+    })).filter(item => item.card);
+
+    sorted.sort((a, b) => (a.card.manaCost - b.card.manaCost) || a.card.name.localeCompare(b.card.name));
+
+    sorted.forEach(({ card, count }) => {
+      const rarityData = (typeof CARD_RARITIES !== 'undefined' && CARD_RARITIES[card.rarity]) || { border: '#38bdf8' };
+      const row = document.createElement('div');
+      row.className = 'db-deck-card-row';
+      row.style.borderLeftColor = rarityData.border;
+      row.title = `Кликните, чтобы убрать 1 копию «${card.name}»`;
+
+      row.innerHTML = `
+        <div class="db-dcr-left">
+          <span class="db-dcr-mana">💎 ${card.manaCost || 1}</span>
+          <span class="db-dcr-icon">${card.icon}</span>
+          <span class="db-dcr-name">${card.name}</span>
+        </div>
+        <div class="db-dcr-right">
+          <span class="db-dcr-qty">x${count}</span>
+          <button class="db-dcr-remove" title="Убрать 1 шт.">✕</button>
+        </div>
+      `;
+
+      row.addEventListener('click', () => {
+        removeCardFromCurrentDeck(card.id);
+      });
+
+      dbCurrentDeckCards.appendChild(row);
+    });
+  }
+
+  function addCardToCurrentDeck(cardId) {
+    const deck = getCurrentEditingDeck();
+    if (!deck) return;
+
+    if (deck.isDefault) {
+      const cloned = window.DeckStorage.createDeck(`${deck.name} (Моя версия)`, deck.id);
+      currentEditingDeckId = cloned.id;
+      showToast(`📝 Создана копия «${cloned.name}» для настройки!`);
+      addCardToCurrentDeck(cardId);
+      return;
+    }
+
+    if (deck.cards.length >= 30) {
+      showToast('В колоде уже 30 карт! Лимит достигнут. Удалите карту, чтобы добавить другую.');
+      return;
+    }
+
+    const card = CARDS_DATABASE.find(c => c.id === cardId);
+    if (!card) return;
+
+    const currentCopies = deck.cards.filter(id => id === cardId).length;
+    const maxCopies = card.rarity === 'LEGENDARY' ? 1 : 2;
+
+    if (currentCopies >= maxCopies) {
+      showToast(card.rarity === 'LEGENDARY' 
+        ? `Легендарную карту «${card.name}» можно взять только 1 раз!` 
+        : `Карту «${card.name}» можно добавить максимум 2 раза!`);
+      return;
+    }
+
+    deck.cards.push(cardId);
+    window.DeckStorage.saveDeck(deck);
+    if (window.sounds) window.sounds.play('card_play');
+    renderDeckBuilder();
+    updateLobbyDeckBanner();
+  }
+
+  function removeCardFromCurrentDeck(cardId) {
+    const deck = getCurrentEditingDeck();
+    if (!deck) return;
+
+    if (deck.isDefault) {
+      const cloned = window.DeckStorage.createDeck(`${deck.name} (Моя версия)`, deck.id);
+      currentEditingDeckId = cloned.id;
+      showToast(`📝 Создана копия «${cloned.name}» для настройки!`);
+      removeCardFromCurrentDeck(cardId);
+      return;
+    }
+
+    const idx = deck.cards.lastIndexOf(cardId);
+    if (idx !== -1) {
+      deck.cards.splice(idx, 1);
+      window.DeckStorage.saveDeck(deck);
+      if (window.sounds) window.sounds.play('card_draw');
+      renderDeckBuilder();
+      updateLobbyDeckBanner();
+    }
+  }
+
   let currentSpellbookCategory = 'all';
   let currentSpellbookMana = 'all';
   let currentSpellbookRarity = 'all';
@@ -3131,11 +3508,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (gameVariant === 'cards') {
+      const activeDeck = (typeof window.DeckStorage !== 'undefined') ? window.DeckStorage.getActiveDeck() : null;
+      const activeCardIds = (config && config.deckCards) ? config.deckCards : (activeDeck ? activeDeck.cards : null);
+      deckManager = new CardDeckManager(activeCardIds);
+      if (boardUI) {
+        boardUI.deckManager = deckManager;
+        boardUI.options.deckManager = deckManager;
+      }
+
       // Deal 2 starting cards
       deckManager.drawCard();
       deckManager.drawCard();
       if (mode === 'bot') {
-        botDeckManager = new CardDeckManager();
+        const botPreset = (typeof window.DeckStorage !== 'undefined') ? window.DeckStorage.getRandomPreset() : null;
+        botDeckManager = new CardDeckManager(botPreset ? botPreset.cards : null);
         botDeckManager.drawCard();
         botDeckManager.drawCard();
       } else {
@@ -3585,6 +3971,184 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // --- Deck Builder Event Listeners ---
+  if (btnOpenDeckBuilderHeader) {
+    btnOpenDeckBuilderHeader.addEventListener('click', () => openDeckBuilderModal());
+  }
+  if (btnOpenDeckBuilderLobby) {
+    btnOpenDeckBuilderLobby.addEventListener('click', () => openDeckBuilderModal());
+  }
+  if (btnCloseDeckBuilder) {
+    btnCloseDeckBuilder.addEventListener('click', closeDeckBuilderModal);
+  }
+  if (btnApplyAndCloseDeck) {
+    btnApplyAndCloseDeck.addEventListener('click', closeDeckBuilderModal);
+  }
+  if (modalDeckBuilder) {
+    modalDeckBuilder.addEventListener('click', (e) => {
+      if (e.target === modalDeckBuilder) closeDeckBuilderModal();
+    });
+  }
+
+  // Create new custom deck
+  if (btnCreateNewDeck) {
+    btnCreateNewDeck.addEventListener('click', () => {
+      if (typeof window.DeckStorage === 'undefined') return;
+      const count = window.DeckStorage.getAllDecks().filter(d => !d.isDefault).length + 1;
+      const name = prompt('Введите название для новой колоды:', `Моя колода #${count}`);
+      if (name === null) return;
+      const newDeck = window.DeckStorage.createDeck(name, currentEditingDeckId);
+      currentEditingDeckId = newDeck.id;
+      showToast(`✨ Создана новая колода «${newDeck.name}»!`);
+      renderDeckBuilder();
+      updateLobbyDeckBanner();
+    });
+  }
+
+  // Save deck name
+  if (btnSaveDeckName) {
+    btnSaveDeckName.addEventListener('click', () => {
+      const deck = getCurrentEditingDeck();
+      if (!deck || deck.isDefault || !deckNameInput) return;
+      const newName = deckNameInput.value.trim();
+      if (newName) {
+        deck.name = newName;
+        window.DeckStorage.saveDeck(deck);
+        showToast(`💾 Название обновлено: «${deck.name}»`);
+        renderPresetTabs();
+        updateLobbyDeckBanner();
+      }
+    });
+  }
+
+  // Set as combat active deck
+  if (btnSetActiveDeck) {
+    btnSetActiveDeck.addEventListener('click', () => {
+      const deck = getCurrentEditingDeck();
+      if (!deck || typeof window.DeckStorage === 'undefined') return;
+      window.DeckStorage.setActiveDeckId(deck.id);
+      showToast(`⭐ Колода «${deck.name}» выбрана для боя!`);
+      renderDeckBuilder();
+      updateLobbyDeckBanner();
+    });
+  }
+
+  // Duplicate deck
+  if (btnDuplicateDeck) {
+    btnDuplicateDeck.addEventListener('click', () => {
+      const deck = getCurrentEditingDeck();
+      if (!deck || typeof window.DeckStorage === 'undefined') return;
+      const newDeck = window.DeckStorage.createDeck(`${deck.name} (Копия)`, deck.id);
+      currentEditingDeckId = newDeck.id;
+      showToast(`📋 Создана копия: «${newDeck.name}»!`);
+      renderDeckBuilder();
+      updateLobbyDeckBanner();
+    });
+  }
+
+  // Delete custom deck
+  if (btnDeleteDeck) {
+    btnDeleteDeck.addEventListener('click', () => {
+      const deck = getCurrentEditingDeck();
+      if (!deck || deck.isDefault || typeof window.DeckStorage === 'undefined') return;
+      if (confirm(`Удалить колоду «${deck.name}»? Это действие нельзя отменить.`)) {
+        window.DeckStorage.deleteDeck(deck.id);
+        currentEditingDeckId = window.DeckStorage.getActiveDeckId();
+        showToast('🗑️ Пользовательская колода удалена.');
+        renderDeckBuilder();
+        updateLobbyDeckBanner();
+      }
+    });
+  }
+
+  // Autofill to 30 cards
+  if (btnAutofillDeck) {
+    btnAutofillDeck.addEventListener('click', () => {
+      const deck = getCurrentEditingDeck();
+      if (!deck) return;
+      if (deck.isDefault) {
+        const cloned = window.DeckStorage.createDeck(`${deck.name} (Моя версия)`, deck.id);
+        currentEditingDeckId = cloned.id;
+        showToast(`📝 Создана копия «${cloned.name}» для настройки!`);
+        btnAutofillDeck.click();
+        return;
+      }
+      if (deck.cards.length >= 30) {
+        showToast('Колода уже полностью заполнена (30/30)!');
+        return;
+      }
+      deck.cards = window.DeckStorage.sanitizeCardList(deck.cards);
+      window.DeckStorage.saveDeck(deck);
+      showToast('🪄 Колода дополнена до 30 сбалансированных карт!');
+      renderDeckBuilder();
+      updateLobbyDeckBanner();
+    });
+  }
+
+  // Clear deck
+  if (btnClearDeck) {
+    btnClearDeck.addEventListener('click', () => {
+      const deck = getCurrentEditingDeck();
+      if (!deck) return;
+      if (deck.isDefault) {
+        const cloned = window.DeckStorage.createDeck(`${deck.name} (Моя версия)`, deck.id);
+        currentEditingDeckId = cloned.id;
+        showToast(`📝 Создана копия «${cloned.name}» для настройки!`);
+        btnClearDeck.click();
+        return;
+      }
+      if (confirm('Очистить все карты из этой колоды?')) {
+        deck.cards = [];
+        window.DeckStorage.saveDeck(deck);
+        showToast('🧹 Колода очищена. Теперь выберите свои карты!');
+        renderDeckBuilder();
+        updateLobbyDeckBanner();
+      }
+    });
+  }
+
+  // Search input in Deck Builder
+  if (dbSearchInput) {
+    dbSearchInput.addEventListener('input', (e) => {
+      currentCatalogSearch = e.target.value.toLowerCase().trim();
+      const deck = getCurrentEditingDeck();
+      if (deck) renderCatalogCards(deck);
+    });
+  }
+
+  // Magic School filter chips in Deck Builder
+  if (dbCategoryChips) {
+    dbCategoryChips.forEach(chip => {
+      chip.addEventListener('click', () => {
+        dbCategoryChips.forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        currentCatalogCategory = chip.getAttribute('data-cat') || 'all';
+        const deck = getCurrentEditingDeck();
+        if (deck) renderCatalogCards(deck);
+      });
+    });
+  }
+
+  // Mana filter chips in Deck Builder
+  if (dbManaChips) {
+    dbManaChips.forEach(chip => {
+      chip.addEventListener('click', () => {
+        dbManaChips.forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        currentCatalogMana = chip.getAttribute('data-mana') || 'all';
+        const deck = getCurrentEditingDeck();
+        if (deck) renderCatalogCards(deck);
+      });
+    });
+  }
+
+  // Variant select change -> toggle lobby deck banner
+  if (gameVariantSelect) {
+    gameVariantSelect.addEventListener('change', () => {
+      updateLobbyDeckBanner();
+    });
+  }
+
   // Global document click to close HUD menu
   document.addEventListener('click', (e) => {
     if (gameMenuDropdown && !gameMenuDropdown.classList.contains('hidden')) {
@@ -3600,6 +4164,7 @@ document.addEventListener('DOMContentLoaded', () => {
       closeEffectDetailsModal();
       closeCardsInventory();
       closeRulesModal();
+      closeDeckBuilderModal();
       if (modalLogs) modalLogs.classList.add('hidden');
       toggleGameMenu(true);
       if (pendingCard) cancelTargeting();
@@ -3659,9 +4224,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Auto-join from URL hash (e.g. #ABC123 or ?room=ABC123)
   const hash = window.location.hash ? window.location.hash.substring(1).trim().toUpperCase() : '';
-  const urlParams = new URLSearchParams(window.location.search);
+  const searchStr = window.location.search || (window.location.href.includes('?') ? window.location.href.substring(window.location.href.indexOf('?')) : '');
+  const urlParams = new URLSearchParams(searchStr);
   const roomParam = urlParams.get('room') ? urlParams.get('room').trim().toUpperCase() : '';
-  const initialRoom = hash || roomParam;
+  const initialRoom = (hash && !hash.startsWith('TEST_')) ? hash : roomParam;
+
+  // Initialize Lobby Deck Banner
+  updateLobbyDeckBanner();
 
   // Dismiss decree tooltips on click outside
   document.addEventListener('click', () => {
@@ -3753,5 +4322,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showCardPlayCinematic(curseCard, false);
       }
     }, 200);
+  } else if (urlParams.get('test_deckbuilder')) {
+    openDeckBuilderModal();
   }
 });
