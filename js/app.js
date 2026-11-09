@@ -133,6 +133,68 @@ document.addEventListener('DOMContentLoaded', () => {
     modalRules.classList.add('hidden');
   }
 
+  let currentSpellbookFilter = 'all';
+  let currentSpellbookSearch = '';
+
+  function renderDynamicSpellbook(filter = null, query = null) {
+    const listEl = document.getElementById('spellbook-dynamic-list');
+    if (!listEl) return;
+    if (filter !== null) currentSpellbookFilter = filter;
+    if (query !== null) currentSpellbookSearch = query.toLowerCase().trim();
+
+    listEl.innerHTML = '';
+    const cards = (typeof CARDS_DATABASE !== 'undefined') ? CARDS_DATABASE : [];
+
+    const filtered = cards.filter(card => {
+      if (currentSpellbookFilter === 'spell' && card.type !== 'spell') return false;
+      if (currentSpellbookFilter === 'decree' && card.type !== 'decree') return false;
+      if (['COMMON', 'RARE', 'EPIC', 'LEGENDARY'].includes(currentSpellbookFilter) && card.rarity !== currentSpellbookFilter) return false;
+
+      if (currentSpellbookSearch) {
+        const text = `${card.name} ${card.description} ${card.tip || ''} ${card.type}`.toLowerCase();
+        if (!text.includes(currentSpellbookSearch)) return false;
+      }
+      return true;
+    });
+
+    if (filtered.length === 0) {
+      listEl.innerHTML = `
+        <div style="text-align: center; padding: 2rem; color: var(--text-muted);">
+          <div style="font-size: 2rem; margin-bottom: 0.5rem;">🔍</div>
+          Карты по запросу не найдены. Попробуйте изменить фильтр.
+        </div>
+      `;
+      return;
+    }
+
+    filtered.forEach(card => {
+      const rarityData = CARD_RARITIES[card.rarity] || CARD_RARITIES.COMMON;
+      const cardEl = document.createElement('div');
+      cardEl.className = `spellbook-card rarity-${card.rarity.toLowerCase()}`;
+
+      const typeLabel = card.type === 'decree' 
+        ? (card.duration ? `УКАЗ • ${card.duration} ХОДА` : 'УКАЗ')
+        : (card.duration ? `ЗАКЛИНАНИЕ • ${card.duration} ХОДА` : 'ЗАКЛИНАНИЕ');
+
+      cardEl.innerHTML = `
+        <div class="sbc-header">
+          <span class="sbc-icon">${card.icon}</span>
+          <div class="sbc-title-group">
+            <div class="sbc-name">${card.name}</div>
+            <div class="sbc-tags">
+              <span class="sbc-mana-badge">💎 ${card.manaCost || 1} Маны</span>
+              <span class="sbc-tag ${card.type}">${typeLabel}</span>
+              <span class="sbc-rarity ${card.rarity.toLowerCase()}">${rarityData.name}</span>
+            </div>
+          </div>
+        </div>
+        <div class="sbc-desc">${card.description}</div>
+        ${card.tip ? `<div class="sbc-tip">💡 Совет: ${card.tip}</div>` : ''}
+      `;
+      listEl.appendChild(cardEl);
+    });
+  }
+
   function switchRulesTab(tabId) {
     if (rulesTabBtns) {
       rulesTabBtns.forEach(btn => {
@@ -145,6 +207,9 @@ document.addEventListener('DOMContentLoaded', () => {
         content.classList.toggle('hidden', !isTarget);
         content.classList.toggle('active', isTarget);
       });
+    }
+    if (tabId === 'spellbook') {
+      renderDynamicSpellbook();
     }
   }
 
@@ -194,6 +259,58 @@ document.addEventListener('DOMContentLoaded', () => {
         return 'Соперник поменял местами своего Коня и свою Пешку на доске!';
       case 'alchemist_gold':
         return 'Соперник сбросил карту и получил 2 новые случайные карты в руку!';
+      case 'explosive_trap':
+        return 'Секрет соперника: если вы шагнёте на его половину доски — ваша фигура застынет во льду на 1 ход!';
+      case 'gravity_well':
+        return 'Гравитационная воронка: если вы войдёте в центр (d4, d5, e4, e5), ваша фигура замёрзнет на 1 ход!';
+      case 'curse_greed':
+        return 'Проклятие Жадности: если вы срубите пешку соперника — потеряете карту из руки, а он получит +1 карту!';
+      case 'counterspell':
+        return 'Секрет соперника: ваше следующее разыгранное заклинание будет отменено!';
+      case 'divine_shield':
+        return sq
+          ? `Фигура соперника на клетке ${sq} защищена Божественным Щитом на 2 хода и не может быть взята!`
+          : 'Фигура соперника защищена Божественным Щитом на 2 хода!';
+      case 'void_teleport':
+        return 'Соперник открыл Портал Бездны и телепортировал свою фигуру в безопасное место!';
+      case 'mirror_image':
+        return 'Соперник призвал две призрачные пешки для укрепления позиций!';
+      case 'polymorph':
+        return sq
+          ? `Ваш офицер на клетке ${sq} обращён в беззащитную пешку-лягушку на 2 хода!`
+          : 'Ваш офицер обращён в пешку-лягушку на 2 хода!';
+      case 'deadly_poison':
+        return sq
+          ? `Пешка соперника на ${sq} покрыта смертельным ядом! Не берите её, иначе нападавший погибнет!`
+          : 'Пешка соперника ядовита!';
+      case 'whirlwind':
+        return 'Вихрь ветров сдвинул всех коней на доске на 1 клетку вправо!';
+      case 'iron_guard':
+        return sq
+          ? `Фигура соперника на ${sq} получила Железный Панцирь и неуязвима ко льду на 2 хода!`
+          : 'Фигура соперника получила Железный Панцирь!';
+      case 'arcane_intellect':
+        return 'Соперник постиг Чародейский Интеллект и взял +2 новые карты из колоды!';
+      case 'mind_vision':
+        return 'Соперник заглянул в ваш разум и скопировал случайную карту из вашей руки!';
+      case 'confusion_step':
+        return sq
+          ? `Ваша фигура на клетке ${sq} оглушена астральным ударом и застыла во льду на 1 ход!`
+          : 'Ваша фигура оглушена и застыла во льду на 1 ход!';
+      case 'meteor_strike':
+        return sq
+          ? `Пылающий метеорит упал на клетку ${sq} и стёр вашу фигуру с доски!`
+          : 'Метеоритный удар уничтожил вашу фигуру!';
+      case 'blessing_kings':
+        return sq
+          ? `Пешка соперника на клетке ${sq} благословлена и стала верным Конём!`
+          : 'Пешка соперника стала Конём!';
+      case 'holy_well':
+        return 'Священный источник сокрушил весь лёд: все фигуры соперника очищены от заморозки!';
+      case 'resurrection':
+        return sq
+          ? `Соперник совершил Великое Возрождение и призвал павшего Коня на клетку ${sq}!`
+          : 'Соперник призвал павшего Коня на поле боя!';
       default:
         return card.description;
     }
@@ -441,6 +558,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let pendingCard = null; // Card currently being targeted
   let targetingStep = 1;
   let shadowSwapKnight = null;
+  let voidTeleportPiece = null;
 
   // Timers
   let timeInitial = 600; // in seconds (10 min)
@@ -647,7 +765,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       cardEl.innerHTML = `
         <div class="card-top-bar">
-          <span class="card-gem"></span>
+          <span class="card-mana" title="Стоимость: ${card.manaCost || 1} маны">💎 ${card.manaCost || 1}</span>
           <span class="card-type-tag">${card.type === 'decree' ? 'УКАЗ' : 'СПЕЛЛ'}</span>
         </div>
         <div class="card-art-box">
@@ -755,6 +873,38 @@ document.addEventListener('DOMContentLoaded', () => {
           penalty: isEnemy ? 'Ваша фигура застынет во льду на 1 ход ❄️' : 'Фигура соперника застынет во льду на 1 ход ❄️',
           shortDesc: isEnemy ? 'Если наступите на метку ➔ ваша фигура замёрзнет' : 'Враг наступает на метку ➔ замёрзнет на 1 ход',
           advice: isEnemy ? 'Не ставьте свои фигуры на эту клетку, иначе они замёрзнут!' : 'Клетка заминирована вами. Противник замёрзнет, если рискнёт наступить.'
+        };
+      case 'explosive_trap':
+        return {
+          target: isEnemy ? 'Территория соперника 💣' : 'Ваша половина доски 💣',
+          trigger: isEnemy ? 'Если ВЫ шагнёте фигурой на половину поля соперника' : 'Ход соперника на вашу половину доски',
+          penalty: isEnemy ? 'Ваша атакующая фигура застынет во льду на 1 ход ❄️' : 'Атакующая фигура соперника застынет во льду на 1 ход ❄️',
+          shortDesc: isEnemy ? 'Шаг на территорию врага ➔ фигура замёрзнет' : 'Враг наступает на вашу половину ➔ замёрзнет',
+          advice: isEnemy ? 'Осторожно! На стороне соперника заложена взрывная ловушка. Любой пересёкший середину доски боец замёрзнет!' : 'Ловушка сработает, как только враг попытается войти на вашу половину поля.'
+        };
+      case 'gravity_well':
+        return {
+          target: isEnemy ? 'Центр доски (d4, d5, e4, e5) 🕳️' : 'Центр доски 🕳️',
+          trigger: isEnemy ? 'Если ВЫ пойдёте фигурой в центр' : 'Ход соперника в центр',
+          penalty: isEnemy ? 'Ваша фигура застынет во льду на 1 ход ❄️' : 'Фигура соперника застынет во льду на 1 ход ❄️',
+          shortDesc: isEnemy ? 'Ход в центр ➔ фигура затянется в воронку' : 'Враг идёт в центр ➔ замёрзнет в воронке',
+          advice: isEnemy ? 'Не ходите в центральные клетки (d4, d5, e4, e5), иначе фигура застынет во льду!' : 'Центр заблокирован гравитационной воронкой.'
+        };
+      case 'curse_greed':
+        return {
+          target: isEnemy ? 'Взятие чужих пешек 💰' : 'Защита ваших пешек 💰',
+          trigger: isEnemy ? 'Если ВЫ срубите пешку соперника' : 'Соперник рубит вашу пешку',
+          penalty: isEnemy ? 'Вы теряете 1 карту из руки, а соперник берёт +1 карту' : 'Враг теряет карту, а вы берёте +1 карту',
+          shortDesc: isEnemy ? 'Взятие пешки ➔ потеря карты из руки' : 'Враг берет пешку ➔ теряет карту, вы берёте +1',
+          advice: isEnemy ? 'Не рубите пешки соперника следующие 2-3 хода, иначе потеряете ценную карту из руки!' : 'Если враг позарится на ваши пешки, он заплатит сбросом карты.'
+        };
+      case 'counterspell':
+        return {
+          target: isEnemy ? 'Ваше следующее заклинание 🔮' : 'Заклинание соперника 🔮',
+          trigger: isEnemy ? 'Розыгрыш вами любого заклинания' : 'Розыгрыш соперником заклинания',
+          penalty: isEnemy ? 'Ваше заклинание полностью отменяется!' : 'Заклинание соперника отменяется!',
+          shortDesc: isEnemy ? 'Следующее заклинание будет отменено ➔ Антимагия' : 'Секрет: заклинание врага будет нейтрализовано',
+          advice: isEnemy ? 'Внимание! Соперник поставил Антимагическую Сферу: используйте дешёвое заклинание, чтобы снять секрет!' : 'Следующее заклинание противника обратится в ничто.'
         };
       default:
         return {
@@ -1132,6 +1282,31 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    // Special multi-step handling for Void Teleport
+    if (card.id === 'void_teleport') {
+      const bState = game.board();
+      let hasMyPiece = false;
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          const p = bState[r][c];
+          if (p && p.color === myColor && p.type !== 'k') hasMyPiece = true;
+        }
+      }
+      if (!hasMyPiece) {
+        showToast('На доске нет подходящих фигур для телепортации!');
+        return;
+      }
+
+      pendingCard = card;
+      targetingStep = 1;
+      voidTeleportPiece = null;
+      targetingBanner.classList.remove('hidden');
+      document.getElementById('targeting-instructions').innerHTML = 'Шаг 1 из 2: <strong>Выберите вашу фигуру</strong> (кроме короля)';
+      boardUI.setTargetingMode('my_piece');
+      showToast('Шаг 1: Кликните по фигуре, которую хотите переместить');
+      return;
+    }
+
     if (card.requiresTarget) {
       pendingCard = card;
       targetingBanner.classList.remove('hidden');
@@ -1147,6 +1322,7 @@ document.addEventListener('DOMContentLoaded', () => {
     pendingCard = null;
     targetingStep = 1;
     shadowSwapKnight = null;
+    voidTeleportPiece = null;
     targetingBanner.classList.add('hidden');
     if (boardUI) boardUI.setTargetingMode(null);
   }
@@ -1174,9 +1350,52 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
+    if (pendingCard.id === 'void_teleport') {
+      if (targetingStep === 1) {
+        voidTeleportPiece = square;
+        targetingStep = 2;
+        boardUI.setTargetingMode('teleport_dest', voidTeleportPiece);
+        document.getElementById('targeting-instructions').innerHTML = `Шаг 2 из 2: <strong>Выберите свободную клетку</strong> на вашей половине доски`;
+        showToast(`Фигура (${square.toUpperCase()}) выбрана! Теперь кликните по свободной клетке`);
+        return;
+      } else if (targetingStep === 2) {
+        const toSquare = square;
+        const fromSquare = voidTeleportPiece;
+        const card = pendingCard;
+        cancelTargeting();
+        applyVoidTeleport(fromSquare, toSquare, false, card);
+        return;
+      }
+    }
+
     const card = pendingCard;
     cancelTargeting();
     applyCardEffect(card, square, false);
+  }
+
+  function applyVoidTeleport(fromSquare, toSquare, isRemote = false, card = null) {
+    const piece = game.get(fromSquare);
+    if (!piece || game.get(toSquare)) return;
+
+    game.remove(fromSquare);
+    game.put(piece, toSquare);
+    game.load(game.fen());
+
+    const activeCard = card || pendingCard || { name: 'Портал Бездны', icon: '🌀' };
+    showCardPlayCinematic(activeCard, !isRemote, `${fromSquare.toUpperCase()} ➔ ${toSquare.toUpperCase()}`);
+
+    if (!isRemote) {
+      if (activeCard && activeCard.instanceId) deckManager.removeCard(activeCard.instanceId);
+      if (mode === 'online') {
+        network.sendCardPlay(activeCard, toSquare, myColor, 'void_teleport', { fromSq: fromSquare, toSq: toSquare }, game.fen());
+      }
+    }
+
+    if (window.sounds) window.sounds.play('thunder');
+    showToast(`🌀 «Портал Бездны»: фигура перемещена с ${fromSquare.toUpperCase()} на ${toSquare.toUpperCase()}!`);
+    boardUI.lastMove = { from: fromSquare, to: toSquare };
+    renderCardsHand();
+    if (boardUI) boardUI.render();
   }
 
   function applyShadowSwap(knightSq, pawnSq, isRemote = false, card = null) {
@@ -1240,6 +1459,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (window.logger) {
       window.logger.card(casterColor, card, targetSquare, isRemote);
+    }
+
+    // Check if opponent has Counterspell secret active!
+    if (card.type !== 'decree') {
+      const csIdx = deckManager.activeDecrees.findIndex(d => d.id === 'counterspell' && d.owner !== casterColor);
+      if (csIdx !== -1) {
+        deckManager.activeDecrees.splice(csIdx, 1);
+        if (window.sounds) window.sounds.play('curse_trigger');
+        if (casterColor === myColor) {
+          showToast(`🔮 «Антимагическая Сфера» соперника сработала! Ваше заклинание «${card.name}» нейтрализовано!`, 5000);
+        } else {
+          showToast(`🔮 Ваша «Антимагическая Сфера» сработала! Заклинание соперника «${card.name}» нейтрализовано!`, 5000);
+        }
+        renderCardsHand();
+        renderActiveDecrees();
+        if (boardUI) boardUI.render();
+        return;
+      }
     }
 
     // Apply Effect
@@ -1375,6 +1612,179 @@ document.addEventListener('DOMContentLoaded', () => {
           if (window.sounds) window.sounds.play('thunder');
           showToast('⚡ Небесный Гром заморозил всех вражеских коней и слонов!');
           break;
+
+        case 'divine_shield':
+          if (targetSquare) {
+            deckManager.addDivineShield(targetSquare, casterColor, 2, totalMovesCount);
+            if (window.sounds) window.sounds.play('card_play');
+            showToast(`🛡️ «Божественный Щит»: фигура на ${targetSquare.toUpperCase()} защищена от любых взятий на 2 хода!`);
+          }
+          break;
+
+        case 'mirror_image': {
+          const rank = casterColor === 'w' ? 2 : 7;
+          let spawned = 0;
+          const files = ['d', 'e', 'c', 'f', 'b', 'g', 'a', 'h'];
+          for (const f of files) {
+            const sq = f + rank;
+            if (!game.get(sq)) {
+              game.put({ type: 'p', color: casterColor }, sq);
+              spawned++;
+              if (spawned >= 2) break;
+            }
+          }
+          game.load(game.fen());
+          if (window.sounds) window.sounds.play('card_play');
+          showToast(`🪞 «Зеркальные Копии»: призвано ${spawned} призрачных пешек на ${rank}-й ряд!`);
+          break;
+        }
+
+        case 'polymorph':
+          if (targetSquare) {
+            const p = game.get(targetSquare);
+            if (p && p.color !== casterColor && p.type !== 'k' && p.type !== 'p') {
+              deckManager.addPolymorph(targetSquare, p.type, p.color, 2, totalMovesCount);
+              game.remove(targetSquare);
+              game.put({ type: 'p', color: p.color }, targetSquare);
+              game.load(game.fen());
+              if (window.sounds) window.sounds.play('curse_trigger');
+              showToast(`🐸 «Превращение»: офицер соперника на ${targetSquare.toUpperCase()} обращён в пешку на 2 хода!`, 5000);
+            }
+          }
+          break;
+
+        case 'deadly_poison':
+          if (targetSquare) {
+            deckManager.addDeadlyPoison(targetSquare, casterColor, 2, totalMovesCount);
+            if (window.sounds) window.sounds.play('curse');
+            showToast(`🧪 «Смертельный Яд»: пешка на ${targetSquare.toUpperCase()} отравлена! Любой нападавший погибнет.`);
+          }
+          break;
+
+        case 'whirlwind': {
+          const b = game.board();
+          const knights = [];
+          for (let r = 0; r < 8; r++) {
+            for (let c = 0; c < 8; c++) {
+              const p = b[r][c];
+              if (p && p.type === 'n') {
+                knights.push({ square: String.fromCharCode(97 + c) + (8 - r), col: c, row: r, piece: p });
+              }
+            }
+          }
+          knights.sort((a, b) => b.col - a.col);
+          let shifted = 0;
+          knights.forEach(k => {
+            if (k.col < 7) {
+              const targetSq = String.fromCharCode(97 + k.col + 1) + (8 - k.row);
+              if (!game.get(targetSq)) {
+                game.remove(k.square);
+                game.put(k.piece, targetSq);
+                shifted++;
+              }
+            }
+          });
+          if (shifted > 0) {
+            game.load(game.fen());
+            if (window.sounds) window.sounds.play('thunder');
+            showToast(`🌪️ «Вихрь Ветров»: сдвинул ${shifted} коней на 1 клетку вправо!`);
+          } else {
+            showToast('🌪️ «Вихрь Ветров» пронёсся над доской.');
+          }
+          break;
+        }
+
+        case 'iron_guard':
+          if (targetSquare) {
+            deckManager.addIronGuard(targetSquare, casterColor, 2, totalMovesCount);
+            if (window.sounds) window.sounds.play('card_play');
+            showToast(`🛡️ «Железный Панцирь»: фигура на ${targetSquare.toUpperCase()} неуязвима ко льду на 2 хода!`);
+          }
+          break;
+
+        case 'arcane_intellect':
+          if (!isRemote) {
+            triggerCardDraw();
+            triggerCardDraw();
+            showToast('📖 «Чародейский Интеллект»: получено 2 новые карты в руку!');
+          } else if (botDeckManager) {
+            botDeckManager.drawCard();
+            botDeckManager.drawCard();
+          }
+          break;
+
+        case 'mind_vision': {
+          let copied = null;
+          if (!isRemote) {
+            if (botDeckManager && botDeckManager.hand.length > 0) {
+              copied = botDeckManager.hand[Math.floor(Math.random() * botDeckManager.hand.length)];
+            }
+          } else {
+            if (deckManager.hand.length > 0) {
+              copied = deckManager.hand[Math.floor(Math.random() * deckManager.hand.length)];
+            }
+          }
+          if (!copied) {
+            copied = deckManager.deck[Math.floor(Math.random() * deckManager.deck.length)];
+          }
+          if (!isRemote) {
+            deckManager.hand.push({ ...copied, instanceId: 'c_' + Math.random().toString(36).substr(2, 9) });
+            renderCardsHand();
+            showToast(`👁️ «Взгляд в Разум»: скопирована карта «${copied.name}»!`);
+          } else if (botDeckManager) {
+            botDeckManager.hand.push({ ...copied, instanceId: 'c_' + Math.random().toString(36).substr(2, 9) });
+          }
+          break;
+        }
+
+        case 'confusion_step':
+          if (targetSquare) {
+            const oppCol = casterColor === 'w' ? 'b' : 'w';
+            deckManager.freezePiece(targetSquare, oppCol, 1, totalMovesCount, 'confusion_step');
+            if (window.sounds) window.sounds.play('freeze');
+            showToast(`💫 «Астральное Оглушение»: фигура на ${targetSquare.toUpperCase()} застыла во льду на 1 ход!`);
+          }
+          break;
+
+        case 'meteor_strike':
+          if (targetSquare) {
+            const p = game.get(targetSquare);
+            if (p && p.color !== casterColor && ['p', 'b', 'n'].includes(p.type)) {
+              game.remove(targetSquare);
+              game.load(game.fen());
+              if (window.sounds) window.sounds.play('explosion');
+              showToast(`☄️ «Метеоритный Удар»: фигура на ${targetSquare.toUpperCase()} стёрта с доски!`, 5000);
+            }
+          }
+          break;
+
+        case 'blessing_kings':
+          if (targetSquare) {
+            const p = game.get(targetSquare);
+            if (p && p.type === 'p') {
+              game.remove(targetSquare);
+              game.put({ type: 'n', color: casterColor }, targetSquare);
+              game.load(game.fen());
+              if (window.sounds) window.sounds.play('castle');
+              showToast(`🌟 «Благословение Королей»: Пешка на ${targetSquare.toUpperCase()} стала верным Конём!`);
+            }
+          }
+          break;
+
+        case 'holy_well':
+          deckManager.cleanseFrozen(casterColor);
+          if (window.sounds) window.sounds.play('card_play');
+          showToast('💧 «Священный Источник»: весь лёд сокрушён! Ваши фигуры очищены!');
+          break;
+
+        case 'resurrection':
+          if (targetSquare && !game.get(targetSquare)) {
+            game.put({ type: 'n', color: casterColor }, targetSquare);
+            game.load(game.fen());
+            if (window.sounds) window.sounds.play('card_play');
+            showToast(`🕊️ «Великое Возрождение»: Конь призван на клетку ${targetSquare.toUpperCase()}!`);
+          }
+          break;
       }
     }
 
@@ -1445,7 +1855,69 @@ document.addEventListener('DOMContentLoaded', () => {
           showToast(`🩸 Ваше «Возмездие Крови» сработало: фигура соперника на ${moveResult.to.toUpperCase()} заморожена за взятие!`, 4500);
         }
       }
+
+      // 5. Explosive Trap
+      if (d.id === 'explosive_trap') {
+        const destRank = parseInt(moveResult.to[1], 10);
+        const enteredHalf = (d.owner === 'w' && destRank <= 4) || (d.owner === 'b' && destRank >= 5);
+        if (enteredHalf) {
+          deckManager.freezePiece(moveResult.to, movedColor, 1, ply, 'explosive_trap');
+          d.duration = 0;
+          d.state = EFFECT_STATE.EXPIRED;
+          if (window.sounds) {
+            window.sounds.play('curse_trigger');
+            setTimeout(() => window.sounds.play('freeze'), 150);
+          }
+          if (movedColor === myColor) {
+            showToast(`💣 «Взрывная Ловушка»: вы шагнули на территорию врага — фигура на ${moveResult.to.toUpperCase()} застыла во льду!`, 4500);
+          } else {
+            showToast(`💣 Ваша «Взрывная Ловушка» сдетонировала: фигура соперника на ${moveResult.to.toUpperCase()} застыла во льду!`, 4500);
+          }
+        }
+      }
+
+      // 6. Gravity Well
+      if (d.id === 'gravity_well' && ['d4', 'd5', 'e4', 'e5'].includes(moveResult.to)) {
+        deckManager.freezePiece(moveResult.to, movedColor, 1, ply, 'gravity_well');
+        if (window.sounds) {
+          window.sounds.play('curse_trigger');
+          setTimeout(() => window.sounds.play('freeze'), 150);
+        }
+        if (movedColor === myColor) {
+          showToast(`🕳️ «Гравитационная Воронка»: вы вошли в центр — фигура на ${moveResult.to.toUpperCase()} скована во льду!`, 4500);
+        } else {
+          showToast(`🕳️ Ваша «Гравитационная Воронка» сработала: фигура соперника на ${moveResult.to.toUpperCase()} скована льдом!`, 4500);
+        }
+      }
+
+      // 7. Curse Greed
+      if (d.id === 'curse_greed' && moveResult.captured === 'p') {
+        if (d.owner === myColor) {
+          triggerCardDraw();
+          if (botDeckManager && botDeckManager.hand.length > 0) botDeckManager.hand.splice(0, 1);
+          showToast('💰 «Проклятие Жадности»: соперник взял пешку и потерял карту! Вы получаете +1 карту!', 4500);
+        } else {
+          if (deckManager.hand.length > 0) {
+            deckManager.hand.splice(0, 1);
+            renderCardsHand();
+          }
+          showToast('⚠️ «Проклятие Жадности»: вы взяли пешку соперника и потеряли карту из руки!', 4500);
+        }
+      }
     });
+
+    // Check Deadly Poison retaliation if captured piece was poisoned
+    if (moveResult.captured && deckManager.hasDeadlyPoison && deckManager.hasDeadlyPoison(moveResult.to)) {
+      game.remove(moveResult.to);
+      game.load(game.fen());
+      delete deckManager.deadlyPoisons[moveResult.to];
+      if (window.sounds) window.sounds.play('curse_trigger');
+      if (movedColor === myColor) {
+        showToast(`🧪 «Смертельный Яд»: ваша нападавшая фигура на ${moveResult.to.toUpperCase()} погибла от яда взятой пешки!`, 5000);
+      } else {
+        showToast(`🧪 Ваш «Смертельный Яд» сработал: фигура соперника на ${moveResult.to.toUpperCase()} уничтожена ядом!`, 5000);
+      }
+    }
 
     // Check forbidden square trigger
     if (deckManager.forbiddenSquares[moveResult.to]) {
@@ -1605,6 +2077,122 @@ document.addEventListener('DOMContentLoaded', () => {
         botDeckManager.drawCard();
         botDeckManager.drawCard();
         applyCardEffect(card, null, true);
+        break;
+      }
+
+      case 'divine_shield':
+      case 'iron_guard': {
+        const b = game.board();
+        let targetSq = null;
+        for (let r = 0; r < 8; r++) {
+          for (let c = 0; c < 8; c++) {
+            const p = b[r][c];
+            if (p && p.color === botColor && ['q', 'r', 'n', 'b'].includes(p.type)) {
+              targetSq = String.fromCharCode(97 + c) + (8 - r);
+              break;
+            }
+          }
+          if (targetSq) break;
+        }
+        if (targetSq) {
+          botDeckManager.removeCard(card.instanceId);
+          applyCardEffect(card, targetSq, true);
+        }
+        break;
+      }
+
+      case 'polymorph': {
+        const b = game.board();
+        let targetSq = null;
+        for (let r = 0; r < 8; r++) {
+          for (let c = 0; c < 8; c++) {
+            const p = b[r][c];
+            if (p && p.color === humanColor && ['q', 'r', 'b', 'n'].includes(p.type)) {
+              targetSq = String.fromCharCode(97 + c) + (8 - r);
+              if (p.type === 'q') break; // Prioritize queen!
+            }
+          }
+        }
+        if (targetSq) {
+          botDeckManager.removeCard(card.instanceId);
+          applyCardEffect(card, targetSq, true);
+        }
+        break;
+      }
+
+      case 'meteor_strike': {
+        const b = game.board();
+        let targetSq = null;
+        for (let r = 0; r < 8; r++) {
+          for (let c = 0; c < 8; c++) {
+            const p = b[r][c];
+            if (p && p.color === humanColor && ['n', 'b', 'p'].includes(p.type)) {
+              targetSq = String.fromCharCode(97 + c) + (8 - r);
+              if (p.type === 'n' || p.type === 'b') break;
+            }
+          }
+        }
+        if (targetSq) {
+          botDeckManager.removeCard(card.instanceId);
+          applyCardEffect(card, targetSq, true);
+        }
+        break;
+      }
+
+      case 'blessing_kings':
+      case 'deadly_poison': {
+        const b = game.board();
+        let pawnSq = null;
+        for (let r = 0; r < 8; r++) {
+          for (let c = 0; c < 8; c++) {
+            const p = b[r][c];
+            if (p && p.color === botColor && p.type === 'p') {
+              pawnSq = String.fromCharCode(97 + c) + (8 - r);
+              break;
+            }
+          }
+          if (pawnSq) break;
+        }
+        if (pawnSq) {
+          botDeckManager.removeCard(card.instanceId);
+          applyCardEffect(card, pawnSq, true);
+        }
+        break;
+      }
+
+      case 'confusion_step': {
+        const b = game.board();
+        let targetSq = null;
+        for (let r = 0; r < 8; r++) {
+          for (let c = 0; c < 8; c++) {
+            const p = b[r][c];
+            if (p && p.color === humanColor && p.type !== 'k') {
+              targetSq = String.fromCharCode(97 + c) + (8 - r);
+              break;
+            }
+          }
+        }
+        if (targetSq) {
+          botDeckManager.removeCard(card.instanceId);
+          applyCardEffect(card, targetSq, true);
+        }
+        break;
+      }
+
+      case 'resurrection': {
+        const backRank = botColor === 'b' ? 8 : 1;
+        let emptySq = null;
+        for (let c = 0; c < 8; c++) {
+          const sq = String.fromCharCode(97 + c) + backRank;
+          if (!game.get(sq)) {
+            emptySq = sq;
+            break;
+          }
+        }
+        if (emptySq) {
+          botDeckManager.removeCard(card.instanceId);
+          applyCardEffect(card, emptySq, true);
+        }
         break;
       }
 
@@ -2129,6 +2717,8 @@ document.addEventListener('DOMContentLoaded', () => {
   network.on('cardPlay', (data) => {
     if (data.action === 'shadow_swap' && data.extraData) {
       applyShadowSwap(data.extraData.knightSq, data.extraData.pawnSq, true, data.card);
+    } else if (data.action === 'void_teleport' && data.extraData) {
+      applyVoidTeleport(data.extraData.fromSq, data.extraData.toSq, true, data.card);
     } else {
       applyCardEffect(data.card, data.targetSquare, true);
     }
@@ -2375,6 +2965,26 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.addEventListener('click', () => {
         const tab = btn.getAttribute('data-tab');
         if (tab) switchRulesTab(tab);
+      });
+    });
+  }
+
+  // Spellbook Search & Filters
+  const spellbookSearchInput = document.getElementById('spellbook-search-input');
+  if (spellbookSearchInput) {
+    spellbookSearchInput.addEventListener('input', (e) => {
+      renderDynamicSpellbook(null, e.target.value);
+    });
+  }
+
+  const spellbookFilterChips = document.querySelectorAll('.sbc-filter-chip');
+  if (spellbookFilterChips) {
+    spellbookFilterChips.forEach(chip => {
+      chip.addEventListener('click', () => {
+        spellbookFilterChips.forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        const filter = chip.getAttribute('data-filter');
+        renderDynamicSpellbook(filter, null);
       });
     });
   }

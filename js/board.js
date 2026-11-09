@@ -141,6 +141,33 @@ class ChessBoardUI {
           if (this.deckManager.smokeArea && this.deckManager.smokeArea.squares.includes(square)) {
             sqEl.classList.add('smoke-square');
           }
+
+          // Divine Shield
+          if (this.deckManager.hasDivineShield && this.deckManager.hasDivineShield(square)) {
+            sqEl.classList.add('divine-shield-square');
+            const shieldOverlay = document.createElement('div');
+            shieldOverlay.className = 'divine-shield-overlay';
+            shieldOverlay.innerHTML = '🛡️';
+            sqEl.appendChild(shieldOverlay);
+          }
+
+          // Iron Guard
+          if (this.deckManager.isIronGuarded && this.deckManager.isIronGuarded(square)) {
+            sqEl.classList.add('iron-guard-square');
+            const ironOverlay = document.createElement('div');
+            ironOverlay.className = 'iron-guard-overlay';
+            ironOverlay.innerHTML = '⚙️';
+            sqEl.appendChild(ironOverlay);
+          }
+
+          // Deadly Poison
+          if (this.deckManager.hasDeadlyPoison && this.deckManager.hasDeadlyPoison(square)) {
+            sqEl.classList.add('poison-square');
+            const poisonOverlay = document.createElement('div');
+            poisonOverlay.className = 'poison-overlay';
+            poisonOverlay.innerHTML = '🧪';
+            sqEl.appendChild(poisonOverlay);
+          }
         }
 
         // Render piece
@@ -221,20 +248,24 @@ class ChessBoardUI {
     switch (this.targetingMode) {
       case 'my_knight':
         return piece !== null && piece.color === turn && piece.type === 'n';
+      case 'my_piece':
+        return piece !== null && piece.color === turn && piece.type !== 'k';
       case 'my_pawn': {
         if (!piece || piece.color !== turn || piece.type !== 'p') return false;
         if (this.selectedTargetSquare) return true; // Step 2 of shadow swap
-        // For infantry march, square ahead must be on board and unoccupied
-        const fChar = square[0];
-        const cRank = parseInt(square[1], 10);
-        const nRank = turn === 'w' ? cRank + 1 : cRank - 1;
-        if (nRank < 1 || nRank > 8) return false;
-        return this.getPieceAt(fChar + nRank) === null;
+        // If targeting mode is plain my_pawn for blessing/poison, any pawn is valid
+        return true;
       }
       case 'empty_square':
         return piece === null;
       case 'enemy_piece':
         return piece !== null && piece.color === opponent && piece.type !== 'k';
+      case 'enemy_officer':
+        return piece !== null && piece.color === opponent && ['q', 'r', 'b', 'n'].includes(piece.type);
+      case 'enemy_light_piece':
+        return piece !== null && piece.color === opponent && ['p', 'b', 'n'].includes(piece.type);
+      case 'teleport_dest':
+        return piece === null && (turn === 'w' ? parseInt(square[1], 10) <= 4 : parseInt(square[1], 10) >= 5);
       case 'square':
         return true;
       case 'spawn_square':
@@ -274,6 +305,11 @@ class ChessBoardUI {
       // 4. Smoke Screen: no captures inside smoke
       if (this.deckManager.smokeArea && m.captured) {
         if (this.deckManager.smokeArea.squares.includes(m.to)) return false;
+      }
+
+      // 5. Divine Shield: cannot capture shielded piece
+      if (this.deckManager.hasDivineShield && m.captured) {
+        if (this.deckManager.hasDivineShield(m.to)) return false;
       }
 
       return true;
@@ -423,6 +459,14 @@ class ChessBoardUI {
       // 3. Smoke Screen: no captures inside smoke
       if (this.deckManager.smokeArea && targetPiece) {
         if (this.deckManager.smokeArea.squares.includes(to)) {
+          if (window.sounds) window.sounds.play('illegal');
+          return;
+        }
+      }
+
+      // 4. Divine Shield: cannot capture shielded piece
+      if (this.deckManager.hasDivineShield && targetPiece) {
+        if (this.deckManager.hasDivineShield(to)) {
           if (window.sounds) window.sounds.play('illegal');
           return;
         }

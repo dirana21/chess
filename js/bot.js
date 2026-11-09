@@ -179,6 +179,14 @@ class ChessBot {
           return true;
         });
       }
+
+      // Divine shield: no captures of shielded pieces
+      if (deckManager.hasDivineShield) {
+        moves = moves.filter(m => {
+          if (m.captured && deckManager.hasDivineShield(m.to)) return false;
+          return true;
+        });
+      }
     }
 
     if (moves.length === 0) return null;

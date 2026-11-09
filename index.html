@@ -481,7 +481,7 @@
 
         <div class="rules-nav-tabs">
           <button class="rules-tab-btn active" data-tab="cards-guide">🃏 Карты и Магия</button>
-          <button class="rules-tab-btn" data-tab="spellbook">✨ 10 Заклинаний</button>
+          <button class="rules-tab-btn" data-tab="spellbook">✨ Книга заклинаний (34)</button>
           <button class="rules-tab-btn" data-tab="classic-guide">♟️ Шахматы и таймеры</button>
           <button class="rules-tab-btn" data-tab="online-guide">🌐 Игра по сети</button>
         </div>
@@ -517,136 +517,20 @@
         </div>
 
         <div class="rules-tab-content hidden" id="tab-spellbook">
-          <div class="spellbook-list">
-            <!-- 1. Freeze Piece -->
-            <div class="spellbook-card rarity-common">
-              <div class="sbc-header">
-                <span class="sbc-icon">❄️</span>
-                <div class="sbc-title-group">
-                  <div class="sbc-name">Оковы Льда</div>
-                  <div class="sbc-tags"><span class="sbc-tag spell">ЗАКЛИНАНИЕ</span><span class="sbc-rarity common">Обычная</span></div>
-                </div>
-              </div>
-              <div class="sbc-desc">Замораживает выбранную вражескую фигуру на 1 ход. Фигура теряет способность двигаться и атаковать.</div>
-              <div class="sbc-tip">💡 Совет: используйте против ферзя или коня при атаке на вашего короля, чтобы сорвать план соперника!</div>
+          <div class="spellbook-controls">
+            <input type="text" id="spellbook-search-input" class="spellbook-search-input" placeholder="🔍 Поиск заклинания или указа (по названию или описанию)...">
+            <div class="spellbook-filters" id="spellbook-filter-chips">
+              <button class="sbc-filter-chip active" data-filter="all">Все (34)</button>
+              <button class="sbc-filter-chip" data-filter="spell">Заклинания (23)</button>
+              <button class="sbc-filter-chip" data-filter="decree">Указы и Секреты (11)</button>
+              <button class="sbc-filter-chip" data-filter="COMMON">Обычные</button>
+              <button class="sbc-filter-chip" data-filter="RARE">Редкие</button>
+              <button class="sbc-filter-chip" data-filter="EPIC">Эпические</button>
+              <button class="sbc-filter-chip" data-filter="LEGENDARY">Легендарные</button>
             </div>
-
-            <!-- 2. Shadow Swap -->
-            <div class="spellbook-card rarity-rare">
-              <div class="sbc-header">
-                <span class="sbc-icon">👥</span>
-                <div class="sbc-title-group">
-                  <div class="sbc-name">Рокировка Теней</div>
-                  <div class="sbc-tags"><span class="sbc-tag spell">ЗАКЛИНАНИЕ</span><span class="sbc-rarity rare">Редкая</span></div>
-                </div>
-              </div>
-              <div class="sbc-desc">Мгновенно меняет местами вашего Коня и вашу Пешку на доске.</div>
-              <div class="sbc-tip">💡 Совет: перебросьте коня с края доски прямо в центр на место продвинутой пешки для внезапного удара.</div>
-            </div>
-
-            <!-- 3. Reinforcements -->
-            <div class="spellbook-card rarity-common">
-              <div class="sbc-header">
-                <span class="sbc-icon">🛡️</span>
-                <div class="sbc-title-group">
-                  <div class="sbc-name">Подкрепление</div>
-                  <div class="sbc-tags"><span class="sbc-tag spell">ЗАКЛИНАНИЕ</span><span class="sbc-rarity common">Обычная</span></div>
-                </div>
-              </div>
-              <div class="sbc-desc">Призывает дополнительную пешку на любую свободную клетку вашей домашней горизонтали (2-я для белых, 7-я для чёрных).</div>
-              <div class="sbc-tip">💡 Совет: закрывайте открытые вертикали против вражеских ладей или укрепляйте королевский фланг.</div>
-            </div>
-
-            <!-- 4. Smoke Screen -->
-            <div class="spellbook-card rarity-rare">
-              <div class="sbc-header">
-                <span class="sbc-icon">🌫️</span>
-                <div class="sbc-title-group">
-                  <div class="sbc-name">Дымовая Завеса</div>
-                  <div class="sbc-tags"><span class="sbc-tag spell">ЗАКЛИНАНИЕ • 2 ХОДА</span><span class="sbc-rarity rare">Редкая</span></div>
-                </div>
-              </div>
-              <div class="sbc-desc">Окутывает центральные поля (d4, d5, e4, e5) густым туманом на 2 хода. Ни одна фигура внутри тумана не может быть взята!</div>
-              <div class="sbc-tip">💡 Совет: ставьте ферзя или слона в самый центр для безопасной доминации.</div>
-            </div>
-
-            <!-- 5. King's Shield -->
-            <div class="spellbook-card rarity-epic">
-              <div class="sbc-header">
-                <span class="sbc-icon">👑</span>
-                <div class="sbc-title-group">
-                  <div class="sbc-name">Аура Стойкости</div>
-                  <div class="sbc-tags"><span class="sbc-tag spell">ЗАКЛИНАНИЕ • 2 ХОДА</span><span class="sbc-rarity epic">Эпическая</span></div>
-                </div>
-              </div>
-              <div class="sbc-desc">Окружает вашего Короля защитным щитом. Любая фигура противника, объявившая шах, мгновенно замораживается на 1 ход!</div>
-              <div class="sbc-tip">💡 Совет: активируйте перед вскрытием позиций, чтобы контратаковать дерзких атакующих фигур.</div>
-            </div>
-
-            <!-- 6. Divine Storm -->
-            <div class="spellbook-card rarity-rare">
-              <div class="sbc-header">
-                <span class="sbc-icon">🌪️</span>
-                <div class="sbc-title-group">
-                  <div class="sbc-name">Божественная Буря</div>
-                  <div class="sbc-tags"><span class="sbc-tag spell">ЗАКЛИНАНИЕ</span><span class="sbc-rarity rare">Редкая</span></div>
-                </div>
-              </div>
-              <div class="sbc-desc">Мощный порыв ветра отбрасывает выбранную фигуру соперника на 1 клетку назад к его базовой линии.</div>
-              <div class="sbc-tip">💡 Совет: сдувайте вражеские фигуры из ключевых опорных пунктов и линий атаки.</div>
-            </div>
-
-            <!-- 7. Curse Knight -->
-            <div class="spellbook-card rarity-common">
-              <div class="sbc-header">
-                <span class="sbc-icon">🐎</span>
-                <div class="sbc-title-group">
-                  <div class="sbc-name">Оковы Кентавра</div>
-                  <div class="sbc-tags"><span class="sbc-tag decree">УКАЗ • 2 ХОДА</span><span class="sbc-rarity common">Обычная</span></div>
-                </div>
-              </div>
-              <div class="sbc-desc">Если соперник сделает ход своим Конём — этот конь тут же застывает во льду на 1 ход!</div>
-              <div class="sbc-tip">💡 Совет: полностью парализует конную активность соперника в дебюте и миттельшпиле.</div>
-            </div>
-
-            <!-- 8. Curse Rook -->
-            <div class="spellbook-card rarity-common">
-              <div class="sbc-header">
-                <span class="sbc-icon">🏰</span>
-                <div class="sbc-title-group">
-                  <div class="sbc-name">Осадный Налог</div>
-                  <div class="sbc-tags"><span class="sbc-tag decree">УКАЗ • 2 ХОДА</span><span class="sbc-rarity common">Обычная</span></div>
-                </div>
-              </div>
-              <div class="sbc-desc">Если соперник походит Ладьёй — вы немедленно получаете +1 бонусную карту в руку.</div>
-              <div class="sbc-tip">💡 Совет: выгодно применять, когда у соперника ладьи стоят на открытых вертикалях.</div>
-            </div>
-
-            <!-- 9. Forbidden Square -->
-            <div class="spellbook-card rarity-rare">
-              <div class="sbc-header">
-                <span class="sbc-icon">🚫</span>
-                <div class="sbc-title-group">
-                  <div class="sbc-name">Чёрная Метка</div>
-                  <div class="sbc-tags"><span class="sbc-tag decree">УКАЗ-ЛОВУШКА • 3 ХОДА</span><span class="sbc-rarity rare">Редкая</span></div>
-                </div>
-              </div>
-              <div class="sbc-desc">Вы накладываете ловушку на любую свободную клетку доски. Первая же вражеская фигура, наступившая на неё, замораживается на 1 ход.</div>
-              <div class="sbc-tip">💡 Совет: ставьте ловушку на форпосты (d5, e5, f5), куда рвётся вражеский конь или ферзь!</div>
-            </div>
-
-            <!-- 10. Blood Tribute -->
-            <div class="spellbook-card rarity-epic">
-              <div class="sbc-header">
-                <span class="sbc-icon">🩸</span>
-                <div class="sbc-title-group">
-                  <div class="sbc-name">Возмездие Крови</div>
-                  <div class="sbc-tags"><span class="sbc-tag decree">УКАЗ • 2 ХОДА</span><span class="sbc-rarity epic">Эпическая</span></div>
-                </div>
-              </div>
-              <div class="sbc-desc">Если соперник срубит любую вашу фигуру — его атаковавшая фигура моментально застывает во льду на 1 ход.</div>
-              <div class="sbc-tip">💡 Совет: идеальная защита при обороне: враг не решится разменивать фигуры, зная, что его фигура застынет!</div>
-            </div>
+          </div>
+          <div class="spellbook-list" id="spellbook-dynamic-list">
+            <!-- Dynamically populated from CARDS_DATABASE -->
           </div>
         </div>
 
