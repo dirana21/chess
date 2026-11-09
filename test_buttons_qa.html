@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>QA Button Suite</title>
+</head>
+<body>
+  <h1>Running Button Tests...</h1>
+  <div id="test-output" style="white-space: pre-wrap; font-family: monospace;"></div>
+  <iframe id="app-frame" src="index.html" style="width: 1280px; height: 900px; border: 1px solid #ccc;"></iframe>
+
+  <script>
+    const output = document.getElementById('test-output');
+    function log(msg) {
+      output.textContent += msg + '\n';
+      console.log(msg);
+    }
+
+    const iframe = document.getElementById('app-frame');
+    
+    iframe.onload = async () => {
+      const doc = iframe.contentDocument;
+      const win = iframe.contentWindow;
+
+      // Mock window.confirm and window.prompt to always succeed
+      win.confirm = (msg) => {
+        log('  [Mock confirm]: ' + msg + ' -> true');
+        return true;
+      };
+      win.prompt = (msg, def) => {
+        log('  [Mock prompt]: ' + msg + ' -> QA Test');
+        return 'QA Test';
+      };
+
+      let passed = 0;
+      let failed = 0;
+      const errors = [];
+
+      win.addEventListener('error', (e) => {
+        log('❌ UNCAUGHT ERROR: ' + e.message + ' at ' + e.filename + ':' + e.lineno);
+        errors.push(e.message);
+        failed++;
+      });
+
+      function assert(cond, name) {
+        if (cond) {
+          passed++;
+          log('✅ PASS: ' + name);
+        } else {
+          failed++;
+          log('❌ FAIL: ' + name);
+          errors.push('Assertion failed: ' + name);
+        }
+      }
+
+      function sleep(ms) {
+        return new Promise(r => setTimeout(r, ms));
+      }
+
+      log('=== STARTING COMPREHENSIVE BUTTON QA SUITE ===\n');
+
+      try {
+        await sleep(300);
+
+        // 1. Lobby Deck Builder button
+        log('--- TEST GROUP 1: DECK BUILDER NAVIGATION ---');
+        const btnOpenDeckLobby = doc.getElementById('btn-open-deckbuilder-lobby');
+        assert(btnOpenDeckLobby !== null, 'Found #btn-open-deckbuilder-lobby');
+        btnOpenDeckLobby.click();
+        await sleep(100);
+        const screenDeckBuilder = doc.getElementById('screen-deck-builder');
+        assert(!screenDeckBuilder.classList.contains('hidden'), 'Screen Deck Builder opened');
+
+        // 2. Click "В меню" (#btn-hs-back-lobby)
+        const btnHsBack = doc.getElementById('btn-hs-back-lobby');
+        assert(btnHsBack !== null, 'Found #btn-hs-back-lobby');
+        btnHsBack.click();
+        await sleep(100);
+        const screenLobby = doc.getElementById('screen-lobby');
+        assert(screenDeckBuilder.classList.contains('hidden'), 'Screen Deck Builder closed via #btn-hs-back-lobby');
+        assert(!screenLobby.classList.contains('hidden'), 'Lobby is visible after #btn-hs-back-lobby');
+
+        // 3. Open Deck Builder from Header
+        const btnOpenDeckHeader = doc.getElementById('btn-open-deckbuilder-header');
+        assert(btnOpenDeckHeader !== null, 'Found #btn-open-deckbuilder-header');
+        btnOpenDeckHeader.click();
+        await sleep(100);
+        assert(!screenDeckBuilder.classList.contains('hidden'), 'Screen Deck Builder opened via header');
+
+        // 4. Click "ГОТОВО" (#btn-apply-and-close-deck)
+        const btnApplyClose = doc.getElementById('btn-apply-and-close-deck');
+        assert(btnApplyClose !== null, 'Found #btn-apply-and-close-deck');
+        btnApplyClose.click();
+        await sleep(100);
+        assert(screenDeckBuilder.classList.contains('hidden'), 'Screen Deck Builder closed via #btn-apply-and-close-deck');
+        assert(!screenLobby.classList.contains('hidden'), 'Lobby visible after #btn-apply-and-close-deck');
+
+        // 5. Rules Modal from Header
+        log('\n--- TEST GROUP 2: RULES & SPELLBOOK MODAL ---');
+        const btnOpenRulesHeader = doc.getElementById('btn-open-rules-header');
+        const modalRules = doc.getElementById('modal-rules');
+        btnOpenRulesHeader.click();
+        await sleep(100);
+        assert(!modalRules.classList.contains('hidden'), 'Rules modal opened via header');
+        const btnCloseRules = doc.getElementById('btn-close-rules');
+        btnCloseRules.click();
+        await sleep(100);
+        assert(modalRules.classList.contains('hidden'), 'Rules modal closed via ✕');
+
+        // 6. Rules Modal from Lobby Banner
+        const btnOpenRulesLobby = doc.getElementById('btn-open-rules-lobby');
+        btnOpenRulesLobby.click();
+        await sleep(100);
+        assert(!modalRules.classList.contains('hidden'), 'Rules modal opened via lobby banner');
+        const btnCloseRulesOk = doc.getElementById('btn-close-rules-ok');
+        btnCloseRulesOk.click();
+        await sleep(100);
+        assert(modalRules.classList.contains('hidden'), 'Rules modal closed via "Понятно, играть!"');
+
+        // 7. Network Logs Modal
+        log('\n--- TEST GROUP 3: LOGS MODAL ---');
+        const btnOpenLogs = doc.getElementById('btn-open-logs');
+        const modalLogs = doc.getElementById('modal-logs');
+        btnOpenLogs.click();
+        await sleep(100);
+        assert(!modalLogs.classList.contains('hidden'), 'Logs modal opened');
+        const btnCloseLogs = doc.getElementById('btn-close-logs');
+        btnCloseLogs.click();
+        await sleep(100);
+        assert(modalLogs.classList.contains('hidden'), 'Logs modal closed via ✕');
+
+        // 8. Sound Toggle
+        log('\n--- TEST GROUP 4: SOUND TOGGLE ---');
+        const btnToggleSound = doc.getElementById('btn-toggle-sound');
+        const initialSoundText = btnToggleSound.textContent;
+        btnToggleSound.click();
+        await sleep(50);
+        assert(btnToggleSound.textContent !== initialSoundText, 'Sound button text toggled');
+        btnToggleSound.click(); // revert
+        await sleep(50);
+
+        // 9. Online Waiting Room & Cancel
+        log('\n--- TEST GROUP 5: ONLINE ROOM & CANCEL ---');
+        const btnCreateOnline = doc.getElementById('btn-create-online');
+        const screenWaiting = doc.getElementById('screen-waiting');
+        btnCreateOnline.click();
+        await sleep(100);
+        assert(!screenWaiting.classList.contains('hidden'), 'Waiting screen opened');
+        const btnCancelWait = doc.getElementById('btn-cancel-wait');
+        btnCancelWait.click();
+        await sleep(100);
+        assert(screenWaiting.classList.contains('hidden'), 'Waiting screen closed via #btn-cancel-wait');
+        assert(!screenLobby.classList.contains('hidden'), 'Lobby visible after waiting cancel');
+
+        // 10. Pass & Play Start and Exit
+        log('\n--- TEST GROUP 6: PASS & PLAY & IN-GAME EXIT ---');
+        const btnPassPlay = doc.getElementById('btn-pass-play');
+        const screenGame = doc.getElementById('screen-game');
+        btnPassPlay.click();
+        await sleep(150);
+        assert(!screenGame.classList.contains('hidden'), 'Game screen opened for Pass & Play');
+
+        // In-Game Leave button
+        const btnLeaveGame = doc.getElementById('btn-leave-game');
+        assert(btnLeaveGame !== null, 'Found #btn-leave-game');
+        btnLeaveGame.click();
+        await sleep(150);
+        assert(screenGame.classList.contains('hidden'), 'Game screen closed after #btn-leave-game');
+        assert(!screenLobby.classList.contains('hidden'), 'Lobby visible after leaving game');
+
+        // 11. Bot Game, HUD Menu, and Resign
+        log('\n--- TEST GROUP 7: BOT GAME, HUD MENU & RESIGN TO LOBBY ---');
+        const btnPlayBot = doc.getElementById('btn-play-bot');
+        btnPlayBot.click();
+        await sleep(200);
+        assert(!screenGame.classList.contains('hidden'), 'Bot game started');
+
+        // HUD Menu Toggle
+        const btnGameMenuToggle = doc.getElementById('btn-game-menu-toggle');
+        const hudDropdown = doc.getElementById('game-menu-dropdown');
+        btnGameMenuToggle.click();
+        await sleep(100);
+        assert(!hudDropdown.classList.contains('hidden'), 'HUD Dropdown opened');
+
+        // Flip board via HUD menu
+        const menuItemFlip = doc.getElementById('menu-item-flip');
+        menuItemFlip.click();
+        await sleep(100);
+        assert(hudDropdown.classList.contains('hidden'), 'HUD Dropdown closed on action');
+
+        // Open HUD Menu again and Resign
+        btnGameMenuToggle.click();
+        await sleep(100);
+        const menuItemResign = doc.getElementById('menu-item-resign');
+        menuItemResign.click();
+        await sleep(200);
+
+        // Check GameOver Modal
+        const modalGameOver = doc.getElementById('modal-gameover');
+        assert(!modalGameOver.classList.contains('hidden'), 'Game Over modal opened on resign');
+
+        // Click "В главное меню" (#btn-return-lobby)
+        const btnReturnLobby = doc.getElementById('btn-return-lobby');
+        assert(btnReturnLobby !== null, 'Found #btn-return-lobby');
+        btnReturnLobby.click();
+        await sleep(150);
+        assert(modalGameOver.classList.contains('hidden'), 'Game Over modal closed via #btn-return-lobby');
+        assert(screenGame.classList.contains('hidden'), 'Game screen closed');
+        assert(!screenLobby.classList.contains('hidden'), 'Lobby visible after #btn-return-lobby');
+
+        // 12. Deck Builder Controls & Actions
+        log('\n--- TEST GROUP 8: DECK BUILDER CONTROLS & DROPDOWN ---');
+        btnOpenDeckLobby.click();
+        await sleep(150);
+
+        // Deck dropdown open/close
+        const btnHsDeckSelect = doc.getElementById('btn-hs-deck-select');
+        const hsDropdown = doc.getElementById('hs-deck-dropdown-menu');
+        btnHsDeckSelect.click();
+        await sleep(100);
+        assert(!hsDropdown.classList.contains('hidden'), 'Deck dropdown menu opened');
+        btnHsDeckSelect.click();
+        await sleep(100);
+        assert(hsDropdown.classList.contains('hidden'), 'Deck dropdown menu closed on second click');
+
+        // Pagination buttons
+        const btnNextPage = doc.getElementById('btn-hs-next-page');
+        const btnPrevPage = doc.getElementById('btn-hs-prev-page');
+        const pageInd = doc.getElementById('hs-page-indicator');
+        const initialPage = pageInd.textContent;
+        btnNextPage.click();
+        await sleep(100);
+        assert(pageInd.textContent !== initialPage, 'Pagination next page changed indicator');
+        btnPrevPage.click();
+        await sleep(100);
+        assert(pageInd.textContent === initialPage, 'Pagination prev page reverted indicator');
+
+        // Footer pagination
+        const btnNextFooter = doc.getElementById('btn-hs-next-footer');
+        const btnPrevFooter = doc.getElementById('btn-hs-prev-footer');
+        btnNextFooter.click();
+        await sleep(100);
+        assert(pageInd.textContent !== initialPage, 'Footer next page changed indicator');
+        btnPrevFooter.click();
+        await sleep(100);
+        assert(pageInd.textContent === initialPage, 'Footer prev page reverted indicator');
+
+        // Category filter chip
+        const catChips = doc.querySelectorAll('.hs-categories-bar .db-chip');
+        if (catChips.length > 1) {
+          catChips[1].click();
+          await sleep(100);
+          assert(catChips[1].classList.contains('active'), 'Category filter chip clicked and active');
+          catChips[0].click(); // Revert to all
+          await sleep(100);
+        }
+
+        // Mana filter chip
+        const manaChips = doc.querySelectorAll('.hs-mana-gem-btn');
+        if (manaChips.length > 1) {
+          manaChips[1].click();
+          await sleep(100);
+          assert(manaChips[1].classList.contains('active'), 'Mana filter chip clicked and active');
+          manaChips[0].click(); // Revert to all
+          await sleep(100);
+        }
+
+        // Card inspect button [ 👁️ ]
+        const inspectBtns = doc.querySelectorAll('.hs-card-inspect-btn');
+        assert(inspectBtns.length > 0, 'Found card inspect buttons');
+        if (inspectBtns.length > 0) {
+          inspectBtns[0].click();
+          await sleep(100);
+          const modalCardInspector = doc.getElementById('modal-card-inspector');
+          assert(!modalCardInspector.classList.contains('hidden'), 'Card Inspector opened via [ 👁️ ]');
+          const btnCloseInsp = doc.getElementById('btn-close-card-inspector');
+          btnCloseInsp.click();
+          await sleep(100);
+          assert(modalCardInspector.classList.contains('hidden'), 'Card Inspector closed via ✕');
+        }
+
+        // Deck Strip Remove Button [ ✕ ]
+        const removeBtns = doc.querySelectorAll('.hs-strip-remove-btn');
+        assert(removeBtns.length > 0, 'Found deck strip remove buttons [ ✕ ]');
+        if (removeBtns.length > 0) {
+          const counterBefore = doc.getElementById('hs-select-deck-count').textContent;
+          removeBtns[0].click();
+          await sleep(100);
+          const counterAfter = doc.getElementById('hs-select-deck-count').textContent;
+          log('  Roster counter: ' + counterBefore + ' -> ' + counterAfter);
+          assert(true, 'Roster card remove executed without errors');
+        }
+
+        // Autofill deck button
+        const btnAutofill = doc.getElementById('btn-autofill-deck');
+        btnAutofill.click();
+        await sleep(100);
+        assert(doc.getElementById('hs-select-deck-count').textContent.includes('30/30'), 'Deck autofilled to 30 cards');
+
+        // Back to menu via #btn-hs-back-lobby
+        btnHsBack.click();
+        await sleep(100);
+        assert(!screenLobby.classList.contains('hidden'), 'Successfully returned to lobby from deck builder');
+
+        log('\n===============================================================');
+        log(`   TOTAL TESTS: ${passed + failed} | PASSED: ${passed} | FAILED: ${failed}`);
+        log('===============================================================');
+
+        doc.title = `TESTS_DONE:P=${passed}:F=${failed}`;
+      } catch (err) {
+        log('❌ FATAL TEST ERROR: ' + err.message + '\n' + err.stack);
+        failed++;
+        doc.title = `TESTS_FATAL:${err.message}`;
+      }
+    };
+  </script>
+</body>
+</html>

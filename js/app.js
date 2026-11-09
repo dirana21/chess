@@ -191,20 +191,26 @@ document.addEventListener('DOMContentLoaded', () => {
   let previousScreenBeforeDeckBuilder = null;
 
   function updateLobbyDeckBanner() {
-    if (!lobbyDeckBanner) return;
-    if (gameVariantSelect && gameVariantSelect.value === 'classic') {
-      lobbyDeckBanner.classList.add('hidden');
-      return;
-    }
-    lobbyDeckBanner.classList.remove('hidden');
-    if (typeof window.DeckStorage !== 'undefined') {
-      const activeDeck = window.DeckStorage.getActiveDeck();
-      if (lobbyActiveDeckName) lobbyActiveDeckName.textContent = activeDeck.name;
-      if (lobbyActiveDeckBadge) {
-        const count = (activeDeck.cards && activeDeck.cards.length) || 0;
-        lobbyActiveDeckBadge.textContent = `${count} / 30 карт`;
-        lobbyActiveDeckBadge.style.color = count === 30 ? '#4ade80' : '#fbbf24';
+    try {
+      if (!lobbyDeckBanner) return;
+      if (gameVariantSelect && gameVariantSelect.value === 'classic') {
+        lobbyDeckBanner.classList.add('hidden');
+        return;
       }
+      lobbyDeckBanner.classList.remove('hidden');
+      if (typeof window.DeckStorage !== 'undefined') {
+        const activeDeck = window.DeckStorage.getActiveDeck();
+        if (activeDeck) {
+          if (lobbyActiveDeckName) lobbyActiveDeckName.textContent = activeDeck.name || 'Моя колода';
+          if (lobbyActiveDeckBadge) {
+            const count = (activeDeck.cards && activeDeck.cards.length) || 0;
+            lobbyActiveDeckBadge.textContent = `${count} / 30 карт`;
+            lobbyActiveDeckBadge.style.color = count === 30 ? '#4ade80' : '#fbbf24';
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('updateLobbyDeckBanner safe guard:', err);
     }
   }
 
@@ -221,7 +227,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const activeId = window.DeckStorage.getActiveDeckId();
     const targetId = presetId || currentEditingDeckId || activeId;
     const found = all.find(d => d.id === targetId);
-    currentEditingDeckId = found ? found.id : all[0].id;
+    currentEditingDeckId = found ? found.id : (all[0] ? all[0].id : 'preset_balanced');
 
     currentDeckBuilderPage = 1;
 
@@ -247,8 +253,13 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function closeDeckBuilderModal() {
-    updateLobbyDeckBanner();
-    switchScreen(previousScreenBeforeDeckBuilder || screenLobby);
+    try {
+      updateLobbyDeckBanner();
+    } catch (err) {
+      console.warn('closeDeckBuilderModal safe guard:', err);
+    }
+    // Always cleanly return to the Lobby menu
+    switchScreen(screenLobby);
   }
 
   function getCurrentEditingDeck() {
@@ -4300,13 +4311,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function handleLeaveGame() {
     toggleGameMenu(true);
-    if (confirm('Покинуть игру и вернуться в главное меню?')) {
-      if (mode === 'online' && !gameEnded && network.isConnected()) {
-        network.sendResign(myColor);
+    const isLiveOnline = (mode === 'online' && !gameEnded && network && network.isConnected());
+    if (!isLiveOnline || confirm('Покинуть онлайн-партию и вернуться в главное меню?')) {
+      if (isLiveOnline) {
+        try { network.sendResign(myColor); } catch(e){}
       }
       stopTimer();
-      network.cleanup();
+      try { network.cleanup(); } catch(e){}
+      if (modalGameOver) modalGameOver.classList.add('hidden');
       switchScreen(screenLobby);
+      showToast('🏠 Вы вернулись в главное меню');
     }
   }
 
@@ -4606,9 +4620,27 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Hearthstone Top Back Button
+  // Hearthstone Top Back Button ("В меню")
   if (btnHsBackLobby) {
-    btnHsBackLobby.addEventListener('click', closeDeckBuilderModal);
+    const handleHsBack = (e) => {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      closeDeckBuilderModal();
+    };
+    btnHsBackLobby.addEventListener('click', handleHsBack);
+    btnHsBackLobby.addEventListener('touchend', handleHsBack, { passive: false });
+  }
+
+  // Click on active deck banner in lobby opens deck builder
+  if (lobbyDeckBanner) {
+    lobbyDeckBanner.addEventListener('click', (e) => {
+      if (btnOpenDeckBuilderLobby && (e.target === btnOpenDeckBuilderLobby || btnOpenDeckBuilderLobby.contains(e.target))) {
+        return; // Already handled by button listener
+      }
+      openDeckBuilderModal();
+    });
   }
 
   // Hearthstone Pagination (Page Flip) Buttons
@@ -4809,12 +4841,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  btnReturnLobby.addEventListener('click', () => {
-    modalGameOver.classList.add('hidden');
-    stopTimer();
-    network.cleanup();
-    switchScreen(screenLobby);
-  });
+  if (btnReturnLobby) {
+    btnReturnLobby.addEventListener('click', () => {
+      if (modalGameOver) modalGameOver.classList.add('hidden');
+      stopTimer();
+      try { network.cleanup(); } catch(e){}
+      switchScreen(screenLobby);
+      showToast('🏠 Вы вернулись в главное меню');
+    });
+  }
 
   // --- Chat & Reactions ---
   function appendChatMessage(sender, text) {
