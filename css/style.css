@@ -3880,6 +3880,10 @@ body {
 }
 
 /* Main Workspace */
+.db-mobile-switch {
+  display: none;
+}
+
 .deck-builder-workspace {
   display: grid;
   grid-template-columns: 1fr 330px;
@@ -4334,17 +4338,141 @@ body {
   .deck-builder-card {
     height: 96vh !important;
     max-height: 96vh !important;
-    width: 98vw !important;
-    padding: 0.75rem !important;
+    width: 96vw !important;
+    max-width: 96vw !important;
+    padding: 0.65rem !important;
+    gap: 0.45rem !important;
+    box-sizing: border-box !important;
+    border-radius: 12px !important;
+  }
+
+  .deck-builder-header {
+    padding-bottom: 0.4rem !important;
+  }
+
+  .db-main-title {
+    font-size: 1.05rem !important;
+  }
+
+  .db-subtitle {
+    display: none !important;
+  }
+
+  .db-mobile-switch {
+    display: flex !important;
+    gap: 0.4rem !important;
+    margin-bottom: 0.2rem !important;
+  }
+
+  .db-mob-switch-btn {
+    flex: 1;
+    padding: 0.55rem 0.5rem;
+    font-size: 0.82rem;
+    font-weight: 700;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.05);
+    color: #94a3b8;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .db-mob-switch-btn.active {
+    background: linear-gradient(135deg, #7c3aed, #4f46e5);
+    border-color: #a855f7;
+    color: #fff;
+    box-shadow: 0 0 10px rgba(168, 85, 247, 0.4);
   }
 
   .deck-builder-workspace {
-    grid-template-columns: 1fr;
-    overflow-y: auto;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    flex: 1 !important;
+    min-height: 0 !important;
+    gap: 0 !important;
+  }
+
+  .db-catalog-section {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 !important;
+    min-height: 0 !important;
+    padding: 0.5rem !important;
+  }
+
+  .db-catalog-section.mobile-hidden {
+    display: none !important;
   }
 
   .db-deck-sidebar {
-    max-height: 280px;
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    padding: 0.5rem !important;
+  }
+
+  .db-deck-sidebar.mobile-hidden {
+    display: none !important;
+  }
+
+  .db-cards-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.45rem !important;
+    overflow-y: auto !important;
+    flex: 1 !important;
+  }
+
+  .db-deck-list {
+    flex: 1 !important;
+    overflow-y: auto !important;
+    max-height: none !important;
+  }
+
+  .deck-current-toolbar {
+    flex-wrap: wrap !important;
+    gap: 0.4rem !important;
+  }
+
+  .deck-name-wrap {
+    flex: 1 1 140px !important;
+  }
+
+  .deck-toolbar-actions {
+    display: flex !important;
+    gap: 0.3rem !important;
+    flex-wrap: wrap !important;
+    width: 100% !important;
+    justify-content: space-between !important;
+  }
+
+  .btn-deck-tool {
+    flex: 1 !important;
+    padding: 0.45rem 0.4rem !important;
+    font-size: 0.75rem !important;
+    text-align: center !important;
+  }
+
+  .deck-builder-footer {
+    flex-direction: column-reverse !important;
+    align-items: stretch !important;
+    gap: 0.35rem !important;
+    padding-top: 0.4rem !important;
+  }
+
+  .btn-save-deck-close {
+    width: 100% !important;
+    min-height: 44px !important;
+    font-size: 0.95rem !important;
+    text-align: center !important;
+    padding: 0.65rem 1rem !important;
+  }
+
+  .db-footer-hint {
+    text-align: center !important;
+    font-size: 0.68rem !important;
   }
 
   .deck-preset-banner {
@@ -4355,5 +4483,72 @@ body {
   .btn-deck-edit {
     width: 100%;
     text-align: center;
+  }
+}
+
+/* Mobile Inventory Overhaul */
+@media (max-width: 600px) {
+  .inventory-modal {
+    width: 96vw !important;
+    max-width: 96vw !important;
+    max-height: 94vh !important;
+    padding: 0 !important;
+  }
+
+  .inventory-header {
+    padding: 0.6rem 0.75rem !important;
+    gap: 0.4rem !important;
+  }
+
+  .inventory-title {
+    font-size: 0.95rem !important;
+  }
+
+  .inventory-title span:nth-child(2) {
+    max-width: 140px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .inventory-subtitle {
+    font-size: 0.72rem !important;
+  }
+
+  .inv-header-actions {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.4rem !important;
+    flex-shrink: 0 !important;
+  }
+
+  .btn-inv-rules {
+    display: none !important;
+  }
+
+  .btn-close-inv {
+    min-width: 38px !important;
+    min-height: 38px !important;
+    width: 38px !important;
+    height: 38px !important;
+    font-size: 1.2rem !important;
+    flex-shrink: 0 !important;
+  }
+
+  .inventory-cards-container {
+    gap: 0.55rem !important;
+    padding: 0.75rem 0.5rem !important;
+  }
+
+  .inventory-modal .card {
+    width: 152px !important;
+    height: 215px !important;
+    padding: 0.5rem !important;
+  }
+
+  .inventory-modal .card .card-description {
+    font-size: 0.7rem !important;
+    line-height: 1.25 !important;
+    max-height: 55px !important;
   }
 }

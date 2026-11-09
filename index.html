@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>Онлайн Шахматы — Играй с друзьями</title>
-  <link rel="stylesheet" href="css/style.css?v=2.7.0">
+  <link rel="stylesheet" href="css/style.css?v=2.7.1">
   <link rel="icon" href="assets/pieces/wK.svg" type="image/svg+xml">
 </head>
 <body>
@@ -691,6 +691,12 @@
           </div>
         </div>
 
+        <!-- Mobile View Switcher (<= 800px) -->
+        <div class="db-mobile-switch" id="db-mobile-switch">
+          <button class="db-mob-switch-btn active" id="btn-mob-catalog" data-tab="catalog">🎴 Каталог карт (50)</button>
+          <button class="db-mob-switch-btn" id="btn-mob-roster" data-tab="roster">📋 Моя колода (<span id="db-mob-counter">30/30</span>)</button>
+        </div>
+
         <!-- Deck Builder Body (Grid Layout) -->
         <div class="deck-builder-workspace">
           <!-- Left: Catalog of all 50 Cards -->
@@ -785,16 +791,16 @@
   </div>
 
   <!-- Dependencies with version cache-busting -->
-  <script src="js/logger.js?v=2.7.0"></script>
-  <script src="js/chess.js?v=2.7.0"></script>
-  <script src="js/peerjs.min.js?v=2.7.0"></script>
-  <script src="js/pieces.js?v=2.7.0"></script>
-  <script src="js/sounds.js?v=2.7.0"></script>
-  <script src="js/cards.js?v=2.7.0"></script>
-  <script src="js/decks.js?v=2.7.0"></script>
-  <script src="js/bot.js?v=2.7.0"></script>
-  <script src="js/network.js?v=2.7.0"></script>
-  <script src="js/board.js?v=2.7.0"></script>
-  <script src="js/app.js?v=2.7.0"></script>
+  <script src="js/logger.js?v=2.7.1"></script>
+  <script src="js/chess.js?v=2.7.1"></script>
+  <script src="js/peerjs.min.js?v=2.7.1"></script>
+  <script src="js/pieces.js?v=2.7.1"></script>
+  <script src="js/sounds.js?v=2.7.1"></script>
+  <script src="js/cards.js?v=2.7.1"></script>
+  <script src="js/decks.js?v=2.7.1"></script>
+  <script src="js/bot.js?v=2.7.1"></script>
+  <script src="js/network.js?v=2.7.1"></script>
+  <script src="js/board.js?v=2.7.1"></script>
+  <script src="js/app.js?v=2.7.1"></script>
 </body>
 </html>

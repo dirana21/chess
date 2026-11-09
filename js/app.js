@@ -194,6 +194,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const found = all.find(d => d.id === targetId);
     currentEditingDeckId = found ? found.id : all[0].id;
 
+    // Reset mobile switcher to catalog
+    const btnMobCat = document.getElementById('btn-mob-catalog');
+    const btnMobRos = document.getElementById('btn-mob-roster');
+    const catSec = document.querySelector('.db-catalog-section');
+    const sideSec = document.querySelector('.db-deck-sidebar');
+    if (btnMobCat && btnMobRos) {
+      btnMobCat.classList.add('active');
+      btnMobRos.classList.remove('active');
+    }
+    if (catSec && sideSec && window.innerWidth <= 800) {
+      catSec.classList.remove('mobile-hidden');
+      sideSec.classList.add('mobile-hidden');
+    } else if (catSec && sideSec) {
+      catSec.classList.remove('mobile-hidden');
+      sideSec.classList.remove('mobile-hidden');
+    }
+
     modalDeckBuilder.classList.remove('hidden');
     renderDeckBuilder();
   }
@@ -234,7 +251,8 @@ document.addEventListener('DOMContentLoaded', () => {
     all.forEach(d => {
       const pill = document.createElement('button');
       pill.className = `preset-tab-pill ${d.id === currentEditingDeckId ? 'active' : ''} ${d.id === activeCombatId ? 'active-combat' : ''}`;
-      pill.innerHTML = `<span>${d.icon || '🎴'}</span> <span>${d.name}</span>`;
+      const displayName = (d.icon && d.name.startsWith(d.icon)) ? d.name.substring(d.icon.length).trim() : d.name;
+      pill.innerHTML = `<span>${d.icon || '🎴'}</span> <span>${displayName}</span>`;
       pill.title = `${d.name}: ${d.description || ''}${d.id === activeCombatId ? ' (Боевая колода)' : ''}`;
       pill.addEventListener('click', () => {
         currentEditingDeckId = d.id;
@@ -346,6 +364,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (dbDeckCardCounter) {
       dbDeckCardCounter.textContent = `${stats.totalCards} / 30`;
       dbDeckCardCounter.className = `db-counter-value ${stats.totalCards === 30 ? 'complete' : ''}`;
+    }
+    const dbMobCounter = document.getElementById('db-mob-counter');
+    if (dbMobCounter) {
+      dbMobCounter.textContent = `${stats.totalCards}/30`;
     }
     if (dbDeckProgressFill) {
       const pct = Math.min(100, (stats.totalCards / 30) * 100);
@@ -4142,6 +4164,29 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Mobile Deck Builder Segment Switcher
+  const btnMobCatalog = document.getElementById('btn-mob-catalog');
+  const btnMobRoster = document.getElementById('btn-mob-roster');
+  if (btnMobCatalog && btnMobRoster) {
+    btnMobCatalog.addEventListener('click', () => {
+      btnMobCatalog.classList.add('active');
+      btnMobRoster.classList.remove('active');
+      const catSec = document.querySelector('.db-catalog-section');
+      const sideSec = document.querySelector('.db-deck-sidebar');
+      if (catSec) catSec.classList.remove('mobile-hidden');
+      if (sideSec) sideSec.classList.add('mobile-hidden');
+    });
+
+    btnMobRoster.addEventListener('click', () => {
+      btnMobRoster.classList.add('active');
+      btnMobCatalog.classList.remove('active');
+      const catSec = document.querySelector('.db-catalog-section');
+      const sideSec = document.querySelector('.db-deck-sidebar');
+      if (sideSec) sideSec.classList.remove('mobile-hidden');
+      if (catSec) catSec.classList.add('mobile-hidden');
+    });
+  }
+
   // Variant select change -> toggle lobby deck banner
   if (gameVariantSelect) {
     gameVariantSelect.addEventListener('change', () => {
@@ -4253,18 +4298,14 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }, 150);
   } else if (urlParams.get('test_inv')) {
-    setTimeout(() => {
-      btnPlayBot.click();
-      if (deckManager) {
-        deckManager.drawCard();
-        deckManager.drawCard();
-        deckManager.drawCard();
-        renderCardsHand();
-      }
-      setTimeout(() => {
-        openCardsInventory();
-      }, 300);
-    }, 150);
+    btnPlayBot.click();
+    if (deckManager) {
+      deckManager.drawCard();
+      deckManager.drawCard();
+      deckManager.drawCard();
+      renderCardsHand();
+    }
+    openCardsInventory();
   } else if (urlParams.get('test_menu')) {
     setTimeout(() => {
       btnPlayBot.click();
@@ -4324,5 +4365,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 200);
   } else if (urlParams.get('test_deckbuilder')) {
     openDeckBuilderModal();
+  } else if (urlParams.get('test_deckbuilder_roster')) {
+    openDeckBuilderModal();
+    const btnMobRoster = document.getElementById('btn-mob-roster');
+    if (btnMobRoster) btnMobRoster.click();
   }
 });
