@@ -162,6 +162,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const dbCurrentDeckCards = document.getElementById('db-current-deck-cards');
   const btnAutofillDeck = document.getElementById('btn-autofill-deck');
   const btnClearDeck = document.getElementById('btn-clear-deck');
+  const modalCardInspector = document.getElementById('modal-card-inspector');
+  const btnCloseCardInspector = document.getElementById('btn-close-card-inspector');
+  const cardInspectorContent = document.getElementById('card-inspector-content');
 
   let currentEditingDeckId = null;
   let currentCatalogCategory = 'all';
@@ -330,26 +333,74 @@ document.addEventListener('DOMContentLoaded', () => {
       const catData = (typeof CARD_CATEGORIES !== 'undefined' && CARD_CATEGORIES[card.category]) || { name: 'Магия', icon: '✨', color: '#818cf8' };
 
       const tile = document.createElement('div');
-      tile.className = `db-card-tile rarity-${card.rarity.toLowerCase()} ${isMax ? 'in-deck-max' : ''}`;
-      tile.title = `${card.name} (💎 ${card.manaCost} маны)\n${card.description}\n\nКлик: добавить в колоду`;
+      tile.className = `db-card-tile school-${card.category} rarity-${card.rarity.toLowerCase()} ${isMax ? 'in-deck-max' : ''}`;
+
+      const durationHtml = card.duration ? `<span class="db-duration-badge" title="Длительность действия">⏳ ${card.duration}х</span>` : '';
+      const tipHtml = card.tip ? `<div class="db-tile-tip">💡 ${card.tip}</div>` : '';
 
       tile.innerHTML = `
-        <div class="db-tile-top">
+        <div class="db-card-top-bar">
           <span class="db-tile-mana">💎 ${card.manaCost || 1}</span>
-          <span class="db-tile-count-badge ${count > 0 ? (isMax ? 'is-max' : 'has-copies') : ''}">${count} / ${maxCopies}</span>
+          <span class="db-tile-school" style="color: ${catData.color};">
+            ${catData.icon} ${catData.name.split(' ')[0]}
+          </span>
+          <span class="db-tile-type-pill ${card.type}">
+            ${card.type === 'decree' ? 'УКАЗ' : 'СПЕЛЛ'}
+          </span>
+          <button class="btn-inspect-card" title="Осмотреть подробно (👁️)">👁️</button>
         </div>
-        <div class="db-tile-center">
-          <span>${card.icon}</span>
+
+        <div class="db-card-header-main" title="Нажмите, чтобы открыть подробное описание">
+          <div class="db-tile-icon">${card.icon}</div>
+          <div class="db-tile-title-group">
+            <div class="db-tile-name">${card.name}</div>
+            <div class="db-tile-rarity-row">
+              <span style="color: ${rarityData.color};">${rarityData.name}</span>
+              ${durationHtml}
+            </div>
+          </div>
         </div>
-        <div class="db-tile-name">${card.name}</div>
-        <div class="db-tile-type-row">
-          <span style="color: ${catData.color};">${catData.icon} ${catData.name.split(' ')[0]}</span>
-          <span style="color: ${rarityData.color};">${card.type === 'decree' ? 'УКАЗ' : 'СПЕЛЛ'}</span>
+
+        <div class="db-tile-desc-box" title="Нажмите, чтобы открыть подробное описание">
+          <div class="db-tile-desc">${card.description}</div>
+          ${tipHtml}
+        </div>
+
+        <div class="db-tile-actions-bar">
+          <button class="db-btn-qty db-btn-minus" ${count === 0 ? 'disabled' : ''} title="Убрать 1 копию из колоды">➖</button>
+          <span class="db-qty-indicator ${count > 0 ? (isMax ? 'is-max' : 'has-copies') : ''}">${count} / ${maxCopies}</span>
+          <button class="db-btn-qty db-btn-plus" ${isMax ? 'disabled' : ''} title="Добавить 1 копию в колоду">➕</button>
         </div>
       `;
 
-      tile.addEventListener('click', () => {
+      // Event listeners
+      const btnMinus = tile.querySelector('.db-btn-minus');
+      const btnPlus = tile.querySelector('.db-btn-plus');
+      const btnInspect = tile.querySelector('.btn-inspect-card');
+      const headerMain = tile.querySelector('.db-card-header-main');
+      const descBox = tile.querySelector('.db-tile-desc-box');
+
+      btnMinus.addEventListener('click', (e) => {
+        e.stopPropagation();
+        removeCardFromCurrentDeck(card.id);
+      });
+
+      btnPlus.addEventListener('click', (e) => {
+        e.stopPropagation();
         addCardToCurrentDeck(card.id);
+      });
+
+      btnInspect.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openCardInspector(card.id);
+      });
+
+      headerMain.addEventListener('click', () => {
+        openCardInspector(card.id);
+      });
+
+      descBox.addEventListener('click', () => {
+        openCardInspector(card.id);
       });
 
       dbCardsGrid.appendChild(tile);
@@ -448,29 +499,163 @@ document.addEventListener('DOMContentLoaded', () => {
 
     sorted.forEach(({ card, count }) => {
       const rarityData = (typeof CARD_RARITIES !== 'undefined' && CARD_RARITIES[card.rarity]) || { border: '#38bdf8' };
+      const maxCopies = card.rarity === 'LEGENDARY' ? 1 : 2;
+      const isMax = count >= maxCopies;
       const row = document.createElement('div');
       row.className = 'db-deck-card-row';
       row.style.borderLeftColor = rarityData.border;
-      row.title = `Кликните, чтобы убрать 1 копию «${card.name}»`;
+      row.title = `${card.name}: ${card.description}`;
+
+      const snippet = card.description.length > 34 ? (card.description.slice(0, 34) + '...') : card.description;
 
       row.innerHTML = `
         <div class="db-dcr-left">
           <span class="db-dcr-mana">💎 ${card.manaCost || 1}</span>
           <span class="db-dcr-icon">${card.icon}</span>
-          <span class="db-dcr-name">${card.name}</span>
+          <div class="db-dcr-title-box">
+            <span class="db-dcr-name">${card.name}</span>
+            <span class="db-dcr-sub">${snippet}</span>
+          </div>
         </div>
         <div class="db-dcr-right">
+          <button class="db-dcr-inspect-btn" title="Осмотреть">👁️</button>
+          <button class="db-dcr-btn db-dcr-minus" title="Убрать 1 копию">➖</button>
           <span class="db-dcr-qty">x${count}</span>
-          <button class="db-dcr-remove" title="Убрать 1 шт.">✕</button>
+          <button class="db-dcr-btn db-dcr-plus" ${isMax ? 'disabled' : ''} title="Добавить 1 копию">➕</button>
         </div>
       `;
 
-      row.addEventListener('click', () => {
+      const btnMinus = row.querySelector('.db-dcr-minus');
+      const btnPlus = row.querySelector('.db-dcr-plus');
+      const btnInspect = row.querySelector('.db-dcr-inspect-btn');
+      const leftPart = row.querySelector('.db-dcr-left');
+
+      btnMinus.addEventListener('click', (e) => {
+        e.stopPropagation();
         removeCardFromCurrentDeck(card.id);
+      });
+
+      btnPlus.addEventListener('click', (e) => {
+        e.stopPropagation();
+        addCardToCurrentDeck(card.id);
+      });
+
+      btnInspect.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openCardInspector(card.id);
+      });
+
+      leftPart.addEventListener('click', () => {
+        openCardInspector(card.id);
       });
 
       dbCurrentDeckCards.appendChild(row);
     });
+  }
+
+  function openCardInspector(cardId) {
+    const card = (typeof CARDS_DATABASE !== 'undefined') ? CARDS_DATABASE.find(c => c.id === cardId) : null;
+    if (!card || !modalCardInspector || !cardInspectorContent) return;
+
+    const deck = getCurrentEditingDeck();
+    const count = deck ? (deck.cards || []).filter(id => id === card.id).length : 0;
+    const maxCopies = card.rarity === 'LEGENDARY' ? 1 : 2;
+    const isMax = count >= maxCopies;
+    const rarityData = (typeof CARD_RARITIES !== 'undefined' && CARD_RARITIES[card.rarity]) || { name: card.rarity, color: '#60a5fa', border: '#38bdf8' };
+    const catData = (typeof CARD_CATEGORIES !== 'undefined' && CARD_CATEGORIES[card.category]) || { name: 'Магия', icon: '✨', color: '#818cf8' };
+
+    cardInspectorContent.innerHTML = `
+      <div class="insp-header-row">
+        <span class="insp-mana-badge">💎 ${card.manaCost || 1} Маны</span>
+        <span class="insp-school-pill" style="color: ${catData.color}; border-color: ${catData.color}44;">
+          ${catData.icon} ${catData.name}
+        </span>
+        <span class="insp-rarity-pill" style="background: ${rarityData.color}22; color: ${rarityData.color}; border: 1px solid ${rarityData.color}55;">
+          ${rarityData.name}
+        </span>
+      </div>
+
+      <div class="insp-hero-box">
+        <div class="insp-icon" style="box-shadow: 0 0 20px ${catData.color}44;">${card.icon}</div>
+        <div class="insp-title-box">
+          <div class="insp-card-title">${card.name}</div>
+          <div class="insp-card-type-label">
+            ${card.type === 'decree' ? '📜 Указ (постоянный / с условием срабатывания)' : '✨ Заклинание (мгновенное действие)'}
+          </div>
+        </div>
+      </div>
+
+      <div class="insp-section">
+        <div class="insp-section-title">Эффект и описание</div>
+        <p class="insp-description-text">${card.description}</p>
+        <div class="insp-mechanics-grid">
+          <div class="insp-mech-item">
+            <span class="insp-mech-label">⏳ Длительность</span>
+            <span class="insp-mech-value">${card.duration ? `${card.duration} хода` : 'Мгновенно'}</span>
+          </div>
+          <div class="insp-mech-item">
+            <span class="insp-mech-label">🎯 Выбор цели</span>
+            <span class="insp-mech-value">${card.requiresTarget ? 'Да (фигура / клетка)' : 'Нет'}</span>
+          </div>
+          <div class="insp-mech-item">
+            <span class="insp-mech-label">⚡ Срабатывание</span>
+            <span class="insp-mech-value">${card.trigger || 'При розыгрыше'}</span>
+          </div>
+          <div class="insp-mech-item">
+            <span class="insp-mech-label">⚠️ Штраф / Эффект</span>
+            <span class="insp-mech-value">${card.penalty || 'Прямое действие'}</span>
+          </div>
+        </div>
+      </div>
+
+      ${card.tip ? `
+        <div class="insp-tip-box">
+          <span style="font-size: 1.1rem; line-height: 1;">💡</span>
+          <div><strong>Стратегия:</strong> ${card.tip}</div>
+        </div>
+      ` : ''}
+
+      <div class="insp-deck-status">
+        <span>В текущей колоде:</span>
+        <strong style="color: ${count > 0 ? (isMax ? '#fde047' : '#4ade80') : '#94a3b8'}; font-size: 0.95rem;">
+          ${count} из ${maxCopies} шт. ${isMax ? '(максимум)' : ''}
+        </strong>
+      </div>
+
+      <div class="insp-actions-row">
+        <button id="btn-insp-minus" class="btn-insp-action btn-insp-minus" ${count === 0 ? 'disabled' : ''}>
+          ➖ Убрать из колоды
+        </button>
+        <button id="btn-insp-plus" class="btn-insp-action btn-insp-plus" ${isMax ? 'disabled' : ''}>
+          ➕ Добавить в колоду
+        </button>
+      </div>
+    `;
+
+    const btnInspMinus = document.getElementById('btn-insp-minus');
+    const btnInspPlus = document.getElementById('btn-insp-plus');
+
+    if (btnInspMinus) {
+      btnInspMinus.addEventListener('click', () => {
+        removeCardFromCurrentDeck(card.id);
+        openCardInspector(card.id);
+      });
+    }
+
+    if (btnInspPlus) {
+      btnInspPlus.addEventListener('click', () => {
+        addCardToCurrentDeck(card.id);
+        openCardInspector(card.id);
+      });
+    }
+
+    modalCardInspector.classList.remove('hidden');
+  }
+
+  function closeCardInspector() {
+    if (modalCardInspector) {
+      modalCardInspector.classList.add('hidden');
+    }
   }
 
   function addCardToCurrentDeck(cardId) {
@@ -4011,6 +4196,14 @@ document.addEventListener('DOMContentLoaded', () => {
       if (e.target === modalDeckBuilder) closeDeckBuilderModal();
     });
   }
+  if (btnCloseCardInspector) {
+    btnCloseCardInspector.addEventListener('click', closeCardInspector);
+  }
+  if (modalCardInspector) {
+    modalCardInspector.addEventListener('click', (e) => {
+      if (e.target === modalCardInspector) closeCardInspector();
+    });
+  }
 
   // Create new custom deck
   if (btnCreateNewDeck) {
@@ -4206,6 +4399,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // Global Escape & Hotkey handler
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
+      if (modalCardInspector && !modalCardInspector.classList.contains('hidden')) {
+        closeCardInspector();
+        return;
+      }
       closeEffectDetailsModal();
       closeCardsInventory();
       closeRulesModal();
@@ -4365,6 +4562,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 200);
   } else if (urlParams.get('test_deckbuilder')) {
     openDeckBuilderModal();
+  } else if (urlParams.get('test_card_inspector')) {
+    openDeckBuilderModal();
+    openCardInspector('divine_shield');
   } else if (urlParams.get('test_deckbuilder_roster')) {
     openDeckBuilderModal();
     const btnMobRoster = document.getElementById('btn-mob-roster');
