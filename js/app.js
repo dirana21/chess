@@ -277,6 +277,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const all = window.DeckStorage.getAllDecks();
     const activeCombatId = window.DeckStorage.getActiveDeckId();
+    const currentDeck = getCurrentEditingDeck();
+
+    // Mobile Drawer Header (when screen <= 800px)
+    if (window.innerWidth <= 800) {
+      const mobHeader = document.createElement('div');
+      mobHeader.className = 'hs-dd-mobile-header';
+      mobHeader.innerHTML = `
+        <div class="hs-dd-drawer-handle"></div>
+        <div class="hs-dd-drawer-title-row">
+          <span class="hs-dd-drawer-title">Выбор колоды</span>
+          <button class="hs-dd-drawer-close" title="Закрыть">✕</button>
+        </div>
+      `;
+      const btnClose = mobHeader.querySelector('.hs-dd-drawer-close');
+      if (btnClose) {
+        btnClose.addEventListener('click', (e) => {
+          e.stopPropagation();
+          hsDeckDropdownMenu.classList.add('hidden');
+        });
+      }
+      hsDeckDropdownMenu.appendChild(mobHeader);
+    }
 
     const presets = all.filter(d => d.isDefault);
     const custom = all.filter(d => !d.isDefault);
@@ -293,8 +315,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const isCombat = d.id === activeCombatId;
       item.className = `hs-dd-item ${isEditing ? 'active' : ''} ${isCombat ? 'is-combat' : ''}`;
       const count = (d.cards && d.cards.length) || 0;
+      const cleanName = (d.icon && d.name.startsWith(d.icon)) ? d.name.substring(d.icon.length).trim() : d.name;
       item.innerHTML = `
-        <span class="hs-dd-left">${d.icon || '⚖️'} ${d.name}</span>
+        <span class="hs-dd-left">${d.icon || '⚖️'} ${cleanName}</span>
         <span class="hs-dd-badge">${count}/30 ${isCombat ? '⭐' : ''}</span>
       `;
       item.addEventListener('click', (e) => {
@@ -324,8 +347,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const isCombat = d.id === activeCombatId;
         item.className = `hs-dd-item ${isEditing ? 'active' : ''} ${isCombat ? 'is-combat' : ''}`;
         const count = (d.cards && d.cards.length) || 0;
+        const cleanName = (d.icon && d.name.startsWith(d.icon)) ? d.name.substring(d.icon.length).trim() : d.name;
         item.innerHTML = `
-          <span class="hs-dd-left">${d.icon || '🎴'} ${d.name}</span>
+          <span class="hs-dd-left">${d.icon || '🎴'} ${cleanName}</span>
           <span class="hs-dd-badge">${count}/30 ${isCombat ? '⭐' : ''}</span>
         `;
         item.addEventListener('click', (e) => {
@@ -337,11 +361,55 @@ document.addEventListener('DOMContentLoaded', () => {
         hsDeckDropdownMenu.appendChild(item);
       });
     }
+
+    // Mobile Drawer Footer Actions (New Deck, Rename, Delete)
+    if (window.innerWidth <= 800) {
+      const drawerActions = document.createElement('div');
+      drawerActions.className = 'hs-dd-drawer-actions';
+      const cleanCurrentName = (currentDeck && currentDeck.icon && currentDeck.name.startsWith(currentDeck.icon)) ? currentDeck.name.substring(currentDeck.icon.length).trim() : (currentDeck ? currentDeck.name : '');
+      drawerActions.innerHTML = `
+        <button id="btn-drawer-new-deck" class="hs-drawer-action-btn">➕ Создать новую колоду</button>
+        ${(currentDeck && !currentDeck.isDefault) ? `
+          <div class="hs-drawer-sub-actions">
+            <button id="btn-drawer-rename" class="hs-drawer-sub-btn">✏️ Переименовать «${cleanCurrentName}»</button>
+            <button id="btn-drawer-delete" class="hs-drawer-sub-btn danger">🗑️ Удалить</button>
+          </div>
+        ` : ''}
+      `;
+      const btnDrawerNew = drawerActions.querySelector('#btn-drawer-new-deck');
+      const btnDrawerRename = drawerActions.querySelector('#btn-drawer-rename');
+      const btnDrawerDelete = drawerActions.querySelector('#btn-drawer-delete');
+
+      if (btnDrawerNew && btnCreateNewDeck) {
+        btnDrawerNew.addEventListener('click', (e) => {
+          e.stopPropagation();
+          hsDeckDropdownMenu.classList.add('hidden');
+          btnCreateNewDeck.click();
+        });
+      }
+      if (btnDrawerRename && btnRenameDeck) {
+        btnDrawerRename.addEventListener('click', (e) => {
+          e.stopPropagation();
+          hsDeckDropdownMenu.classList.add('hidden');
+          btnRenameDeck.click();
+        });
+      }
+      if (btnDrawerDelete && btnDeleteDeck) {
+        btnDrawerDelete.addEventListener('click', (e) => {
+          e.stopPropagation();
+          hsDeckDropdownMenu.classList.add('hidden');
+          btnDeleteDeck.click();
+        });
+      }
+
+      hsDeckDropdownMenu.appendChild(drawerActions);
+    }
   }
 
   function renderDeckToolbar(deck) {
+    const cleanName = (deck.icon && deck.name.startsWith(deck.icon)) ? deck.name.substring(deck.icon.length).trim() : deck.name;
     if (hsSelectDeckIcon) hsSelectDeckIcon.textContent = deck.icon || '🎴';
-    if (hsSelectDeckName) hsSelectDeckName.textContent = deck.name;
+    if (hsSelectDeckName) hsSelectDeckName.textContent = cleanName;
     if (hsSelectDeckCount) {
       const count = (deck.cards && deck.cards.length) || 0;
       hsSelectDeckCount.textContent = `(${count}/30)`;
@@ -360,7 +428,12 @@ document.addEventListener('DOMContentLoaded', () => {
       const activeId = window.DeckStorage.getActiveDeckId();
       const isCombat = deck.id === activeId;
       btnSetActiveDeck.classList.toggle('is-active', isCombat);
-      btnSetActiveDeck.innerHTML = isCombat ? '⭐ Боевая' : '⭐ Сделать боевой';
+      const label = btnSetActiveDeck.querySelector('.btn-tool-label');
+      if (label) {
+        label.textContent = isCombat ? 'Боевая' : 'В бой';
+      } else {
+        btnSetActiveDeck.innerHTML = isCombat ? '<span class="btn-tool-icon">⭐</span> <span class="btn-tool-label">Боевая</span>' : '<span class="btn-tool-icon">⭐</span> <span class="btn-tool-label">В бой</span>';
+      }
     }
 
     if (btnRenameDeck) {
@@ -525,6 +598,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       tile.innerHTML = `
         <div class="hs-card-mana-gem">${card.manaCost || 1}</div>
+        <button class="hs-card-inspect-btn" title="Осмотреть свойства (инфо)">👁️</button>
         <div class="hs-card-school-badge" title="${catData.name}">${catData.icon}</div>
         <div class="hs-card-art-frame">
           ${legendaryDragon}
@@ -541,6 +615,15 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
         ${inDeckBadge}
       `;
+
+      // Touch / Click Inspect Button
+      const btnInspect = tile.querySelector('.hs-card-inspect-btn');
+      if (btnInspect) {
+        btnInspect.addEventListener('click', (e) => {
+          e.stopPropagation();
+          openCardInspector(card.id);
+        });
+      }
 
       // Pure click-to-add (Hearthstone style)
       tile.addEventListener('click', () => {
@@ -674,17 +757,43 @@ document.addEventListener('DOMContentLoaded', () => {
       row.setAttribute('title', `${card.name}: ${card.description} (Кликните, чтобы убрать)`);
 
       row.innerHTML = `
-        <div class="hs-strip-mana-gem">${card.manaCost || 1}</div>
-        <span class="hs-strip-icon">${card.icon}</span>
-        <span class="hs-strip-name">${card.name}</span>
-        <span class="hs-strip-qty-badge">${qtyBadge}</span>
-        <span class="hs-strip-cross">✕</span>
+        <div class="hs-strip-left-tap" title="Нажмите, чтобы прочитать описание">
+          <div class="hs-strip-mana-gem">${card.manaCost || 1}</div>
+          <span class="hs-strip-icon">${card.icon}</span>
+          <span class="hs-strip-name">${card.name}</span>
+        </div>
+        <div class="hs-strip-right-actions">
+          <span class="hs-strip-qty-badge">${qtyBadge}</span>
+          <button class="hs-strip-remove-btn" title="Убрать 1 шт.">✕</button>
+        </div>
       `;
 
-      // Clicking strip removes 1 copy immediately
-      row.addEventListener('click', () => {
-        removeCardFromCurrentDeck(card.id);
-        hideFloatingPreview();
+      const leftTap = row.querySelector('.hs-strip-left-tap');
+      const removeBtn = row.querySelector('.hs-strip-remove-btn');
+
+      // Tapping card info opens inspector on mobile & desktop
+      if (leftTap) {
+        leftTap.addEventListener('click', (e) => {
+          e.stopPropagation();
+          openCardInspector(card.id);
+        });
+      }
+
+      // Tapping [X] removes 1 copy
+      if (removeBtn) {
+        removeBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          removeCardFromCurrentDeck(card.id);
+          hideFloatingPreview();
+        });
+      }
+
+      // Clicking strip directly also removes 1 copy for fast deck editing
+      row.addEventListener('click', (e) => {
+        if (!leftTap || !leftTap.contains(e.target)) {
+          removeCardFromCurrentDeck(card.id);
+          hideFloatingPreview();
+        }
       });
 
       // Desktop hover floating preview
@@ -777,7 +886,13 @@ document.addEventListener('DOMContentLoaded', () => {
           ➕ Добавить в колоду
         </button>
       </div>
+      <button id="btn-insp-close-sheet" class="btn-insp-close-sheet">✕ Закрыть окно</button>
     `;
+
+    const btnInspCloseSheet = document.getElementById('btn-insp-close-sheet');
+    if (btnInspCloseSheet) {
+      btnInspCloseSheet.addEventListener('click', closeCardInspector);
+    }
 
     const btnInspMinus = document.getElementById('btn-insp-minus');
     const btnInspPlus = document.getElementById('btn-insp-plus');
@@ -4530,6 +4645,37 @@ document.addEventListener('DOMContentLoaded', () => {
         turnDeckBuilderPage(e.deltaY > 0 ? 1 : -1);
       }
     }, { passive: false });
+
+    // Touch swipe gesture for natural mobile page flipping
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchStartTime = 0;
+
+    hsBookViewport.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 1) {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+        touchStartTime = Date.now();
+      }
+    }, { passive: true });
+
+    hsBookViewport.addEventListener('touchend', (e) => {
+      if (e.changedTouches.length === 1) {
+        const touchEndX = e.changedTouches[0].clientX;
+        const touchEndY = e.changedTouches[0].clientY;
+        const diffX = touchEndX - touchStartX;
+        const diffY = touchEndY - touchStartY;
+        const elapsed = Date.now() - touchStartTime;
+
+        if (Math.abs(diffX) > 40 && Math.abs(diffX) > Math.abs(diffY) * 1.25 && elapsed < 650) {
+          if (diffX < 0) {
+            turnDeckBuilderPage(1); // Swipe left -> Next page
+          } else {
+            turnDeckBuilderPage(-1); // Swipe right -> Previous page
+          }
+        }
+      }
+    }, { passive: true });
   }
 
   // Window resize to adapt 2-row columns (4 cols desktop, 3 cols tablet, 2 cols mobile)

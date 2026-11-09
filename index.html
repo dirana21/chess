@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>Онлайн Шахматы — Играй с друзьями</title>
-  <link rel="stylesheet" href="css/style.css?v=2.9.0">
+  <link rel="stylesheet" href="css/style.css?v=2.9.1">
   <link rel="icon" href="assets/pieces/wK.svg" type="image/svg+xml">
 </head>
 <body>
@@ -673,10 +673,10 @@
           </div>
 
           <button id="btn-set-active-deck" class="btn-hs-tool btn-set-active" title="Сделать этой колодой боевую">
-            ⭐ Боевая
+            <span class="btn-tool-icon">⭐</span> <span class="btn-tool-label">Боевая</span>
           </button>
           <button id="btn-create-new-deck" class="btn-hs-tool" title="Создать новую колоду">
-            ➕ Новая
+            <span class="btn-tool-icon">➕</span> <span class="btn-tool-label">Новая</span>
           </button>
           <button id="btn-rename-deck" class="btn-hs-tool" title="Переименовать колоду">
             ✏️
@@ -742,17 +742,18 @@
               <button class="db-chip hs-mana-gem-btn" data-mana="5+" title="5+ маны">💎 5+</button>
             </div>
 
-            <!-- Page Flip Controls -->
-            <div class="hs-page-controls">
-              <button id="btn-hs-prev-footer" class="hs-page-nav-btn" title="Предыдущая страница">◀</button>
-              <span id="hs-page-indicator" class="hs-page-indicator">1 / 7</span>
-              <button id="btn-hs-next-footer" class="hs-page-nav-btn" title="Следующая страница">▶</button>
-            </div>
+            <!-- Page Flip Controls & Search in Navigation Group -->
+            <div class="hs-footer-nav-group">
+              <div class="hs-page-controls">
+                <button id="btn-hs-prev-footer" class="hs-page-nav-btn" title="Предыдущая страница">◀</button>
+                <span id="hs-page-indicator" class="hs-page-indicator">1 / 7</span>
+                <button id="btn-hs-next-footer" class="hs-page-nav-btn" title="Следующая страница">▶</button>
+              </div>
 
-            <!-- Search Field -->
-            <div class="hs-search-box">
-              <input type="text" id="db-search-input" class="hs-search-input" placeholder="🔍 Поиск...">
-              <button id="btn-clear-search" class="hs-clear-search-btn hidden" title="Очистить">✕</button>
+              <div class="hs-search-box">
+                <input type="text" id="db-search-input" class="hs-search-input" placeholder="🔍 Поиск...">
+                <button id="btn-clear-search" class="hs-clear-search-btn hidden" title="Очистить">✕</button>
+              </div>
             </div>
           </div>
         </section>
@@ -828,16 +829,16 @@
   </div>
 
   <!-- Dependencies with version cache-busting -->
-  <script src="js/logger.js?v=2.9.0"></script>
-  <script src="js/chess.js?v=2.9.0"></script>
-  <script src="js/peerjs.min.js?v=2.9.0"></script>
-  <script src="js/pieces.js?v=2.9.0"></script>
-  <script src="js/sounds.js?v=2.9.0"></script>
-  <script src="js/cards.js?v=2.9.0"></script>
-  <script src="js/decks.js?v=2.9.0"></script>
-  <script src="js/bot.js?v=2.9.0"></script>
-  <script src="js/network.js?v=2.9.0"></script>
-  <script src="js/board.js?v=2.9.0"></script>
-  <script src="js/app.js?v=2.9.0"></script>
+  <script src="js/logger.js?v=2.9.1"></script>
+  <script src="js/chess.js?v=2.9.1"></script>
+  <script src="js/peerjs.min.js?v=2.9.1"></script>
+  <script src="js/pieces.js?v=2.9.1"></script>
+  <script src="js/sounds.js?v=2.9.1"></script>
+  <script src="js/cards.js?v=2.9.1"></script>
+  <script src="js/decks.js?v=2.9.1"></script>
+  <script src="js/bot.js?v=2.9.1"></script>
+  <script src="js/network.js?v=2.9.1"></script>
+  <script src="js/board.js?v=2.9.1"></script>
+  <script src="js/app.js?v=2.9.1"></script>
 </body>
 </html>
