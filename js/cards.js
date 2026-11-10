@@ -836,6 +836,44 @@ class CardDeckManager {
     this.polymorphedPieces = {}; // { [square]: { originalType, color, turns, createdPly, state } }
     this.fireTrails = {}; // { [square]: { color, turns, createdPly, state } }
     this.infantryMarchActive = false;
+
+    // Hearthstone-style Mana System
+    this.playerTurnCount = 1;
+    this.maxMana = 1;
+    this.currentMana = 1;
+  }
+
+  calculateMaxMana(turnCount) {
+    if (!turnCount || turnCount <= 2) return 1;
+    const mana = 2 + Math.floor((turnCount - 3) / 3);
+    return Math.min(10, Math.max(1, mana));
+  }
+
+  initMana(turnCount = 1) {
+    this.playerTurnCount = turnCount || 1;
+    this.maxMana = this.calculateMaxMana(this.playerTurnCount);
+    this.currentMana = this.maxMana;
+  }
+
+  refreshMana(turnCount = null) {
+    if (turnCount !== null && turnCount !== undefined) {
+      this.playerTurnCount = turnCount;
+    }
+    this.maxMana = this.calculateMaxMana(this.playerTurnCount);
+    this.currentMana = this.maxMana;
+    return this.currentMana;
+  }
+
+  canAfford(card) {
+    if (!card) return false;
+    const cost = typeof card.manaCost === 'number' ? card.manaCost : 1;
+    return (this.currentMana || 0) >= cost;
+  }
+
+  spendMana(amount) {
+    const cost = typeof amount === 'number' ? amount : 1;
+    this.currentMana = Math.max(0, (this.currentMana || 0) - cost);
+    return this.currentMana;
   }
 
   _buildMasterDeck(cardIds) {
@@ -881,6 +919,11 @@ class CardDeckManager {
     this.polymorphedPieces = {};
     this.fireTrails = {};
     this.infantryMarchActive = false;
+
+    // Hearthstone-style Mana System reset
+    this.playerTurnCount = 1;
+    this.maxMana = 1;
+    this.currentMana = 1;
   }
 
   drawCard() {

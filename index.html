@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>Онлайн Шахматы — Играй с друзьями</title>
-  <link rel="stylesheet" href="css/style.css?v=2.9.2">
+  <link rel="stylesheet" href="css/style.css?v=2.9.3">
   <link rel="icon" href="assets/pieces/wK.svg" type="image/svg+xml">
 </head>
 <body>
@@ -223,6 +223,7 @@
                 <span class="hud-icon">🃏</span>
                 <span class="hud-label">Карты</span>
                 <span id="hud-cards-badge" class="hud-badge">0/4</span>
+                <span id="hud-mana-badge" class="hud-mana-pill" title="Текущая мана">💎 1/1</span>
                 <span id="hud-cards-indicator" class="hud-indicator hidden">●</span>
               </button>
 
@@ -260,6 +261,12 @@
                 <div class="captured-pieces" id="captured-top"></div>
               </div>
             </div>
+            <!-- Opponent Mana Tray -->
+            <div class="player-mana-tray opponent" id="opponent-mana-tray" title="Мана соперника">
+              <span class="mana-icon">💎</span>
+              <span class="mana-numeric" id="opponent-mana-text">1/1</span>
+              <div class="mana-gems-bar" id="opponent-mana-gems"></div>
+            </div>
             <div class="player-timer" id="timer-top">10:00</div>
           </div>
 
@@ -277,6 +284,12 @@
                 </div>
                 <div class="captured-pieces" id="captured-bottom"></div>
               </div>
+            </div>
+            <!-- Player Mana Tray -->
+            <div class="player-mana-tray" id="player-mana-tray" title="Ваша мана: восстанавливается каждый ход (+1 макс. каждые 3 хода)">
+              <span class="mana-icon">💎</span>
+              <span class="mana-numeric" id="player-mana-text">1/1</span>
+              <div class="mana-gems-bar" id="player-mana-gems"></div>
             </div>
             <div class="player-timer" id="timer-bottom">10:00</div>
           </div>
@@ -346,6 +359,11 @@
             </div>
             <div class="inventory-subtitle">
               Следующая карта через: <strong id="inv-turns-until">3</strong> хода • Выберите карту для розыгрыша
+            </div>
+            <div class="inv-mana-status" id="inv-mana-status" title="Доступная мана в этот ход">
+              <span class="inv-mana-icon">💎</span>
+              <span class="inv-mana-label">Ваша мана:</span>
+              <strong id="inv-mana-val">1 / 1</strong>
             </div>
           </div>
           <div class="inv-header-actions">
@@ -520,6 +538,11 @@
               <span class="rfc-icon">🎁</span>
               <strong>Старт и получение карт</strong>
               <p>В начале игры каждому выдаётся <strong>2 случайные карты</strong>. Затем каждые <strong>3 хода</strong> вы получаете <strong>+1 новую карту</strong>. В руке может быть максимум 4 карты.</p>
+            </div>
+            <div class="rules-feature-card">
+              <span class="rfc-icon">💎</span>
+              <strong>Кристаллы Маны (Баланс карт)</strong>
+              <p>Каждая карта требует ману. 1-й и 2-й ходы: <strong>1 мана</strong>. Каждые <strong>3 хода</strong> максимальный запас растёт на <strong>+1</strong> (1-2 ход: 1 мана, 3-5 ход: 2 маны, 6-8 ход: 3 маны и т.д. до 10). В начале каждого вашего хода мана полностью восстанавливается!</p>
             </div>
             <div class="rules-feature-card">
               <span class="rfc-icon">⚡</span>
@@ -829,16 +852,16 @@
   </div>
 
   <!-- Dependencies with version cache-busting -->
-  <script src="js/logger.js?v=2.9.2"></script>
-  <script src="js/chess.js?v=2.9.2"></script>
-  <script src="js/peerjs.min.js?v=2.9.2"></script>
-  <script src="js/pieces.js?v=2.9.2"></script>
-  <script src="js/sounds.js?v=2.9.2"></script>
-  <script src="js/cards.js?v=2.9.2"></script>
-  <script src="js/decks.js?v=2.9.2"></script>
-  <script src="js/bot.js?v=2.9.2"></script>
-  <script src="js/network.js?v=2.9.2"></script>
-  <script src="js/board.js?v=2.9.2"></script>
-  <script src="js/app.js?v=2.9.2"></script>
+  <script src="js/logger.js?v=2.9.3"></script>
+  <script src="js/chess.js?v=2.9.3"></script>
+  <script src="js/peerjs.min.js?v=2.9.3"></script>
+  <script src="js/pieces.js?v=2.9.3"></script>
+  <script src="js/sounds.js?v=2.9.3"></script>
+  <script src="js/cards.js?v=2.9.3"></script>
+  <script src="js/decks.js?v=2.9.3"></script>
+  <script src="js/bot.js?v=2.9.3"></script>
+  <script src="js/network.js?v=2.9.3"></script>
+  <script src="js/board.js?v=2.9.3"></script>
+  <script src="js/app.js?v=2.9.3"></script>
 </body>
 </html>

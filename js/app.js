@@ -69,13 +69,26 @@ document.addEventListener('DOMContentLoaded', () => {
   // Semi-Transparent Cards Inventory Elements
   const btnOpenCardsInv = document.getElementById('btn-open-cards-inv');
   const hudCardsBadge = document.getElementById('hud-cards-badge');
+  const hudManaBadge = document.getElementById('hud-mana-badge');
   const hudNextCardTimer = document.getElementById('hud-next-card-timer');
   const cardsInventoryOverlay = document.getElementById('cards-inventory-overlay');
   const inventoryBackdrop = document.getElementById('inventory-backdrop');
   const btnCloseInventory = document.getElementById('btn-close-inventory');
   const invCardsCount = document.getElementById('inv-cards-count');
   const invTurnsUntil = document.getElementById('inv-turns-until');
+  const invManaVal = document.getElementById('inv-mana-val');
   const inventoryCardsContainer = document.getElementById('inventory-cards-container');
+
+  // Hearthstone-style Mana System Elements
+  const playerManaTray = document.getElementById('player-mana-tray');
+  const opponentManaTray = document.getElementById('opponent-mana-tray');
+  const playerManaText = document.getElementById('player-mana-text');
+  const opponentManaText = document.getElementById('opponent-mana-text');
+  const playerManaGems = document.getElementById('player-mana-gems');
+  const opponentManaGems = document.getElementById('opponent-mana-gems');
+
+  let manaWhite = { current: 1, max: 1, turnCount: 1 };
+  let manaBlack = { current: 1, max: 1, turnCount: 1 };
 
   // Active Effects HUD & Modal Elements
   const btnOpenEffectsModal = document.getElementById('btn-open-effects-modal');
@@ -218,10 +231,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (typeof window.DeckStorage === 'undefined' || !screenDeckBuilder) return;
 
     if (screenGame && !screenGame.classList.contains('hidden')) {
-      previousScreenBeforeDeckBuilder = screenGame;
-    } else {
-      previousScreenBeforeDeckBuilder = screenLobby;
+      showToast('⚠️ Настройка колоды доступна только в главном меню!');
+      return;
     }
+    previousScreenBeforeDeckBuilder = screenLobby;
 
     const all = window.DeckStorage.getAllDecks();
     const activeId = window.DeckStorage.getActiveDeckId();
@@ -1518,6 +1531,16 @@ document.addEventListener('DOMContentLoaded', () => {
     screenWaiting.classList.add('hidden');
     screenGame.classList.add('hidden');
     if (screenDeckBuilder) screenDeckBuilder.classList.add('hidden');
+
+    // Only show "Колоды" button in the lobby header; hide during game and waiting
+    if (btnOpenDeckBuilderHeader) {
+      if (screen === screenLobby) {
+        btnOpenDeckBuilderHeader.classList.remove('hidden');
+      } else {
+        btnOpenDeckBuilderHeader.classList.add('hidden');
+      }
+    }
+
     screen.classList.remove('hidden');
   }
 
@@ -1635,6 +1658,99 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 2400);
   }
 
+  // --- Hearthstone-style Mana Engine ---
+  function calculateMaxMana(turnCount) {
+    if (!turnCount || turnCount <= 2) return 1;
+    const mana = 2 + Math.floor((turnCount - 3) / 3);
+    return Math.min(10, Math.max(1, mana));
+  }
+
+  function advanceTurnMana(nextColor) {
+    if (gameVariant !== 'cards') return;
+    const playerTurns = Math.floor(totalMovesCount / 2) + 1;
+    const newMax = calculateMaxMana(playerTurns);
+
+    if (nextColor === 'w') {
+      const oldMax = manaWhite.max;
+      manaWhite.turnCount = playerTurns;
+      manaWhite.max = newMax;
+      manaWhite.current = newMax;
+      if (myColor === 'w' && deckManager) {
+        deckManager.currentMana = newMax;
+        deckManager.maxMana = newMax;
+        deckManager.playerTurnCount = playerTurns;
+      }
+      if (opponentColor === 'w' && botDeckManager) {
+        botDeckManager.currentMana = newMax;
+        botDeckManager.maxMana = newMax;
+        botDeckManager.playerTurnCount = playerTurns;
+      }
+      if (newMax > oldMax && (myColor === 'w' || mode === 'pass')) {
+        showToast(`💎 Мана возросла до ${newMax} из 10!`, 3000);
+      }
+    } else {
+      const oldMax = manaBlack.max;
+      manaBlack.turnCount = playerTurns;
+      manaBlack.max = newMax;
+      manaBlack.current = newMax;
+      if (myColor === 'b' && deckManager) {
+        deckManager.currentMana = newMax;
+        deckManager.maxMana = newMax;
+        deckManager.playerTurnCount = playerTurns;
+      }
+      if (opponentColor === 'b' && botDeckManager) {
+        botDeckManager.currentMana = newMax;
+        botDeckManager.maxMana = newMax;
+        botDeckManager.playerTurnCount = playerTurns;
+      }
+      if (newMax > oldMax && (myColor === 'b' || mode === 'pass')) {
+        showToast(`💎 Мана возросла до ${newMax} из 10!`, 3000);
+      }
+    }
+
+    updateManaDisplay();
+    renderCardsHand();
+  }
+
+  function updateManaDisplay() {
+    if (gameVariant !== 'cards') {
+      if (playerManaTray) playerManaTray.classList.add('hidden');
+      if (opponentManaTray) opponentManaTray.classList.add('hidden');
+      if (hudManaBadge) hudManaBadge.classList.add('hidden');
+      return;
+    }
+
+    if (playerManaTray) playerManaTray.classList.remove('hidden');
+    if (opponentManaTray) opponentManaTray.classList.remove('hidden');
+    if (hudManaBadge) hudManaBadge.classList.remove('hidden');
+
+    const myMana = (mode === 'bot' || mode === 'online')
+      ? (myColor === 'w' ? manaWhite : manaBlack)
+      : (game.turn() === 'w' ? manaWhite : manaBlack);
+
+    const oppMana = (mode === 'bot' || mode === 'online')
+      ? (opponentColor === 'w' ? manaWhite : manaBlack)
+      : (game.turn() === 'w' ? manaBlack : manaWhite);
+
+    if (playerManaText) playerManaText.textContent = `${myMana.current}/${myMana.max}`;
+    if (opponentManaText) opponentManaText.textContent = `${oppMana.current}/${oppMana.max}`;
+    if (hudManaBadge) hudManaBadge.textContent = `💎 ${myMana.current}/${myMana.max}`;
+    if (invManaVal) invManaVal.textContent = `${myMana.current} / ${myMana.max}`;
+
+    renderManaCrystals(playerManaGems, myMana.current, myMana.max);
+    renderManaCrystals(opponentManaGems, oppMana.current, oppMana.max);
+  }
+
+  function renderManaCrystals(container, current, max) {
+    if (!container) return;
+    let html = '';
+    for (let i = 1; i <= max; i++) {
+      const isFilled = i <= current;
+      html += `<span class="mana-crystal-gem ${isFilled ? 'filled' : 'spent'}" title="${isFilled ? 'Доступная мана' : 'Потраченная мана'}"></span>`;
+    }
+    container.innerHTML = html;
+  }
+
   function renderCardsHand() {
     const boardSec = document.querySelector('.game-board-section');
     if (gameVariant !== 'cards') {
@@ -1651,15 +1767,20 @@ document.addEventListener('DOMContentLoaded', () => {
     if (activeDecreesContainer) activeDecreesContainer.classList.remove('hidden');
     if (boardSec) boardSec.classList.remove('classic-mode');
 
+    updateManaDisplay();
+
     const handLen = deckManager.hand.length;
     const movesTillNext = 3 - (Math.floor(totalMovesCount / 2) % 3);
     const turnsVal = movesTillNext === 0 ? 3 : movesTillNext;
+
+    const activeColor = (mode === 'online' || mode === 'bot') ? myColor : (game ? game.turn() : 'w');
+    const activeMana = activeColor === 'w' ? manaWhite : manaBlack;
 
     if (hudCardsBadge) hudCardsBadge.textContent = `${handLen}/4`;
     if (invCardsCount) invCardsCount.textContent = handLen;
     if (invTurnsUntil) invTurnsUntil.textContent = turnsVal;
     if (btnOpenCardsInv) {
-      btnOpenCardsInv.classList.toggle('has-playable-cards', handLen > 0 && game && game.turn() === myColor);
+      btnOpenCardsInv.classList.toggle('has-playable-cards', handLen > 0 && game && game.turn() === myColor && deckManager.hand.some(c => (c.manaCost || 1) <= activeMana.current));
     }
     if (hudNextCardTimer) {
       hudNextCardTimer.innerHTML = `Карта через: <strong>${turnsVal}</strong> х.`;
@@ -1680,17 +1801,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     deckManager.hand.forEach(card => {
+      const cost = card.manaCost || 1;
+      const canAfford = activeMana.current >= cost;
       const rarityData = CARD_RARITIES[card.rarity] || CARD_RARITIES.COMMON;
       const catData = (typeof CARD_CATEGORIES !== 'undefined' && CARD_CATEGORIES[card.category]) || { name: 'Магия', icon: '✨', color: '#818cf8' };
       const cardEl = document.createElement('div');
-      cardEl.className = `hs-card rarity-${card.rarity.toLowerCase()}`;
-      cardEl.title = `${card.name}: ${card.description}`;
+      cardEl.className = `hs-card rarity-${card.rarity.toLowerCase()}${canAfford ? '' : ' card-unaffordable'}`;
+      cardEl.title = `${card.name}: ${card.description} (Стоимость: ${cost} маны)`;
       cardEl.style.setProperty('--card-bg', rarityData.bg);
       cardEl.style.setProperty('--card-border', rarityData.border);
 
       cardEl.innerHTML = `
         <div class="card-top-bar">
-          <span class="card-mana" title="Стоимость: ${card.manaCost || 1} маны">💎 ${card.manaCost || 1}</span>
+          <span class="card-mana" title="Стоимость: ${cost} маны">💎 ${cost}</span>
           <span class="card-category-badge" style="color: ${catData.color}" title="${catData.name}">${catData.icon}</span>
           <span class="card-type-tag">${card.type === 'decree' ? 'УКАЗ' : 'СПЕЛЛ'}</span>
         </div>
@@ -1699,20 +1822,23 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
         <div class="card-name">${card.name}</div>
         <div class="card-desc">${card.description}</div>
-        <button class="btn-play-card">Разыграть</button>
+        <button class="btn-play-card" ${canAfford ? '' : 'disabled'}>${canAfford ? `Разыграть (💎 ${cost})` : `💎 Нужно ${cost}`}</button>
       `;
 
       const btnPlay = cardEl.querySelector('.btn-play-card');
-      btnPlay.addEventListener('click', (e) => {
-        e.stopPropagation();
+      const handlePlay = (e) => {
+        if (e) e.stopPropagation();
+        if (!canAfford) {
+          if (window.sounds) window.sounds.play('illegal');
+          showToast(`💎 Недостаточно маны! Нужно ${cost}, у вас ${activeMana.current}`);
+          return;
+        }
         closeCardsInventory();
         initiateCardPlay(card);
-      });
+      };
 
-      cardEl.addEventListener('click', () => {
-        closeCardsInventory();
-        initiateCardPlay(card);
-      });
+      btnPlay.addEventListener('click', handlePlay);
+      cardEl.addEventListener('click', handlePlay);
 
       inventoryCardsContainer.appendChild(cardEl);
     });
@@ -2229,6 +2355,16 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    // Hearthstone Mana Check
+    const activeColor = (mode === 'online' || mode === 'bot') ? myColor : (game ? game.turn() : 'w');
+    const activeMana = activeColor === 'w' ? manaWhite : manaBlack;
+    const cost = card.manaCost || 1;
+    if (activeMana.current < cost) {
+      if (window.sounds) window.sounds.play('illegal');
+      showToast(`💎 Недостаточно маны! Нужно ${cost}, у вас ${activeMana.current}`);
+      return;
+    }
+
     // Special multi-step handling for Shadow Swap
     if (card.id === 'shadow_swap') {
       const bState = game.board();
@@ -2356,8 +2492,19 @@ document.addEventListener('DOMContentLoaded', () => {
     game.put(piece, toSquare);
     game.load(game.fen());
 
-    const activeCard = card || pendingCard || { name: 'Портал Бездны', icon: '🌀' };
+    const activeCard = card || pendingCard || { name: 'Портал Бездны', icon: '🌀', manaCost: 4 };
     showCardPlayCinematic(activeCard, !isRemote, `${fromSquare.toUpperCase()} ➔ ${toSquare.toUpperCase()}`);
+
+    const casterColor = isRemote ? opponentColor : ((mode === 'pass') ? (game ? game.turn() : 'w') : myColor);
+    const cost = activeCard.manaCost || 4;
+    if (casterColor === 'w') {
+      manaWhite.current = Math.max(0, manaWhite.current - cost);
+    } else {
+      manaBlack.current = Math.max(0, manaBlack.current - cost);
+    }
+    if (!isRemote && deckManager) deckManager.spendMana(cost);
+    if (isRemote && botDeckManager) botDeckManager.spendMana(cost);
+    updateManaDisplay();
 
     if (!isRemote) {
       if (activeCard && activeCard.instanceId) deckManager.removeCard(activeCard.instanceId);
@@ -2392,6 +2539,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     game.load(game.fen());
 
+    const activeCard = card || pendingCard || { name: 'Обмен теней', icon: '👥', manaCost: 3 };
+    const casterColor = isRemote ? opponentColor : ((mode === 'pass') ? (game ? game.turn() : 'w') : myColor);
+    const cost = activeCard.manaCost || 3;
+    if (casterColor === 'w') {
+      manaWhite.current = Math.max(0, manaWhite.current - cost);
+    } else {
+      manaBlack.current = Math.max(0, manaBlack.current - cost);
+    }
+    if (!isRemote && deckManager) deckManager.spendMana(cost);
+    if (isRemote && botDeckManager) botDeckManager.spendMana(cost);
+    updateManaDisplay();
+
     if (window.sounds) window.sounds.play('castle');
 
     if (card) {
@@ -2423,14 +2582,23 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.sounds) window.sounds.play('card_play');
     showCardPlayCinematic(card, !isRemote, targetSquare);
 
+    const casterColor = isRemote ? opponentColor : ((mode === 'pass') ? (game ? game.turn() : 'w') : myColor);
+    const cost = card.manaCost || 1;
+    if (casterColor === 'w') {
+      manaWhite.current = Math.max(0, manaWhite.current - cost);
+    } else {
+      manaBlack.current = Math.max(0, manaBlack.current - cost);
+    }
+    if (!isRemote && deckManager) deckManager.spendMana(cost);
+    if (isRemote && botDeckManager) botDeckManager.spendMana(cost);
+    updateManaDisplay();
+
     if (!isRemote) {
       deckManager.removeCard(card.instanceId);
       if (mode === 'online') {
         network.sendCardPlay(card, targetSquare, myColor, null, null, game.fen());
       }
     }
-
-    const casterColor = isRemote ? opponentColor : myColor;
 
     if (window.logger) {
       window.logger.card(casterColor, card, targetSquare, isRemote);
@@ -3242,11 +3410,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!botDeckManager || botDeckManager.hand.length === 0 || game.game_over()) return;
     if (Math.random() > 0.45) return;
 
-    const hand = botDeckManager.hand;
-    const card = hand[Math.floor(Math.random() * hand.length)];
+    const botColor = opponentColor;
+    const botMana = botColor === 'w' ? manaWhite : manaBlack;
+
+    // Filter cards the bot can afford with current mana
+    const affordableCards = botDeckManager.hand.filter(c => (c.manaCost || 1) <= botMana.current);
+    if (affordableCards.length === 0) return;
+
+    const card = affordableCards[Math.floor(Math.random() * affordableCards.length)];
     if (!card) return;
 
-    const botColor = opponentColor;
     const humanColor = myColor;
 
     if (card.type === 'decree') {
@@ -3656,6 +3829,10 @@ document.addEventListener('DOMContentLoaded', () => {
         botDeckManager.drawCard();
       }
     }
+
+    // Hearthstone-style Turn Mana Progression
+    advanceTurnMana(game.turn());
+
     renderCardsHand();
     renderActiveDecrees();
 
@@ -3756,6 +3933,10 @@ document.addEventListener('DOMContentLoaded', () => {
       if (gameVariant === 'cards' && totalMovesCount % 6 === 0) {
         triggerCardDraw();
       }
+
+      // Hearthstone-style Turn Mana Progression
+      advanceTurnMana(game.turn());
+
       renderCardsHand();
       renderActiveDecrees();
       boardUI.render();
@@ -3989,9 +4170,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (gameVariant === 'cards') {
+      manaWhite = { current: 1, max: 1, turnCount: 1 };
+      manaBlack = { current: 1, max: 1, turnCount: 1 };
+
       const activeDeck = (typeof window.DeckStorage !== 'undefined') ? window.DeckStorage.getActiveDeck() : null;
       const activeCardIds = (config && config.deckCards) ? config.deckCards : (activeDeck ? activeDeck.cards : null);
       deckManager = new CardDeckManager(activeCardIds);
+      deckManager.initMana(1);
       if (boardUI) {
         boardUI.deckManager = deckManager;
         boardUI.options.deckManager = deckManager;
@@ -4003,15 +4188,18 @@ document.addEventListener('DOMContentLoaded', () => {
       if (mode === 'bot') {
         const botPreset = (typeof window.DeckStorage !== 'undefined') ? window.DeckStorage.getRandomPreset() : null;
         botDeckManager = new CardDeckManager(botPreset ? botPreset.cards : null);
+        botDeckManager.initMana(1);
         botDeckManager.drawCard();
         botDeckManager.drawCard();
       } else {
         botDeckManager = null;
       }
+      updateManaDisplay();
       renderCardsHand();
       renderActiveDecrees();
     } else {
       botDeckManager = null;
+      updateManaDisplay();
       renderCardsHand();
       renderActiveDecrees();
     }

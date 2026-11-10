@@ -5770,3 +5770,147 @@ body {
   transform: none !important;
 }
 
+/* ==========================================================================
+   Hearthstone-style Mana System on Table & Inventory
+   ========================================================================== */
+
+.player-mana-tray {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.88), rgba(30, 41, 59, 0.92));
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  border-radius: 16px;
+  padding: 0.22rem 0.55rem;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.18), inset 0 1px 1px rgba(255, 255, 255, 0.12);
+  user-select: none;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.player-mana-tray:hover {
+  border-color: rgba(56, 189, 248, 0.7);
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.3);
+}
+
+.player-mana-tray.opponent {
+  border-color: rgba(148, 163, 184, 0.35);
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.75), rgba(30, 41, 59, 0.8));
+}
+
+.player-mana-tray .mana-icon {
+  font-size: 0.9rem;
+  filter: drop-shadow(0 0 4px #38bdf8);
+}
+
+.player-mana-tray .mana-numeric {
+  color: #38bdf8;
+  font-weight: 800;
+  font-size: 0.84rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  letter-spacing: 0.5px;
+  line-height: 1;
+}
+
+.mana-gems-bar {
+  display: flex;
+  align-items: center;
+  gap: 3.5px;
+  margin-left: 2px;
+}
+
+.mana-crystal-gem {
+  width: 9px;
+  height: 9px;
+  transform: rotate(45deg);
+  border-radius: 2px;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.mana-crystal-gem.filled {
+  background: linear-gradient(135deg, #7dd3fc, #0284c7);
+  border: 1px solid #bae6fd;
+  box-shadow: 0 0 6px #38bdf8, 0 0 10px rgba(56, 189, 248, 0.65);
+}
+
+.mana-crystal-gem.spent {
+  background: #090d16;
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  box-shadow: inset 0 0 2px rgba(0, 0, 0, 0.8);
+}
+
+/* Mana Pill in HUD button */
+.hud-mana-pill {
+  background: rgba(56, 189, 248, 0.2);
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  border-radius: 8px;
+  padding: 0.1rem 0.42rem;
+  color: #38bdf8;
+  font-size: 0.76rem;
+  font-weight: 800;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.4px;
+}
+
+/* Mana status in Cards Inventory overlay */
+.inv-mana-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.22), rgba(2, 132, 199, 0.12));
+  border: 1px solid rgba(56, 189, 248, 0.55);
+  border-radius: 12px;
+  padding: 0.25rem 0.75rem;
+  color: #7dd3fc;
+  font-size: 0.85rem;
+  font-weight: 700;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.22);
+  margin-top: 0.25rem;
+  width: fit-content;
+}
+
+.inv-mana-status strong {
+  color: #38bdf8;
+  font-size: 0.95rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* Unaffordable Card States in Hand */
+.hs-card.card-unaffordable {
+  opacity: 0.62;
+  filter: saturate(0.6);
+  border-color: rgba(239, 68, 68, 0.35) !important;
+}
+
+.hs-card.card-unaffordable .card-mana {
+  background: rgba(239, 68, 68, 0.32) !important;
+  border-color: #ef4444 !important;
+  color: #fca5a5 !important;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.45) !important;
+}
+
+.hs-card.card-unaffordable .btn-play-card {
+  background: #232730 !important;
+  border-color: #475569 !important;
+  color: #94a3b8 !important;
+  cursor: not-allowed !important;
+}
+
+@media (max-width: 600px) {
+  .player-mana-tray {
+    padding: 0.15rem 0.4rem;
+    gap: 0.25rem;
+  }
+  .player-mana-tray .mana-numeric {
+    font-size: 0.76rem;
+  }
+  .mana-crystal-gem {
+    width: 7px;
+    height: 7px;
+    gap: 2px;
+  }
+}
+
+
