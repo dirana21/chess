@@ -121,7 +121,12 @@ body {
   padding: 1rem;
 }
 
-.hidden {
+.hidden,
+.screen-deck-builder-scene.hidden,
+#screen-deck-builder.hidden,
+.screen-view.hidden,
+.modal-overlay.hidden,
+.modal-card-inspector.hidden {
   display: none !important;
 }
 
@@ -4813,7 +4818,12 @@ body {
 
 /* Responsive: Mobile Touch-Optimized (<= 800px) */
 @media (max-width: 800px) {
-  .screen-deck-builder-scene {
+  .screen-deck-builder-scene.hidden,
+  #screen-deck-builder.hidden {
+    display: none !important;
+  }
+
+  .screen-deck-builder-scene:not(.hidden) {
     max-width: 100vw !important;
     width: 100vw !important;
     height: 100vh !important;
