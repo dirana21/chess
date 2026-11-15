@@ -90,6 +90,32 @@ document.addEventListener('DOMContentLoaded', () => {
   let manaWhite = { current: 1, max: 1, turnCount: 1 };
   let manaBlack = { current: 1, max: 1, turnCount: 1 };
 
+  // Card Play History UI Elements (Left side of chessboard)
+  const cardHistorySidebar = document.getElementById('card-history-sidebar');
+  const cardHistoryList = document.getElementById('card-history-list');
+  const cardHistoryTooltip = document.getElementById('card-history-tooltip');
+  const chtName = document.getElementById('cht-name');
+  const chtIcon = document.getElementById('cht-icon');
+  const chtMana = document.getElementById('cht-mana');
+  const chtRarityType = document.getElementById('cht-rarity-type');
+  const chtCaster = document.getElementById('cht-caster');
+  const chtDesc = document.getElementById('cht-desc');
+  const chtTarget = document.getElementById('cht-target');
+
+  const cardPlayHistory = [];
+
+  // Hearthstone Turn Timer & End Turn Dock (Right side of chessboard)
+  const turnTimerDock = document.getElementById('turn-timer-dock');
+  const btnEndTurn = document.getElementById('btn-end-turn');
+  const endTurnTitle = document.getElementById('end-turn-title');
+  const endTurnTimerVal = document.getElementById('end-turn-timer-val');
+  const endTurnProgressFill = document.getElementById('end-turn-progress-fill');
+
+  let turnTimerDuration = 60;
+  let turnTimerRemaining = 60;
+  let turnTimerInterval = null;
+  let hasMovedThisTurn = false;
+
   // Active Effects HUD & Modal Elements
   const btnOpenEffectsModal = document.getElementById('btn-open-effects-modal');
   const hudEffectsBadge = document.getElementById('hud-effects-badge');
@@ -1224,13 +1250,9 @@ document.addEventListener('DOMContentLoaded', () => {
           ? `Цепная молния поразила клетку ${sq} и сковала льдом соседние фигуры вашей армии!`
           : 'Цепная молния поразила несколько ваших фигур ледяным разрядом!';
       case 'shield_wall':
-        return sq
-          ? `Пехотный строй соперника вокруг ${sq} защищён Стеной Щитов на 2 хода!`
-          : 'Пехотный строй соперника защищён Стеной Щитов!';
+        return 'Пехотный строй защищён Стеной Щитов: союзные пешки укрыты Божественным Щитом на 2 хода!';
       case 'blood_pact':
-        return sq
-          ? `Соперник принёс в жертву пешку на ${sq}, получив +2 карты и +30 секунд!`
-          : 'Соперник заключил Кровавый Пакт: пожертвовал пешку за карты и время!';
+        return 'Кровавый Пакт: принесено в жертву 20 секунд времени ради 2 новых карт!';
       case 'earthquake':
         return 'Землетрясение сотрясло пешечные ряды на доске, сдвинув заблокированные пешки!';
       case 'spell_theft':
@@ -1521,12 +1543,17 @@ document.addEventListener('DOMContentLoaded', () => {
       deckManager: gameVariant === 'cards' ? deckManager : null,
       playerColor: (mode === 'online' || mode === 'bot') ? myColor : null,
       onMove: handleLocalMove,
-      onSquareTargeted: handleSquareTargeted
+      onSquareTargeted: handleSquareTargeted,
+      hasMovedThisTurn: () => hasMovedThisTurn && gameVariant === 'cards'
     });
     boardUI.setGame(game);
   }
 
   function switchScreen(screen) {
+    if (screen !== screenGame) {
+      stopTurnTimer();
+      hideCardHistoryTooltip();
+    }
     screenLobby.classList.add('hidden');
     screenWaiting.classList.add('hidden');
     screenGame.classList.add('hidden');
@@ -1749,6 +1776,352 @@ document.addEventListener('DOMContentLoaded', () => {
       html += `<span class="mana-crystal-gem ${isFilled ? 'filled' : 'spent'}" title="${isFilled ? 'Доступная мана' : 'Потраченная мана'}"></span>`;
     }
     container.innerHTML = html;
+  }
+
+  // --- Left Card Play History Engine ---
+  function recordCardHistory(card, casterColor, targetSquare) {
+    if (gameVariant !== 'cards') return;
+    const isPlayer = casterColor === myColor;
+    const entry = {
+      id: card.id,
+      name: card.name,
+      icon: card.icon || '🃏',
+      manaCost: card.manaCost || 1,
+      rarity: card.rarity || 'COMMON',
+      category: card.category || 'magic',
+      description: card.description || '',
+      casterColor: casterColor,
+      isPlayer: isPlayer,
+      targetSquare: targetSquare || null,
+      timestamp: Date.now()
+    };
+    cardPlayHistory.unshift(entry);
+    if (cardPlayHistory.length > 5) {
+      cardPlayHistory.pop();
+    }
+    renderCardHistory();
+  }
+
+  function renderCardHistory() {
+    if (!cardHistorySidebar || !cardHistoryList) return;
+    if (gameVariant !== 'cards') {
+      cardHistorySidebar.classList.add('hidden');
+      return;
+    }
+    cardHistorySidebar.classList.remove('hidden');
+    cardHistoryList.innerHTML = '';
+
+    if (cardPlayHistory.length === 0) {
+      return;
+    }
+
+    const displayList = cardPlayHistory.slice(0, 4);
+    displayList.forEach((entry, index) => {
+      const itemEl = document.createElement('div');
+      itemEl.className = `card-history-item ${entry.isPlayer ? 'caster-player' : 'caster-opponent'} rarity-${entry.rarity}`;
+      itemEl.dataset.index = index;
+
+      itemEl.innerHTML = `
+        <div class="card-history-mana">💎${entry.manaCost}</div>
+        <div class="card-history-icon">${entry.icon}</div>
+        <div class="card-history-caster-dot ${entry.isPlayer ? 'caster-player' : 'caster-opponent'}">${entry.isPlayer ? 'Вы' : 'Враг'}</div>
+      `;
+
+      itemEl.addEventListener('mouseenter', () => {
+        showCardHistoryTooltip(entry, itemEl);
+      });
+      itemEl.addEventListener('mouseleave', () => {
+        hideCardHistoryTooltip();
+      });
+      itemEl.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (cardHistoryTooltip && !cardHistoryTooltip.classList.contains('hidden')) {
+          hideCardHistoryTooltip();
+        } else {
+          showCardHistoryTooltip(entry, itemEl);
+        }
+      });
+
+      cardHistoryList.appendChild(itemEl);
+    });
+  }
+
+  function showCardHistoryTooltip(entry, element) {
+    if (!cardHistoryTooltip) return;
+    if (chtName) chtName.textContent = entry.name;
+    if (chtIcon) chtIcon.textContent = entry.icon;
+    if (chtMana) chtMana.textContent = `💎 ${entry.manaCost}`;
+    const rarityData = (typeof CARD_RARITIES !== 'undefined' && CARD_RARITIES[entry.rarity]) ? CARD_RARITIES[entry.rarity].name : entry.rarity;
+    const catData = (typeof CARD_CATEGORIES !== 'undefined' && CARD_CATEGORIES[entry.category]) ? CARD_CATEGORIES[entry.category].name : 'Магия';
+    if (chtRarityType) chtRarityType.textContent = `${rarityData} • ${catData}`;
+    if (chtCaster) {
+      chtCaster.textContent = entry.isPlayer ? '👑 Вы' : '👤 Соперник';
+      chtCaster.className = `cht-caster-badge ${entry.isPlayer ? 'caster-player' : 'caster-opponent'}`;
+    }
+    if (chtDesc) chtDesc.textContent = entry.description;
+
+    if (chtTarget) {
+      if (entry.targetSquare) {
+        chtTarget.textContent = `🎯 Цель: ${entry.targetSquare.toUpperCase()}`;
+        chtTarget.classList.remove('hidden');
+      } else {
+        chtTarget.classList.add('hidden');
+      }
+    }
+
+    if (window.innerWidth > 800 && element) {
+      const rect = element.getBoundingClientRect();
+      const parentRect = cardHistorySidebar.parentElement.getBoundingClientRect();
+      cardHistoryTooltip.style.top = `${rect.top - parentRect.top + rect.height / 2}px`;
+      cardHistoryTooltip.style.left = `${rect.right - parentRect.left + 12}px`;
+      cardHistoryTooltip.style.position = 'absolute';
+    } else {
+      cardHistoryTooltip.style.top = '';
+      cardHistoryTooltip.style.left = '';
+      cardHistoryTooltip.style.position = '';
+    }
+
+    cardHistoryTooltip.classList.remove('hidden');
+  }
+
+  function hideCardHistoryTooltip() {
+    if (cardHistoryTooltip) {
+      cardHistoryTooltip.classList.add('hidden');
+    }
+  }
+
+  document.addEventListener('click', (e) => {
+    if (cardHistoryTooltip && !cardHistoryTooltip.classList.contains('hidden')) {
+      if (!e.target.closest('#card-history-sidebar') && !e.target.closest('#card-history-tooltip')) {
+        hideCardHistoryTooltip();
+      }
+    }
+  });
+
+  // --- Hearthstone Turn Timer & End Turn Engine ---
+  function startTurnTimer(activeTurnColor) {
+    stopTurnTimer();
+    if (gameVariant !== 'cards') {
+      if (turnTimerDock) turnTimerDock.classList.add('hidden');
+      return;
+    }
+    if (turnTimerDock) turnTimerDock.classList.remove('hidden');
+
+    turnTimerDuration = 60;
+    turnTimerRemaining = 60;
+    hasMovedThisTurn = false;
+
+    updateTurnTimerUI(activeTurnColor);
+
+    turnTimerInterval = setInterval(() => {
+      if (game.game_over()) {
+        stopTurnTimer();
+        return;
+      }
+
+      turnTimerRemaining = Math.max(0, turnTimerRemaining - 1);
+      updateTurnTimerUI(game.turn());
+
+      if (turnTimerRemaining <= 0) {
+        stopTurnTimer();
+        handleTurnTimeout();
+      }
+    }, 1000);
+  }
+
+  function stopTurnTimer() {
+    if (turnTimerInterval) {
+      clearInterval(turnTimerInterval);
+      turnTimerInterval = null;
+    }
+  }
+
+  function updateTurnTimerUI(activeTurnColor) {
+    if (!btnEndTurn || !endTurnTitle || !endTurnTimerVal) return;
+    const isMyTurn = (mode === 'pass') ? true : (activeTurnColor === myColor);
+
+    endTurnTimerVal.textContent = `${turnTimerRemaining}с`;
+    if (endTurnProgressFill) {
+      const pct = Math.max(0, Math.min(100, (turnTimerRemaining / turnTimerDuration) * 100));
+      endTurnProgressFill.style.width = `${pct}%`;
+    }
+
+    btnEndTurn.classList.toggle('warning', turnTimerRemaining <= 15);
+
+    if (isMyTurn) {
+      btnEndTurn.classList.remove('opponent-turn');
+      btnEndTurn.classList.add('my-turn');
+      btnEndTurn.classList.toggle('has-moved', hasMovedThisTurn);
+      endTurnTitle.textContent = hasMovedThisTurn ? 'Завершить ход' : 'Завершить ход';
+      btnEndTurn.style.cursor = 'pointer';
+    } else {
+      btnEndTurn.classList.remove('my-turn');
+      btnEndTurn.classList.remove('has-moved');
+      btnEndTurn.classList.add('opponent-turn');
+      endTurnTitle.textContent = 'Ход соперника';
+      btnEndTurn.style.cursor = 'default';
+    }
+  }
+
+  function handleEndTurnClick() {
+    if (gameVariant !== 'cards') return;
+    if (game.game_over()) return;
+
+    const currentTurn = game.turn();
+    const isMyTurn = (mode === 'pass') ? true : (currentTurn === myColor);
+    if (!isMyTurn) return;
+
+    // Check if player is currently in check
+    if (game.in_check()) {
+      showToast('⚠️ Король под шахом! Сделайте ход для защиты короля!', 3500);
+      if (window.sounds) window.sounds.play('illegal');
+      return;
+    }
+
+    finishPlayerTurn(false);
+  }
+
+  function handleTurnTimeout() {
+    if (gameVariant !== 'cards') return;
+    if (game.game_over()) return;
+
+    const currentTurn = game.turn();
+    const isMyTurn = (mode === 'pass') ? true : (currentTurn === myColor);
+
+    if (isMyTurn) {
+      if (game.in_check()) {
+        showToast('⏱️ Время на ход истекло под шахом!');
+        handleTimeout(myColor);
+        return;
+      }
+      showToast('⏱️ Время на ход вышло — ход завершён автоматически.');
+      finishPlayerTurn(true);
+    }
+  }
+
+  function finishPlayerTurn(isTimeout = false) {
+    if (window.sounds) window.sounds.play('button_click');
+
+    const justMovedColor = game.turn();
+    const nextColor = justMovedColor === 'w' ? 'b' : 'w';
+
+    // If player didn't make a chess piece move, pass the turn in FEN
+    if (!hasMovedThisTurn) {
+      const parts = game.fen().split(' ');
+      parts[1] = nextColor;
+      parts[3] = '-';
+      game.load(parts.join(' '));
+      totalMovesCount++;
+      deckManager.tickTurn(justMovedColor, totalMovesCount, game);
+    }
+
+    hasMovedThisTurn = false;
+
+    // Hearthstone-style Turn Mana Progression
+    advanceTurnMana(nextColor);
+
+    // Draw card every 3 full turns (every 6 half-moves)
+    if (totalMovesCount % 6 === 0) {
+      triggerCardDraw();
+      if (botDeckManager) botDeckManager.drawCard();
+    }
+
+    renderCardsHand();
+    renderActiveDecrees();
+    if (boardUI) boardUI.render();
+
+    // Check game over
+    if (game.game_over()) {
+      checkGameOver();
+      return;
+    }
+
+    // Start timer for next player / bot
+    startTurnTimer(nextColor);
+
+    // Trigger Bot turn
+    if (mode === 'bot' && nextColor === opponentColor) {
+      executeBotTurnSequence();
+    }
+  }
+
+  function executeBotTurnSequence() {
+    setTimeout(() => {
+      if (game.game_over()) {
+        checkGameOver();
+        return;
+      }
+
+      if (gameVariant === 'cards') {
+        botAttemptCardPlay();
+      }
+
+      const botMove = bot.getBestMove(game, botDifficulty, gameVariant === 'cards' ? deckManager : null);
+      if (botMove) {
+        const res = game.move(botMove);
+        if (res) {
+          totalMovesCount++;
+          boardUI.lastMove = { from: res.from, to: res.to };
+          boardUI.render();
+
+          // Clean up captured square effects
+          if (deckManager) {
+            if (deckManager.frozenPieces && deckManager.frozenPieces[res.to]) delete deckManager.frozenPieces[res.to];
+            if (deckManager.divineShields && deckManager.divineShields[res.to]) delete deckManager.divineShields[res.to];
+            if (deckManager.ironGuards && deckManager.ironGuards[res.to]) delete deckManager.ironGuards[res.to];
+          }
+
+          updateGameUI(res);
+          checkDecreePenalties(res, opponentColor, totalMovesCount);
+          deckManager.tickTurn(opponentColor, totalMovesCount, game);
+
+          if (res.captured) {
+            window.sounds.play('capture');
+          } else if (res.flags.includes('k') || res.flags.includes('q')) {
+            window.sounds.play('castle');
+          } else {
+            window.sounds.play('move');
+          }
+
+          if (game.in_check()) {
+            window.sounds.play('check');
+          }
+        }
+      }
+
+      setTimeout(() => {
+        finishBotTurn();
+      }, 600);
+    }, 600);
+  }
+
+  function finishBotTurn() {
+    if (game.game_over()) {
+      checkGameOver();
+      return;
+    }
+
+    advanceTurnMana(myColor);
+
+    if (totalMovesCount % 6 === 0) {
+      triggerCardDraw();
+      if (botDeckManager) botDeckManager.drawCard();
+    }
+
+    hasMovedThisTurn = false;
+    startTurnTimer(myColor);
+
+    renderCardsHand();
+    renderActiveDecrees();
+    if (boardUI) boardUI.render();
+
+    if (game.game_over()) {
+      checkGameOver();
+    }
+  }
+
+  if (btnEndTurn) {
+    btnEndTurn.addEventListener('click', handleEndTurnClick);
   }
 
   function renderCardsHand() {
@@ -2343,7 +2716,21 @@ document.addEventListener('DOMContentLoaded', () => {
   window.chessApp = {
     getAllActiveEffects,
     openEffectDetailsModal,
-    closeEffectDetailsModal
+    closeEffectDetailsModal,
+    get deckManager() { return deckManager; },
+    get botDeckManager() { return botDeckManager; },
+    get game() { return game; },
+    get boardUI() { return boardUI; },
+    get timerWhite() { return timerWhite; },
+    get timerBlack() { return timerBlack; },
+    get totalMovesCount() { return totalMovesCount; },
+    get hasMovedThisTurn() { return hasMovedThisTurn; },
+    applyCardEffect,
+    initiateCardPlay,
+    handleEndTurnClick,
+    finishPlayerTurn,
+    recordCardHistory,
+    showToast
   };
 
   function initiateCardPlay(card) {
@@ -2505,6 +2892,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!isRemote && deckManager) deckManager.spendMana(cost);
     if (isRemote && botDeckManager) botDeckManager.spendMana(cost);
     updateManaDisplay();
+    recordCardHistory(card, casterColor, targetSquare);
 
     if (!isRemote) {
       if (activeCard && activeCard.instanceId) deckManager.removeCard(activeCard.instanceId);
@@ -2516,6 +2904,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.sounds) window.sounds.play('thunder');
     showToast(`🌀 «Портал Бездны»: фигура перемещена с ${fromSquare.toUpperCase()} на ${toSquare.toUpperCase()}!`);
     boardUI.lastMove = { from: fromSquare, to: toSquare };
+    recordCardHistory(activeCard, casterColor, toSquare);
     renderCardsHand();
     if (boardUI) boardUI.render();
   }
@@ -2550,6 +2939,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!isRemote && deckManager) deckManager.spendMana(cost);
     if (isRemote && botDeckManager) botDeckManager.spendMana(cost);
     updateManaDisplay();
+    recordCardHistory(card, casterColor, targetSquare);
+    recordCardHistory(activeCard, casterColor, pawnSq);
 
     if (window.sounds) window.sounds.play('castle');
 
@@ -2592,6 +2983,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!isRemote && deckManager) deckManager.spendMana(cost);
     if (isRemote && botDeckManager) botDeckManager.spendMana(cost);
     updateManaDisplay();
+    recordCardHistory(card, casterColor, targetSquare);
 
     if (!isRemote) {
       deckManager.removeCard(card.instanceId);
@@ -2970,16 +3362,28 @@ document.addEventListener('DOMContentLoaded', () => {
           }
           break;
 
-        case 'healing_prayer':
-          if (targetSquare) {
-            if (deckManager.frozenPieces[targetSquare]) {
-              delete deckManager.frozenPieces[targetSquare];
+        case 'healing_prayer': {
+          const enemyCol = casterColor === 'w' ? 'b' : 'w';
+          deckManager.activeDecrees = deckManager.activeDecrees.filter(d => d.owner === casterColor);
+          let thawed = 0;
+          for (const sq in deckManager.frozenPieces) {
+            const p = game.get(sq);
+            if (p && p.color === casterColor) {
+              delete deckManager.frozenPieces[sq];
+              thawed++;
             }
-            deckManager.addIronGuard(targetSquare, casterColor, 2, totalMovesCount);
-            if (window.sounds) window.sounds.play('card_play');
-            showToast(`🕊️ «Слово Очищения»: фигура на ${targetSquare.toUpperCase()} очищена от льда и защищена Железным Панцирем на 2 хода!`);
           }
+          if (deckManager.forbiddenSquares) {
+            for (const sq in deckManager.forbiddenSquares) {
+              if (deckManager.forbiddenSquares[sq].owner === enemyCol) {
+                delete deckManager.forbiddenSquares[sq];
+              }
+            }
+          }
+          if (window.sounds) window.sounds.play('divine_shield');
+          showToast(`🕊️ «Слово Очищения»: все вражеские проклятия и ${thawed} заморозок развеяны!`);
           break;
+        }
 
         case 'arrow_volley':
           if (targetSquare) {
@@ -3049,47 +3453,42 @@ document.addEventListener('DOMContentLoaded', () => {
           }
           break;
 
-        case 'shield_wall':
-          if (targetSquare) {
-            const fileIdx = targetSquare.charCodeAt(0) - 97;
-            const rank = targetSquare[1];
-            let shielded = 0;
-            for (let df = -1; df <= 1; df++) {
-              const f = fileIdx + df;
-              if (f >= 0 && f < 8) {
-                const sq = String.fromCharCode(97 + f) + rank;
-                const p = game.get(sq);
-                if (p && p.color === casterColor && p.type === 'p') {
-                  deckManager.addDivineShield(sq, casterColor, 2, totalMovesCount);
-                  shielded++;
-                }
+        case 'shield_wall': {
+          let shielded = 0;
+          const b = game.board();
+          for (let r = 0; r < 8; r++) {
+            for (let c = 0; c < 8; c++) {
+              const p = b[r][c];
+              if (p && p.color === casterColor && p.type === 'p') {
+                const sq = String.fromCharCode(97 + c) + (8 - r);
+                deckManager.addDivineShield(sq, casterColor, 2, totalMovesCount);
+                shielded++;
               }
             }
-            if (window.sounds) window.sounds.play('card_play');
-            showToast(`🛡️ «Стена Щитов»: ${shielded} пешек защищены Божественным Щитом на 2 хода!`);
           }
+          if (window.sounds) window.sounds.play('divine_shield');
+          showToast(`🛡️ «Стена Щитов»: все союзные пешки (${shielded}) защищены Божественным Щитом на 2 хода!`);
           break;
+        }
 
-        case 'blood_pact':
-          if (targetSquare) {
-            const p = game.get(targetSquare);
-            if (p && p.color === casterColor && p.type === 'p') {
-              game.remove(targetSquare);
-              game.load(game.fen());
-              if (casterColor === 'w') timerWhite += 30; else timerBlack += 30;
-              updateTimerDisplay();
-              if (!isRemote) {
-                triggerCardDraw();
-                triggerCardDraw();
-              } else if (botDeckManager) {
-                botDeckManager.drawCard();
-                botDeckManager.drawCard();
-              }
-              if (window.sounds) window.sounds.play('card_play');
-              showToast(`🩸 «Кровавый Пакт»: пешка принесена в жертву! Получено +2 карты и +30 секунд!`);
-            }
+        case 'blood_pact': {
+          if (casterColor === 'w') {
+            timerWhite = Math.max(1, timerWhite - 20);
+          } else {
+            timerBlack = Math.max(1, timerBlack - 20);
           }
+          updateTimerDisplay();
+          if (!isRemote) {
+            triggerCardDraw();
+            triggerCardDraw();
+          } else if (botDeckManager) {
+            botDeckManager.drawCard();
+            botDeckManager.drawCard();
+          }
+          if (window.sounds) window.sounds.play('card_play');
+          showToast(`🩸 «Кровавый Пакт»: принесено в жертву 20 сек времени! Получено +2 карты из колоды!`);
           break;
+        }
 
         case 'earthquake': {
           let shiftedPawns = 0;
@@ -3764,27 +4163,6 @@ document.addEventListener('DOMContentLoaded', () => {
         break;
       }
 
-      case 'shield_wall':
-      case 'blood_pact': {
-        const b = game.board();
-        let targetSq = null;
-        for (let r = 0; r < 8; r++) {
-          for (let c = 0; c < 8; c++) {
-            const p = b[r][c];
-            if (p && p.color === botColor && p.type === 'p') {
-              targetSq = String.fromCharCode(97 + c) + (8 - r);
-              break;
-            }
-          }
-          if (targetSq) break;
-        }
-        if (targetSq) {
-          botDeckManager.removeCard(card.instanceId);
-          applyCardEffect(card, targetSq, true);
-        }
-        break;
-      }
-
       case 'fire_trail': {
         const candidates = ['d4', 'e4', 'd5', 'e5', 'c5', 'f5', 'c4', 'f4'];
         const emptySq = candidates.find(sq => !game.get(sq) && !deckManager.hasFireTrail(sq));
@@ -3860,14 +4238,23 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // Bot move trigger
+    if (gameVariant === 'cards') {
+      // Hearthstone turn flow: record that piece moved this turn.
+      // Player can now play more cards or click "Завершить ход" (or wait for 60s timer).
+      hasMovedThisTurn = true;
+      updateTurnTimerUI(movedColor);
+      renderCardsHand();
+      renderActiveDecrees();
+      return;
+    }
+
+    // Classic Mode: instant progression
+    advanceTurnMana(game.turn());
+
+    // Bot move trigger in classic mode
     if (mode === 'bot' && game.turn() === opponentColor) {
       setTimeout(() => {
-        if (gameVariant === 'cards') {
-          botAttemptCardPlay();
-        }
-
-        const botMove = bot.getBestMove(game, botDifficulty, gameVariant === 'cards' ? deckManager : null);
+        const botMove = bot.getBestMove(game, botDifficulty, null);
         if (botMove) {
           const res = game.move(botMove);
           boardUI.lastMove = { from: res.from, to: res.to };
@@ -4109,6 +4496,8 @@ document.addEventListener('DOMContentLoaded', () => {
   function endGame(title, desc) {
     gameEnded = true;
     stopTimer();
+    stopTurnTimer();
+    hideCardHistoryTooltip();
     window.sounds.play('gameover');
     gameOverTitle.textContent = title;
     gameOverDesc.textContent = desc;
@@ -4166,10 +4555,14 @@ document.addEventListener('DOMContentLoaded', () => {
       boardUI.deckManager = gameVariant === 'cards' ? deckManager : null;
       boardUI.options.deckManager = boardUI.deckManager;
       boardUI.options.playerColor = (mode === 'online' || mode === 'bot') ? myColor : null;
+      boardUI.options.hasMovedThisTurn = () => hasMovedThisTurn && gameVariant === 'cards';
       boardUI.setGame(game);
     }
 
     if (gameVariant === 'cards') {
+      cardPlayHistory.length = 0;
+      renderCardHistory();
+      hasMovedThisTurn = false;
       manaWhite = { current: 1, max: 1, turnCount: 1 };
       manaBlack = { current: 1, max: 1, turnCount: 1 };
 
@@ -4197,7 +4590,11 @@ document.addEventListener('DOMContentLoaded', () => {
       updateManaDisplay();
       renderCardsHand();
       renderActiveDecrees();
+      startTurnTimer('w');
     } else {
+      if (cardHistorySidebar) cardHistorySidebar.classList.add('hidden');
+      if (turnTimerDock) turnTimerDock.classList.add('hidden');
+      stopTurnTimer();
       botDeckManager = null;
       updateManaDisplay();
       renderCardsHand();

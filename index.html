@@ -270,8 +270,45 @@
             <div class="player-timer" id="timer-top">10:00</div>
           </div>
 
-          <!-- Board Mount Point -->
-          <div id="chess-board-container" class="board-container"></div>
+          <!-- Board Play Area with Left History Tray and Right Hearthstone End Turn Dock -->
+          <div class="board-play-area">
+            <!-- Left: Card Play History Tray (Last 3-5 used cards) -->
+            <div id="card-history-sidebar" class="card-history-sidebar hidden" title="История использованных карт">
+              <div class="card-history-header">История</div>
+              <div id="card-history-list" class="card-history-list"></div>
+            </div>
+
+            <!-- Center: Chess Board Mount Point -->
+            <div id="chess-board-container" class="board-container"></div>
+
+            <!-- Right: Hearthstone End Turn & Turn Timer Dock -->
+            <div id="turn-timer-dock" class="turn-timer-dock hidden">
+              <button id="btn-end-turn" class="btn-end-turn my-turn" title="Завершить текущий ход">
+                <span class="end-turn-title" id="end-turn-title">Завершить ход</span>
+                <span class="end-turn-timer-val" id="end-turn-timer-val">60с</span>
+                <div class="end-turn-progress-track">
+                  <div class="end-turn-progress-fill" id="end-turn-progress-fill"></div>
+                </div>
+              </button>
+            </div>
+
+            <!-- Card History Hover / Touch Tooltip Card -->
+            <div id="card-history-tooltip" class="card-history-tooltip hidden">
+              <div class="cht-card-top">
+                <div class="cht-mana-gem" id="cht-mana">💎 1</div>
+                <div class="cht-caster-badge" id="cht-caster">Вы</div>
+              </div>
+              <div class="cht-card-art">
+                <span class="cht-icon" id="cht-icon">🩸</span>
+              </div>
+              <div class="cht-card-body">
+                <div class="cht-title" id="cht-name">Кровавый Пакт</div>
+                <div class="cht-rarity-type" id="cht-rarity-type">Обычная магия</div>
+                <div class="cht-desc" id="cht-desc">Вы жертвуете 20 секунд своего времени и мгновенно берёте 2 карты из колоды!</div>
+                <div class="cht-target hidden" id="cht-target">Цель: e4</div>
+              </div>
+            </div>
+          </div>
 
           <!-- Bottom Player Bar -->
           <div class="player-bar" id="player-bar-bottom">
@@ -852,16 +889,16 @@
   </div>
 
   <!-- Dependencies with version cache-busting -->
-  <script src="js/logger.js?v=2.9.4"></script>
-  <script src="js/chess.js?v=2.9.4"></script>
-  <script src="js/peerjs.min.js?v=2.9.4"></script>
-  <script src="js/pieces.js?v=2.9.4"></script>
-  <script src="js/sounds.js?v=2.9.4"></script>
-  <script src="js/cards.js?v=2.9.4"></script>
-  <script src="js/decks.js?v=2.9.4"></script>
-  <script src="js/bot.js?v=2.9.4"></script>
-  <script src="js/network.js?v=2.9.4"></script>
-  <script src="js/board.js?v=2.9.4"></script>
-  <script src="js/app.js?v=2.9.4"></script>
+  <script src="js/logger.js?v=2.9.5"></script>
+  <script src="js/chess.js?v=2.9.5"></script>
+  <script src="js/peerjs.min.js?v=2.9.5"></script>
+  <script src="js/pieces.js?v=2.9.5"></script>
+  <script src="js/sounds.js?v=2.9.5"></script>
+  <script src="js/cards.js?v=2.9.5"></script>
+  <script src="js/decks.js?v=2.9.5"></script>
+  <script src="js/bot.js?v=2.9.5"></script>
+  <script src="js/network.js?v=2.9.5"></script>
+  <script src="js/board.js?v=2.9.5"></script>
+  <script src="js/app.js?v=2.9.5"></script>
 </body>
 </html>

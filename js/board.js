@@ -357,33 +357,7 @@ class ChessBoardUI {
       return;
     }
 
-    // Check if clicked piece is frozen
-    if (this.deckManager && this.deckManager.isPieceFrozen(square)) {
-      if (window.sounds) window.sounds.play('freeze');
-      if (window.chessApp && window.chessApp.getAllActiveEffects && window.chessApp.openEffectDetailsModal) {
-        const effects = window.chessApp.getAllActiveEffects();
-        const frozenEff = effects.find(e => e.id === 'frozen_' + square);
-        if (frozenEff) {
-          window.chessApp.openEffectDetailsModal(frozenEff, effects);
-          return;
-        }
-      }
-      return;
-    }
-
-    // Check if clicked square has a trap or field effect (when no piece is selected to move)
-    if (this.deckManager && this.deckManager.forbiddenSquares && this.deckManager.forbiddenSquares[square] && !this.selectedSquare) {
-      if (window.chessApp && window.chessApp.getAllActiveEffects && window.chessApp.openEffectDetailsModal) {
-        const effects = window.chessApp.getAllActiveEffects();
-        const trapEff = effects.find(e => e.id === 'trap_' + square);
-        if (trapEff) {
-          window.chessApp.openEffectDetailsModal(trapEff, effects);
-          return;
-        }
-      }
-    }
-
-    // If already selected, check if clicked on a legal move destination
+    // 1. If a piece is already selected, check destination FIRST (allows capturing frozen enemy pieces!)
     if (this.selectedSquare) {
       if (this.selectedSquare === square) {
         // Deselect
@@ -400,7 +374,41 @@ class ChessBoardUI {
       }
     }
 
-    // Select piece
+    // 2. In card chess mode, prevent selecting another piece if a piece has already moved this turn
+    if (this.options.hasMovedThisTurn && this.options.hasMovedThisTurn()) {
+      if (window.chessApp && window.chessApp.showToast) {
+        window.chessApp.showToast('Вы уже сделали ход фигурой в этом раунде. Разыграйте карты или нажмите «Завершить ход».');
+      }
+      return;
+    }
+
+    // 3. Check if clicked piece is frozen (cannot be moved)
+    if (this.deckManager && this.deckManager.isPieceFrozen(square)) {
+      if (window.sounds) window.sounds.play('freeze');
+      if (window.chessApp && window.chessApp.getAllActiveEffects && window.chessApp.openEffectDetailsModal) {
+        const effects = window.chessApp.getAllActiveEffects();
+        const frozenEff = effects.find(e => e.id === 'frozen_' + square);
+        if (frozenEff) {
+          window.chessApp.openEffectDetailsModal(frozenEff, effects);
+          return;
+        }
+      }
+      return;
+    }
+
+    // 4. Check if clicked square has a trap or field effect (when no piece is selected to move)
+    if (this.deckManager && this.deckManager.forbiddenSquares && this.deckManager.forbiddenSquares[square] && !this.selectedSquare) {
+      if (window.chessApp && window.chessApp.getAllActiveEffects && window.chessApp.openEffectDetailsModal) {
+        const effects = window.chessApp.getAllActiveEffects();
+        const trapEff = effects.find(e => e.id === 'trap_' + square);
+        if (trapEff) {
+          window.chessApp.openEffectDetailsModal(trapEff, effects);
+          return;
+        }
+      }
+    }
+
+    // 5. Select friendly piece
     const piece = this.getPieceAt(square);
     if (piece && piece.color === this.game.turn()) {
       // Check if user is allowed to play this color
@@ -491,6 +499,18 @@ class ChessBoardUI {
 
     const result = this.game.move(moveData);
     if (result) {
+      // Clear frozen status, divine shield, or iron guard from captured square
+      if (this.deckManager) {
+        if (this.deckManager.frozenPieces && this.deckManager.frozenPieces[to]) {
+          delete this.deckManager.frozenPieces[to];
+        }
+        if (this.deckManager.divineShields && this.deckManager.divineShields[to]) {
+          delete this.deckManager.divineShields[to];
+        }
+        if (this.deckManager.ironGuards && this.deckManager.ironGuards[to]) {
+          delete this.deckManager.ironGuards[to];
+        }
+      }
       this.lastMove = { from, to };
       this.selectedSquare = null;
       this.legalMoves = [];
@@ -549,6 +569,11 @@ class ChessBoardUI {
         e.preventDefault();
         e.stopPropagation();
         this.onSquareClick(square, e);
+        return;
+      }
+
+      // In card chess mode, prevent dragging if already moved this turn
+      if (this.options.hasMovedThisTurn && this.options.hasMovedThisTurn()) {
         return;
       }
 
