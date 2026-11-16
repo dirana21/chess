@@ -115,6 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let turnTimerRemaining = 60;
   let turnTimerInterval = null;
   let hasMovedThisTurn = false;
+  let currentTurnPlayer = 'w';
 
   // Active Effects HUD & Modal Elements
   const btnOpenEffectsModal = document.getElementById('btn-open-effects-modal');
@@ -1585,7 +1586,8 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      if (game.turn() === 'w') {
+      const activeColor = (gameVariant === 'cards') ? currentTurnPlayer : game.turn();
+      if (activeColor === 'w') {
         timerWhite = Math.max(0, timerWhite - 1);
         if (timerWhite === 0) {
           handleTimeout('w');
@@ -1627,8 +1629,9 @@ document.addEventListener('DOMContentLoaded', () => {
     timerBottomEl.classList.toggle('low-time', bottomTimer > 0 && bottomTimer <= 30);
     timerTopEl.classList.toggle('low-time', topTimer > 0 && topTimer <= 30);
 
-    timerBottomEl.classList.toggle('active-turn', game.turn() === myColor);
-    timerTopEl.classList.toggle('active-turn', game.turn() !== myColor);
+    const activeColor = (gameVariant === 'cards') ? currentTurnPlayer : game.turn();
+    timerBottomEl.classList.toggle('active-turn', activeColor === myColor);
+    timerTopEl.classList.toggle('active-turn', activeColor !== myColor);
   }
 
   function handleTimeout(lostColor) {
@@ -1751,13 +1754,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (opponentManaTray) opponentManaTray.classList.remove('hidden');
     if (hudManaBadge) hudManaBadge.classList.remove('hidden');
 
+    const currentActiveColor = (gameVariant === 'cards') ? currentTurnPlayer : ((mode === 'bot' || mode === 'online') ? myColor : (game ? game.turn() : 'w'));
     const myMana = (mode === 'bot' || mode === 'online')
       ? (myColor === 'w' ? manaWhite : manaBlack)
-      : (game.turn() === 'w' ? manaWhite : manaBlack);
+      : (currentActiveColor === 'w' ? manaWhite : manaBlack);
 
     const oppMana = (mode === 'bot' || mode === 'online')
       ? (opponentColor === 'w' ? manaWhite : manaBlack)
-      : (game.turn() === 'w' ? manaBlack : manaWhite);
+      : (currentActiveColor === 'w' ? manaBlack : manaWhite);
 
     if (playerManaText) playerManaText.textContent = `${myMana.current}/${myMana.max}`;
     if (opponentManaText) opponentManaText.textContent = `${oppMana.current}/${oppMana.max}`;
@@ -1920,7 +1924,8 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       turnTimerRemaining = Math.max(0, turnTimerRemaining - 1);
-      updateTurnTimerUI(game.turn());
+      const activeColor = (gameVariant === 'cards') ? currentTurnPlayer : game.turn();
+      updateTurnTimerUI(activeColor);
 
       if (turnTimerRemaining <= 0) {
         stopTurnTimer();
@@ -1938,7 +1943,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function updateTurnTimerUI(activeTurnColor) {
     if (!btnEndTurn || !endTurnTitle || !endTurnTimerVal) return;
-    const isMyTurn = (mode === 'pass') ? true : (activeTurnColor === myColor);
+    const activeColor = (gameVariant === 'cards') ? currentTurnPlayer : (activeTurnColor || (game ? game.turn() : 'w'));
+    const isMyTurn = (mode === 'pass') ? true : (activeColor === myColor);
 
     endTurnTimerVal.textContent = `${turnTimerRemaining}с`;
     if (endTurnProgressFill) {
@@ -1952,7 +1958,7 @@ document.addEventListener('DOMContentLoaded', () => {
       btnEndTurn.classList.remove('opponent-turn');
       btnEndTurn.classList.add('my-turn');
       btnEndTurn.classList.toggle('has-moved', hasMovedThisTurn);
-      endTurnTitle.textContent = hasMovedThisTurn ? 'Завершить ход' : 'Завершить ход';
+      endTurnTitle.textContent = 'Завершить ход';
       btnEndTurn.style.cursor = 'pointer';
     } else {
       btnEndTurn.classList.remove('my-turn');
@@ -1967,7 +1973,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (gameVariant !== 'cards') return;
     if (game.game_over()) return;
 
-    const currentTurn = game.turn();
+    const currentTurn = (gameVariant === 'cards') ? currentTurnPlayer : game.turn();
     const isMyTurn = (mode === 'pass') ? true : (currentTurn === myColor);
     if (!isMyTurn) return;
 
@@ -1985,7 +1991,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (gameVariant !== 'cards') return;
     if (game.game_over()) return;
 
-    const currentTurn = game.turn();
+    const currentTurn = (gameVariant === 'cards') ? currentTurnPlayer : game.turn();
     const isMyTurn = (mode === 'pass') ? true : (currentTurn === myColor);
 
     if (isMyTurn) {
@@ -2002,7 +2008,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function finishPlayerTurn(isTimeout = false) {
     if (window.sounds) window.sounds.play('button_click');
 
-    const justMovedColor = game.turn();
+    const justMovedColor = (gameVariant === 'cards') ? currentTurnPlayer : game.turn();
     const nextColor = justMovedColor === 'w' ? 'b' : 'w';
 
     // If player didn't make a chess piece move, pass the turn in FEN
@@ -2012,12 +2018,16 @@ document.addEventListener('DOMContentLoaded', () => {
       parts[3] = '-';
       game.load(parts.join(' '));
       totalMovesCount++;
+    }
+
+    if (deckManager) {
       deckManager.tickTurn(justMovedColor, totalMovesCount, game);
     }
 
     hasMovedThisTurn = false;
+    currentTurnPlayer = nextColor;
 
-    // Hearthstone-style Turn Mana Progression
+    // Hearthstone-style Turn Mana Progression for next player
     advanceTurnMana(nextColor);
 
     // Draw card every 3 full turns (every 6 half-moves)
@@ -2028,7 +2038,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     renderCardsHand();
     renderActiveDecrees();
+    updateTimerDisplay();
     if (boardUI) boardUI.render();
+
+    if (mode === 'online') {
+      network.sendEndTurn(justMovedColor, game.fen());
+    }
 
     // Check game over
     if (game.game_over()) {
@@ -2073,7 +2088,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
           updateGameUI(res);
           checkDecreePenalties(res, opponentColor, totalMovesCount);
-          deckManager.tickTurn(opponentColor, totalMovesCount, game);
 
           if (res.captured) {
             window.sounds.play('capture');
@@ -2086,6 +2100,14 @@ document.addEventListener('DOMContentLoaded', () => {
           if (game.in_check()) {
             window.sounds.play('check');
           }
+        }
+      } else {
+        if (!game.game_over()) {
+          const parts = game.fen().split(' ');
+          parts[1] = myColor;
+          parts[3] = '-';
+          game.load(parts.join(' '));
+          totalMovesCount++;
         }
       }
 
@@ -2101,6 +2123,11 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    if (deckManager) {
+      deckManager.tickTurn(opponentColor, totalMovesCount, game);
+    }
+
+    currentTurnPlayer = myColor;
     advanceTurnMana(myColor);
 
     if (totalMovesCount % 6 === 0) {
@@ -2113,6 +2140,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     renderCardsHand();
     renderActiveDecrees();
+    updateTimerDisplay();
     if (boardUI) boardUI.render();
 
     if (game.game_over()) {
@@ -2146,14 +2174,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const movesTillNext = 3 - (Math.floor(totalMovesCount / 2) % 3);
     const turnsVal = movesTillNext === 0 ? 3 : movesTillNext;
 
-    const activeColor = (mode === 'online' || mode === 'bot') ? myColor : (game ? game.turn() : 'w');
+    const activeColor = (gameVariant === 'cards') ? currentTurnPlayer : ((mode === 'online' || mode === 'bot') ? myColor : (game ? game.turn() : 'w'));
+    const isMyTurn = (mode === 'pass') ? true : (activeColor === myColor);
     const activeMana = activeColor === 'w' ? manaWhite : manaBlack;
 
     if (hudCardsBadge) hudCardsBadge.textContent = `${handLen}/4`;
     if (invCardsCount) invCardsCount.textContent = handLen;
     if (invTurnsUntil) invTurnsUntil.textContent = turnsVal;
     if (btnOpenCardsInv) {
-      btnOpenCardsInv.classList.toggle('has-playable-cards', handLen > 0 && game && game.turn() === myColor && deckManager.hand.some(c => (c.manaCost || 1) <= activeMana.current));
+      btnOpenCardsInv.classList.toggle('has-playable-cards', handLen > 0 && isMyTurn && deckManager.hand.some(c => (c.manaCost || 1) <= activeMana.current));
     }
     if (hudNextCardTimer) {
       hudNextCardTimer.innerHTML = `Карта через: <strong>${turnsVal}</strong> х.`;
@@ -2175,7 +2204,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     deckManager.hand.forEach(card => {
       const cost = card.manaCost || 1;
-      const canAfford = activeMana.current >= cost;
+      const canAfford = isMyTurn && (activeMana.current >= cost);
       const rarityData = CARD_RARITIES[card.rarity] || CARD_RARITIES.COMMON;
       const catData = (typeof CARD_CATEGORIES !== 'undefined' && CARD_CATEGORIES[card.category]) || { name: 'Магия', icon: '✨', color: '#818cf8' };
       const cardEl = document.createElement('div');
@@ -2195,12 +2224,16 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
         <div class="card-name">${card.name}</div>
         <div class="card-desc">${card.description}</div>
-        <button class="btn-play-card" ${canAfford ? '' : 'disabled'}>${canAfford ? `Разыграть (💎 ${cost})` : `💎 Нужно ${cost}`}</button>
+        <button class="btn-play-card" ${canAfford ? '' : 'disabled'}>${canAfford ? `Разыграть (💎 ${cost})` : (!isMyTurn ? 'Ход соперника' : `💎 Нужно ${cost}`)}</button>
       `;
 
       const btnPlay = cardEl.querySelector('.btn-play-card');
       const handlePlay = (e) => {
         if (e) e.stopPropagation();
+        if (!isMyTurn) {
+          showToast('Карты можно разыгрывать только в свой ход!');
+          return;
+        }
         if (!canAfford) {
           if (window.sounds) window.sounds.play('illegal');
           showToast(`💎 Недостаточно маны! Нужно ${cost}, у вас ${activeMana.current}`);
@@ -2725,6 +2758,7 @@ document.addEventListener('DOMContentLoaded', () => {
     get timerBlack() { return timerBlack; },
     get totalMovesCount() { return totalMovesCount; },
     get hasMovedThisTurn() { return hasMovedThisTurn; },
+    get currentTurnPlayer() { return currentTurnPlayer; },
     applyCardEffect,
     initiateCardPlay,
     handleEndTurnClick,
@@ -2737,13 +2771,13 @@ document.addEventListener('DOMContentLoaded', () => {
     closeCardsInventory();
     if (game.game_over()) return;
     // Check if it's player's turn (in online/bot mode)
-    if ((mode === 'online' || mode === 'bot') && game.turn() !== myColor) {
+    const activeColor = (gameVariant === 'cards') ? currentTurnPlayer : ((mode === 'online' || mode === 'bot') ? myColor : (game ? game.turn() : 'w'));
+    if ((mode === 'online' || mode === 'bot') && activeColor !== myColor) {
       showToast('Карты можно разыгрывать только в свой ход!');
       return;
     }
 
     // Hearthstone Mana Check
-    const activeColor = (mode === 'online' || mode === 'bot') ? myColor : (game ? game.turn() : 'w');
     const activeMana = activeColor === 'w' ? manaWhite : manaBlack;
     const cost = card.manaCost || 1;
     if (activeMana.current < cost) {
@@ -2882,7 +2916,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const activeCard = card || pendingCard || { name: 'Портал Бездны', icon: '🌀', manaCost: 4 };
     showCardPlayCinematic(activeCard, !isRemote, `${fromSquare.toUpperCase()} ➔ ${toSquare.toUpperCase()}`);
 
-    const casterColor = isRemote ? opponentColor : ((mode === 'pass') ? (game ? game.turn() : 'w') : myColor);
+    const casterColor = isRemote ? opponentColor : ((mode === 'pass') ? ((gameVariant === 'cards') ? currentTurnPlayer : (game ? game.turn() : 'w')) : myColor);
     const cost = activeCard.manaCost || 4;
     if (casterColor === 'w') {
       manaWhite.current = Math.max(0, manaWhite.current - cost);
@@ -2892,7 +2926,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!isRemote && deckManager) deckManager.spendMana(cost);
     if (isRemote && botDeckManager) botDeckManager.spendMana(cost);
     updateManaDisplay();
-    recordCardHistory(card, casterColor, targetSquare);
 
     if (!isRemote) {
       if (activeCard && activeCard.instanceId) deckManager.removeCard(activeCard.instanceId);
@@ -2929,7 +2962,7 @@ document.addEventListener('DOMContentLoaded', () => {
     game.load(game.fen());
 
     const activeCard = card || pendingCard || { name: 'Обмен теней', icon: '👥', manaCost: 3 };
-    const casterColor = isRemote ? opponentColor : ((mode === 'pass') ? (game ? game.turn() : 'w') : myColor);
+    const casterColor = isRemote ? opponentColor : ((mode === 'pass') ? ((gameVariant === 'cards') ? currentTurnPlayer : (game ? game.turn() : 'w')) : myColor);
     const cost = activeCard.manaCost || 3;
     if (casterColor === 'w') {
       manaWhite.current = Math.max(0, manaWhite.current - cost);
@@ -2939,7 +2972,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!isRemote && deckManager) deckManager.spendMana(cost);
     if (isRemote && botDeckManager) botDeckManager.spendMana(cost);
     updateManaDisplay();
-    recordCardHistory(card, casterColor, targetSquare);
     recordCardHistory(activeCard, casterColor, pawnSq);
 
     if (window.sounds) window.sounds.play('castle');
@@ -2973,7 +3005,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.sounds) window.sounds.play('card_play');
     showCardPlayCinematic(card, !isRemote, targetSquare);
 
-    const casterColor = isRemote ? opponentColor : ((mode === 'pass') ? (game ? game.turn() : 'w') : myColor);
+    const casterColor = isRemote ? opponentColor : ((mode === 'pass') ? ((gameVariant === 'cards') ? currentTurnPlayer : (game ? game.turn() : 'w')) : myColor);
     const cost = card.manaCost || 1;
     if (casterColor === 'w') {
       manaWhite.current = Math.max(0, manaWhite.current - cost);
@@ -4198,21 +4230,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Check decree penalties on moved player
     checkDecreePenalties(moveResult, movedColor, totalMovesCount);
-    deckManager.tickTurn(movedColor, totalMovesCount, game);
-
-    // Draw card every 3 full turns (every 6 half-moves)
-    if (gameVariant === 'cards' && totalMovesCount % 6 === 0) {
-      triggerCardDraw();
-      if (botDeckManager) {
-        botDeckManager.drawCard();
-      }
-    }
-
-    // Hearthstone-style Turn Mana Progression
-    advanceTurnMana(game.turn());
-
-    renderCardsHand();
-    renderActiveDecrees();
 
     // Play move or capture sound
     if (moveResult.captured) {
@@ -4242,14 +4259,18 @@ document.addEventListener('DOMContentLoaded', () => {
       // Hearthstone turn flow: record that piece moved this turn.
       // Player can now play more cards or click "Завершить ход" (or wait for 60s timer).
       hasMovedThisTurn = true;
-      updateTurnTimerUI(movedColor);
+      updateTurnTimerUI(currentTurnPlayer);
+      updateTimerDisplay();
       renderCardsHand();
       renderActiveDecrees();
       return;
     }
 
     // Classic Mode: instant progression
+    deckManager.tickTurn(movedColor, totalMovesCount, game);
     advanceTurnMana(game.turn());
+    renderCardsHand();
+    renderActiveDecrees();
 
     // Bot move trigger in classic mode
     if (mode === 'bot' && game.turn() === opponentColor) {
@@ -4315,18 +4336,21 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       checkDecreePenalties(res, movedColor, totalMovesCount);
-      deckManager.tickTurn(movedColor, totalMovesCount, game);
 
-      if (gameVariant === 'cards' && totalMovesCount % 6 === 0) {
-        triggerCardDraw();
+      if (gameVariant === 'cards') {
+        if (data.timeWhite !== undefined) timerWhite = data.timeWhite;
+        if (data.timeBlack !== undefined) timerBlack = data.timeBlack;
+        updateTimerDisplay();
+        renderCardsHand();
+        renderActiveDecrees();
+        boardUI.render();
+      } else {
+        deckManager.tickTurn(movedColor, totalMovesCount, game);
+        advanceTurnMana(game.turn());
+        renderCardsHand();
+        renderActiveDecrees();
+        boardUI.render();
       }
-
-      // Hearthstone-style Turn Mana Progression
-      advanceTurnMana(game.turn());
-
-      renderCardsHand();
-      renderActiveDecrees();
-      boardUI.render();
 
       if (data.timeWhite !== undefined) timerWhite = data.timeWhite;
       if (data.timeBlack !== undefined) timerBlack = data.timeBlack;
@@ -4563,6 +4587,7 @@ document.addEventListener('DOMContentLoaded', () => {
       cardPlayHistory.length = 0;
       renderCardHistory();
       hasMovedThisTurn = false;
+      currentTurnPlayer = 'w';
       manaWhite = { current: 1, max: 1, turnCount: 1 };
       manaBlack = { current: 1, max: 1, turnCount: 1 };
 
@@ -4753,6 +4778,24 @@ document.addEventListener('DOMContentLoaded', () => {
     handleRemoteMove(data);
   });
 
+  network.on('endTurn', (data) => {
+    if (gameVariant !== 'cards') return;
+    if (data && data.fen && game.fen() !== data.fen) {
+      game.load(data.fen);
+    }
+    if (deckManager) {
+      deckManager.tickTurn(opponentColor, totalMovesCount, game);
+    }
+    currentTurnPlayer = myColor;
+    advanceTurnMana(myColor);
+    hasMovedThisTurn = false;
+    startTurnTimer(myColor);
+    renderCardsHand();
+    renderActiveDecrees();
+    updateTimerDisplay();
+    if (boardUI) boardUI.render();
+  });
+
   network.on('chat', (data) => {
     window.sounds.play('notify');
     appendChatMessage(data.sender, data.text);
@@ -4828,20 +4871,22 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     if (side === 'b') {
-      setTimeout(() => {
-        if (gameVariant === 'cards') {
-          botAttemptCardPlay();
-        }
-        const botMove = bot.getBestMove(game, botDifficulty, gameVariant === 'cards' ? deckManager : null);
-        if (botMove) {
-          const res = game.move(botMove);
-          boardUI.lastMove = { from: res.from, to: res.to };
-          boardUI.render();
-          handleLocalMove(res);
-        } else {
-          checkGameOver();
-        }
-      }, 500);
+      if (gameVariant === 'cards') {
+        startTurnTimer('w');
+        executeBotTurnSequence();
+      } else {
+        setTimeout(() => {
+          const botMove = bot.getBestMove(game, botDifficulty, null);
+          if (botMove) {
+            const res = game.move(botMove);
+            boardUI.lastMove = { from: res.from, to: res.to };
+            boardUI.render();
+            handleLocalMove(res);
+          } else {
+            checkGameOver();
+          }
+        }, 500);
+      }
     }
   });
 

@@ -322,6 +322,9 @@ class ChessNetwork {
         case 'card-draw':
           this._emit('cardDraw', data);
           break;
+        case 'end-turn':
+          this._emit('endTurn', data);
+          break;
       }
     });
   }
@@ -416,6 +419,15 @@ class ChessNetwork {
     this.send({
       type: 'card-draw',
       count,
+      timestamp: Date.now()
+    });
+  }
+
+  sendEndTurn(turnPlayer, fen) {
+    this.send({
+      type: 'end-turn',
+      turnPlayer,
+      fen,
       timestamp: Date.now()
     });
   }
